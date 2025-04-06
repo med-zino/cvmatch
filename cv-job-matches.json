@@ -1,0 +1,292 @@
+{
+    "cvAnalysis": {
+      "skills": [
+        "React",
+        "Redux",
+        "Sass",
+        "TS",
+        "JS",
+        "CSS",
+        "Node.js",
+        "Express.js",
+        "MongoDB",
+        "PostgreSQL",
+        "Docker",
+        "Microservices architecture",
+        "Laravel",
+        "Spring Boot",
+        "Angular",
+        "Database Management",
+        "Software Engineering",
+        "Artificial Intelligence",
+        "Human-Computer Interaction",
+        "DevOps"
+      ],
+      "technical_skills": [
+        "React",
+        "Redux",
+        "Sass",
+        "TS",
+        "JS",
+        "CSS",
+        "Node.js",
+        "Express.js",
+        "MongoDB",
+        "PostgreSQL",
+        "Docker",
+        "Laravel",
+        "Spring Boot",
+        "Angular",
+        "HTML5",
+        "CSS3",
+        "Edge.js"
+      ],
+      "soft_skills": [
+        "Troubleshooting",
+        "Debugging",
+        "Designing",
+        "Communication",
+        "Teamwork"
+      ],
+      "experience": [
+        {
+          "title": "FULLSACK Developer",
+          "company": "BRENCO CONSULTING",
+          "duration": "dec 2022- Aujourd'hui",
+          "description": [
+            "Developing and maintaining the front-end of web applications using react",
+            "Developing and maintaining the back-end of web applications using a variety of programming languages",
+            "Designing and implementing databases and data models using tools such as Postgres, MongoDB",
+            "Integrating web applications with third-party APIs and services, such as payment gateways, social media platforms, or messaging services.",
+            "Troubleshooting and debugging web applications to identify and resolve issues and bugs."
+          ]
+        },
+        {
+          "title": "FULLSACK Developer intern",
+          "company": "Kunntec canada",
+          "duration": "JAN 2021 - APR 2021",
+          "description": []
+        }
+      ],
+      "education": [
+        {
+          "degree": "Bachelor's degree in Computer Engineering (in progress)",
+          "institution": "ESI SBA, Algeria",
+          "year": "2018-present"
+        },
+        {
+          "degree": "Baccalauréat série Mathématiques",
+          "institution": "Algérie",
+          "year": "2018"
+        }
+      ],
+      "languages": [
+        "French",
+        "English"
+      ],
+      "certifications": []
+    },
+    "jobMatches": [
+      {
+        "jobId": "MICmeIC5pPYaewULAAAAAA==",
+        "title": "Front-end developer - React F/H - Les Echos",
+        "company": "Groupe Les Echos Le Parisien",
+        "score": 90,
+        "reasons": [
+          "Strong match with React skill.",
+          "Matches front-end development experience.",
+          "The candidate has experience in refactoring"
+        ],
+        "skillsMatch": [
+          "React"
+        ],
+        "missingSkills": [],
+        "link": "https://www.welcometothejungle.com/fr/companies/groupe-les-echos-le-parisien/jobs/developper-front-end-react-f-h_paris?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+        "posted": ""
+      },
+      {
+        "jobId": "CvQJa-Vp2XJk-DK3AAAAAA==",
+        "title": "Front-End Developer Internship (F/M)",
+        "company": "Rakuten France",
+        "score": 88,
+        "reasons": [
+          "Requires Javascript and React, which are key skills of the candidate.",
+          "Also requires HTML/CSS, where the candidate have proven skills"
+        ],
+        "skillsMatch": [
+          "JavaScript",
+          "React",
+          "HTML",
+          "CSS",
+          "Redux",
+          "Node.js"
+        ],
+        "missingSkills": [],
+        "link": "https://fr.linkedin.com/jobs/view/front-end-developer-internship-f-m-at-rakuten-france-4195487483?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+        "posted": "il y a 6 jours"
+      },
+      {
+        "jobId": "6SaYLNeL0h8Q7UElAAAAAA==",
+        "title": "Développeur Front-end - React (stage)",
+        "company": "Bealy",
+        "score": 85,
+        "reasons": [
+          "Requires React, which is a key skill of the candidate.",
+          "Front-end role matches the candidate's experience.",
+          "Opportunity for growth within the technical field."
+        ],
+        "skillsMatch": [
+          "React"
+        ],
+        "missingSkills": [],
+        "link": "https://www.welcometothejungle.com/fr/companies/bealy/jobs/developpeur-front-end-react-stage_paris?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+        "posted": ""
+      },
+      {
+        "jobId": "mxr2mhMh-FQOhDu5AAAAAA==",
+        "title": "Développeur Frontend ReactJS/Angular",
+        "company": "ALTEN",
+        "score": 82,
+        "reasons": [
+          "Requires ReactJS and Angular, skills possessed by the candidate.",
+          "Requires JavaScript, HTML, and CSS, all fundamental web development skills.",
+          "The candidate has worked with third-party APIs"
+        ],
+        "skillsMatch": [
+          "React",
+          "Angular",
+          "JavaScript",
+          "HTML",
+          "CSS"
+        ],
+        "missingSkills": [
+          "Java"
+        ],
+        "link": "https://fr.linkedin.com/jobs/view/d%C3%A9veloppeur-frontend-reactjs-angular-at-alten-4199987242?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+        "posted": "il y a 3 jours"
+      },
+      {
+        "jobId": "MitolIcI3lqJ0jmiAAAAAA==",
+        "title": "Développeur front-end spécialisé design system (H/F)",
+        "company": "GANDI",
+        "score": 78,
+        "reasons": [
+          "Requires React, Javascript, CSS and HTML which are key skills of the candidate.",
+          "Experience on agile methodologies"
+        ],
+        "skillsMatch": [
+          "React",
+          "JavaScript",
+          "HTML",
+          "CSS",
+          "ES6"
+        ],
+        "missingSkills": [
+          "Excel",
+          "Java",
+          "Scrum"
+        ],
+        "link": "https://candidat.francetravail.fr/offres/recherche/detail/190NMJD?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+        "posted": "il y a 5 jours"
+      },
+      {
+        "jobId": "s5QzSBwWO3B_ZsneAAAAAA==",
+        "title": "Front-End Developer",
+        "company": "Flitter",
+        "score": 75,
+        "reasons": [
+          "Requires React, which is a core skill of the candidate.",
+          "Involves working with backend teams and integrating APIs, which aligns with the candidate's experience."
+        ],
+        "skillsMatch": [
+          "React",
+          "TS"
+        ],
+        "missingSkills": [
+          "Python"
+        ],
+        "link": "https://www.welcometothejungle.com/fr/companies/flitter/jobs/front-end-developer_paris?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+        "posted": "il y a 5 jours"
+      },
+      {
+        "jobId": "27IJg83_9bNQWDeuAAAAAA==",
+        "title": "Développeur Front-end UI/UX H/F",
+        "company": "HAYS France",
+        "score": 70,
+        "reasons": [
+          "Requires HTML, CSS, and JavaScript, which are fundamental web development skills.",
+          "Experience customizing WordPress themes can be beneficial."
+        ],
+        "skillsMatch": [
+          "JavaScript",
+          "HTML",
+          "CSS",
+          "Sass"
+        ],
+        "missingSkills": [
+          "Word",
+          "Java",
+          "PHP"
+        ],
+        "link": "https://www.free-work.com/fr/tech-it/developpeur-front-end-javascript-node-react-angular-vue/job-mission/developpeur-front-end-ui-ux-h-f?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+        "posted": "il y a 3 jours"
+      },
+      {
+        "jobId": "7V-7IEQaCNRvseO5AAAAAA==",
+        "title": "Développeur web/Développeuse web",
+        "company": "Overcome",
+        "score": 65,
+        "reasons": [
+          "Requires HTML, CSS, and JavaScript, which are core web development skills.",
+          "Experience with PHP aligns with the candidate's full-stack background."
+        ],
+        "skillsMatch": [
+          "JavaScript",
+          "HTML",
+          "CSS",
+          "PHP"
+        ],
+        "missingSkills": [
+          "Word",
+          "Java"
+        ],
+        "link": "https://fr.linkedin.com/jobs/view/d%C3%A9veloppeur-web-d%C3%A9veloppeuse-web-at-overcome-4199443118?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+        "posted": "il y a 2 jours"
+      },
+      {
+        "jobId": "vI662kEvq_R8O1auAAAAAA==",
+        "title": "FrontEnd Developer, France",
+        "company": "Deephawk",
+        "score": 50,
+        "reasons": [
+          "Frontend role",
+          "Usability/user ergonomics in industry is a plus"
+        ],
+        "skillsMatch": [],
+        "missingSkills": [
+          "Agile",
+          "Angular"
+        ],
+        "link": "https://fr.indeed.com/viewjob?jk=c463ffa6cd815a51&utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+        "posted": ""
+      },
+      {
+        "jobId": "Qf7aHjckkc77F07TAAAAAA==",
+        "title": "Junior Frontend Developer",
+        "company": "QENDO",
+        "score": 45,
+        "reasons": [
+          "Frontend role"
+        ],
+        "skillsMatch": [],
+        "missingSkills": [],
+        "link": "https://www.qendo.io/careers/junior-frontend-developer?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+        "posted": ""
+      }
+    ],
+    "meta": {
+      "jobsSource": "API",
+      "totalJobsFound": 10,
+      "processedAt": "2025-04-06T20:07:32.755Z"
+    }
+  }

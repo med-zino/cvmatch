@@ -1,0 +1,25 @@
+{
+    "name": "hh",
+    "version": "1.0.0",
+    "description": "",
+    "main": "server.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "start": "node server.js"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "@google/generative-ai": "^0.24.0",
+        "axios": "^1.8.4",
+        "call-bound": "^1.0.4",
+        "cors": "^2.8.5",
+        "express": "^4.18.2",
+        "openai": "^3.3.0",
+        "pdfjs-dist": "^5.1.91",
+        "playwright": "^1.51.1",
+        "puppeteer": "^24.6.0",
+        "xlsx": "^0.18.5"
+    }
+}

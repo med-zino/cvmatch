@@ -1,0 +1,63 @@
+{
+    "version": 2,
+    "builds": [
+      {
+        "src": "server.js",
+        "use": "@vercel/node"
+      },
+      {
+        "src": "*.html",
+        "use": "@vercel/static"
+      },
+      {
+        "src": "public/**/*",
+        "use": "@vercel/static"
+      }
+    ],
+    "routes": [
+      {
+        "src": "/js/(.*)",
+        "dest": "/public/js/$1"
+      },
+      {
+        "src": "/css/(.*)",
+        "dest": "/public/css/$1"
+      },
+      {
+        "src": "/img/(.*)",
+        "dest": "/public/img/$1"
+      },
+      {
+        "src": "/pdf/(.*)",
+        "dest": "/public/pdf/$1"
+      },
+      {
+        "src": "/find-matches",
+        "dest": "server.js"
+      },
+      {
+        "src": "/save-email",
+        "dest": "server.js"
+      },
+      {
+        "src": "/get-subscribers",
+        "dest": "server.js"
+      },
+      {
+        "src": "/admin",
+        "dest": "/admin.html"
+      },
+      {
+        "src": "/login",
+        "dest": "/login.html"
+      },
+      {
+        "src": "/test",
+        "dest": "/test.html"
+      },
+      {
+        "src": "/",
+        "dest": "/index.html"
+      }
+    ]
+  } 

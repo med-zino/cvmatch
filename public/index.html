@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CV Job Matcher</title>
+    <!-- PDF.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+    <link rel="stylesheet" href="/css/sass.css">
+   
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="#" class="navbar-brand">CVMatch</a>
+            <div class="navbar-links">
+                <a href="#how-it-works" onclick="scrollToSection('how-it-works')">How It Works</a>
+                <a href="#matchForm" onclick="scrollToSection('matchForm')">Find Jobs</a>
+                <a href="#about">About</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Early Access Form -->
+    <div class="main-content">
+        <div class="early-access-form">
+            <span class="limited-offer-badge">Limited Time Offer!</span>
+            <h3>🚀 Get Early Access to Premium</h3>
+            <p>Join our exclusive early adopters and unlock premium features at half the price!</p>
+            
+            <div class="price-container">
+                <div class="price-tag">
+                    <span class="original-price">€12</span>
+                    <span class="discounted-price">€6/month</span>
+                </div>
+                <p style="margin: 0; font-weight: 600; color: #2c3e50;">for 6 months</p>
+            </div>
+
+            <div class="features-grid">
+                <div class="feature-item">
+                    <i>🔄</i>
+                    <p>Unlimited CV Analysis</p>
+                </div>
+                <div class="feature-item">
+                    <i>⚡</i>
+                    <p>Real-time Job Alerts</p>
+                </div>
+                <div class="feature-item">
+                    <i>🎯</i>
+                    <p>AI-Powered Matching</p>
+                </div>
+                <div class="feature-item">
+                    <i>🔔</i>
+                    <p>Priority Support</p>
+                </div>
+            </div>
+
+            <form id="earlyAccessForm">
+                <input type="email" id="earlyAccessEmail" placeholder="Enter your email for early access" required>
+                <button type="submit">Get 50% Off</button>
+            </form>
+        </div>
+
+        <!-- Steps Section -->
+        <section class="steps-section" id="how-it-works">
+            <div class="steps-container">
+                <h2 style="text-align: center; color: #2c3e50;">How It Works</h2>
+                <div class="steps-grid">
+                    <div class="step-card">
+                        <div class="step-number">1</div>
+                        <div class="step-title">Upload Your CV</div>
+                        <div class="step-description">Upload your CV in PDF format or paste your CV text directly into our system.</div>
+                    </div>
+                    <div class="step-card">
+                        <div class="step-number">2</div>
+                        <div class="step-title">Enter Job Preferences</div>
+                        <div class="step-description">Specify your desired job location and type to find relevant opportunities.</div>
+                    </div>
+                    <div class="step-card">
+                        <div class="step-number">3</div>
+                        <div class="step-title">Get Matched</div>
+                        <div class="step-description">Our AI analyzes your CV and matches you with the most suitable job opportunities.</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Content -->
+        <div class="container">
+            <div class="form-container">
+                <form id="matchForm">
+                    <!-- Trial Notice -->
+                    <div class="trial-notice">
+                        <strong>Trial Version Notice:</strong> You get one free try every 30 minutes. Make it count! 
+                        For unlimited access and advanced features, consider our premium version.
+                    </div>
+
+                    <!-- Error Message -->
+                    <div class="error-message" id="errorMessage">
+                        <strong>Rate Limit Exceeded:</strong> 
+                        <span id="nextTryTime"></span>
+                    </div>
+
+                    <label for="query">Job Search Query:</label>
+                    <input type="text" id="query" name="query" placeholder="e.g., marketing in france" value="">
+                    
+                    <!-- CV Input Method Toggle -->
+                    <div class="input-toggle">
+                        <div class="input-toggle-option active" data-target="pdf-section">Upload PDF</div>
+                        <div class="input-toggle-option" data-target="text-section">Enter Text</div>
+                    </div>
+                    
+                    <!-- PDF Upload Section -->
+                    <div id="pdf-section" class="cv-input-section active">
+                        <label for="pdfFileInput">Upload Your CV as PDF:</label>
+                        <div id="pdfUploadZone" class="pdf-upload-zone">
+                            <div class="pdf-upload-icon">📄</div>
+                            <p>Drag & drop your PDF here or click to browse</p>
+                            <div id="pdfFilename" class="pdf-filename"></div>
+                            <input type="file" id="pdfFileInput" accept="application/pdf">
+                        </div>
+                    </div>
+                    
+                    <!-- Text Input Section -->
+                    <div id="text-section" class="cv-input-section">
+                        <label for="cvText">Your CV Text:</label>
+                        <textarea id="cvText" name="cvText" placeholder="Paste your CV text here..."></textarea>
+                    </div>
+                    
+                    <button type="submit">Find Job Matches</button>
+                </form>
+            </div>
+            
+            <div class="results-container">
+                <div id="loading" class="loading">
+                    <h2>Analyzing your CV and finding matches...</h2>
+                    <p>This process may take a minute. We're analyzing your skills and finding the best job matches.</p>
+                    
+                    <!-- Skeleton loading animation -->
+                    <div class="skeleton-card">
+                        <div class="skeleton-line skeleton-title"></div>
+                        <div class="skeleton-line skeleton-company"></div>
+                        <div class="skeleton-line skeleton-score"></div>
+                        <div class="skeleton-line skeleton-text medium"></div>
+                        <div class="skeleton-line skeleton-text long"></div>
+                        <div class="skeleton-line skeleton-text short"></div>
+                    </div>
+                    <div class="skeleton-card">
+                        <div class="skeleton-line skeleton-title"></div>
+                        <div class="skeleton-line skeleton-company"></div>
+                        <div class="skeleton-line skeleton-score"></div>
+                        <div class="skeleton-line skeleton-text long"></div>
+                        <div class="skeleton-line skeleton-text medium"></div>
+                        <div class="skeleton-line skeleton-text short"></div>
+                    </div>
+                    <div class="skeleton-card">
+                        <div class="skeleton-line skeleton-title"></div>
+                        <div class="skeleton-line skeleton-company"></div>
+                        <div class="skeleton-line skeleton-score"></div>
+                        <div class="skeleton-line skeleton-text short"></div>
+                        <div class="skeleton-line skeleton-text long"></div>
+                        <div class="skeleton-line skeleton-text medium"></div>
+                    </div>
+                </div>
+                
+                <div id="results" class="results" style="display: none;">
+                    <div class="info-section">
+                        <h3>Job Matching Results</h3>
+                        <p>We've analyzed your CV and found the best matching jobs based on your skills and experience.</p>
+                        <button id="toggleCvAnalysis" class="toggle-cv-analysis">Show CV Analysis Details</button>
+                    </div>
+                    
+                    <div id="cvAnalysis" class="cv-analysis">
+                        <h3>CV Analysis</h3>
+                        <div id="cvAnalysisResults"></div>
+                    </div>
+                    
+                    <h3>Top Job Matches</h3>
+                    <div id="jobMatchesResults"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="/js/sass.js"></script>
+</body>
+</html>
