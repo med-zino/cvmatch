@@ -205,7 +205,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
             
-            const response = await fetch('/find-matches', {
+            const response = await fetch('/api/find-matches', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

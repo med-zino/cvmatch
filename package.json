@@ -13,13 +13,20 @@
     "dependencies": {
         "@google/generative-ai": "^0.24.0",
         "axios": "^1.8.4",
+        "bcryptjs": "^2.4.3",
         "call-bound": "^1.0.4",
+        "cookie-parser": "^1.4.7",
         "cors": "^2.8.5",
         "express": "^4.18.2",
+        "jsonwebtoken": "^9.0.2",
+        "mongoose": "^8.0.3",
         "openai": "^3.3.0",
         "pdfjs-dist": "^5.1.91",
         "playwright": "^1.51.1",
         "puppeteer": "^24.6.0",
         "xlsx": "^0.18.5"
+    },
+    "devDependencies": {
+        "nodemon": "^3.0.2"
     }
 }

@@ -16,6 +16,10 @@
     ],
     "routes": [
       {
+        "src": "/api/(.*)",
+        "dest": "server.js"
+      },
+      {
         "src": "/js/(.*)",
         "dest": "/public/js/$1"
       },
@@ -32,24 +36,28 @@
         "dest": "/public/pdf/$1"
       },
       {
-        "src": "/find-matches",
+        "src": "/api/find-matches",
         "dest": "server.js"
       },
       {
-        "src": "/save-email",
+        "src": "/api/save-email",
         "dest": "server.js"
       },
       {
-        "src": "/get-subscribers",
+        "src": "/api/get-subscribers",
         "dest": "server.js"
       },
       {
         "src": "/admin",
-        "dest": "/admin.html"
+        "dest": "server.js"
       },
       {
         "src": "/login",
-        "dest": "/login.html"
+        "dest": "server.js"
+      },
+      {
+        "src": "/register",
+        "dest": "server.js"
       },
       {
         "src": "/test",

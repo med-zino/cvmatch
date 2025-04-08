@@ -18,9 +18,51 @@
                 <a href="#how-it-works" onclick="scrollToSection('how-it-works')">How It Works</a>
                 <a href="#matchForm" onclick="scrollToSection('matchForm')">Find Jobs</a>
                 <a href="#about">About</a>
+                <a href="#" id="logout-btn" class="logout-btn">Logout</a>
             </div>
         </div>
     </nav>
+
+    <style>
+        .logout-btn {
+            background-color: #EF4444;
+            color: white !important;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: bold;
+            margin-left: 1rem;
+        }
+        
+        .logout-btn:hover {
+            background-color: #DC2626;
+        }
+    </style>
+
+    <script>
+        // Check if user is logged in
+        document.addEventListener('DOMContentLoaded', function() {
+            const userLoggedIn = localStorage.getItem('userLoggedIn');
+            const token = localStorage.getItem('token');
+            
+            if (!userLoggedIn || !token) {
+                window.location.href = '/login';
+            }
+            
+            // Logout functionality
+            document.getElementById('logout-btn').addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Clear localStorage
+                localStorage.removeItem('userLoggedIn');
+                localStorage.removeItem('userRole');
+                localStorage.removeItem('userId');
+                localStorage.removeItem('token');
+                
+                // Redirect to login page
+                window.location.href = '/login';
+            });
+        });
+    </script>
 
     <!-- Early Access Form -->
     <div class="main-content">
