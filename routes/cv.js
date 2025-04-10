@@ -445,67 +445,6 @@ router.post('/find-matches', async (req, res) => {
   }
 });
 
-// Add this new route to handle email form submissions
-router.post('/save-email', (req, res) => {
-  console.log('Received email submission request');
-  console.log('Request body:', req.body);
-  
-  try {
-    const { email } = req.body;
-    
-    if (!email) {
-      console.log('Email is missing from request');
-      return res.status(400).json({ success: false, message: 'Email is required' });
-    }
-    
-    console.log('Processing email:', email);
-    
-    // For Vercel deployment, we'll use the /tmp directory which is writable
-    const subscribersDir = path.join('/tmp', 'subscribers');
-    if (!fs.existsSync(subscribersDir)) {
-      console.log('Creating subscribers directory in /tmp');
-      fs.mkdirSync(subscribersDir, { recursive: true });
-    }
-    
-    // Path to the subscribers file
-    const subscribersFile = path.join(subscribersDir, 'subscribers.json');
-    
-    // Read existing subscribers or create an empty array
-    let subscribers = [];
-    if (fs.existsSync(subscribersFile)) {
-      console.log('Reading existing subscribers file');
-      const fileContent = fs.readFileSync(subscribersFile, 'utf8');
-      subscribers = JSON.parse(fileContent);
-    } else {
-      console.log('No existing subscribers file found, creating new one');
-    }
-    
-    // Check if email already exists
-    if (subscribers.includes(email)) {
-      console.log('Email already registered:', email);
-      return res.status(200).json({ success: true, message: 'Email already registered' });
-    }
-    
-    // Add the new email
-    subscribers.push(email);
-    
-    // Save back to file
-    console.log('Saving updated subscribers list');
-    fs.writeFileSync(subscribersFile, JSON.stringify(subscribers, null, 2));
-    
-    // Also save to a CSV file for easy export
-    const csvFile = path.join(subscribersDir, 'subscribers.csv');
-    console.log('Appending to CSV file');
-    fs.appendFileSync(csvFile, `${email},${new Date().toISOString()}\n`);
-    
-    console.log('Email saved successfully');
-    res.status(200).json({ success: true, message: 'Email saved successfully' });
-  } catch (error) {
-    console.error('Error saving email:', error);
-    res.status(500).json({ success: false, message: 'Error saving email' });
-  }
-});
-
 // Add a new endpoint to retrieve saved emails
 router.get('/get-subscribers', (req, res) => {
   try {

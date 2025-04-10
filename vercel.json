@@ -3,48 +3,59 @@
     "builds": [
       {
         "src": "server.js",
-        "use": "@vercel/node"
+        "use": "@vercel/node",
+        "config": {
+          "maxDuration": 30
+        }
       },
       {
-        "src": "*.html",
+        "src": "public/**",
         "use": "@vercel/static"
       },
       {
-        "src": "public/**/*",
+        "src": "*.html",
         "use": "@vercel/static"
       }
     ],
     "routes": [
       {
-        "src": "/api/(.*)",
-        "dest": "server.js"
-      },
-      {
         "src": "/js/(.*)",
-        "dest": "/public/js/$1"
+        "dest": "public/js/$1"
       },
       {
         "src": "/css/(.*)",
-        "dest": "/public/css/$1"
+        "dest": "public/css/$1"
       },
       {
-        "src": "/img/(.*)",
-        "dest": "/public/img/$1"
-      },
-      {
-        "src": "/pdf/(.*)",
-        "dest": "/public/pdf/$1"
-      },
-      {
-        "src": "/api/find-matches",
+        "src": "/api/(.*)",
+        "headers": {
+          "Access-Control-Allow-Credentials": "true",
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET,OPTIONS,PATCH,DELETE,POST,PUT",
+          "Access-Control-Allow-Headers": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization"
+        },
         "dest": "server.js"
       },
       {
-        "src": "/api/save-email",
-        "dest": "server.js"
+        "src": "/app",
+        "dest": "server.js",
+        "headers": {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "Pragma": "no-cache",
+          "Expires": "0"
+        }
       },
       {
-        "src": "/api/get-subscribers",
+        "src": "/login",
+        "dest": "server.js",
+        "headers": {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "Pragma": "no-cache",
+          "Expires": "0"
+        }
+      },
+      {
+        "src": "/register",
         "dest": "server.js"
       },
       {
@@ -52,20 +63,16 @@
         "dest": "server.js"
       },
       {
-        "src": "/login",
+        "src": "/test-admin",
         "dest": "server.js"
-      },
-      {
-        "src": "/register",
-        "dest": "server.js"
-      },
-      {
-        "src": "/test",
-        "dest": "/test.html"
       },
       {
         "src": "/",
-        "dest": "/index.html"
+        "dest": "server.js"
       }
-    ]
+    ],
+    "env": {
+      "NODE_ENV": "production",
+      "JWT_SECRET": "${JWT_SECRET}"
+    }
   } 

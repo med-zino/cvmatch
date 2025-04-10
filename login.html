@@ -136,11 +136,30 @@
     <script>
         // Check if user is already logged in
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('Login page loaded');
             const userLoggedIn = localStorage.getItem('userLoggedIn');
             const token = localStorage.getItem('token');
             
+            console.log('Auth status:', userLoggedIn ? 'Logged in with token: ' + token.substring(0, 10) + '...' : 'Not logged in');
+            
+            // Check for redirect loop
+            const redirectCount = sessionStorage.getItem('redirectCount') || 0;
+            if (redirectCount > 5) {
+                console.error('Possible redirect loop detected! Clearing auth data...');
+                localStorage.removeItem('userLoggedIn');
+                localStorage.removeItem('token');
+                localStorage.removeItem('userRole');
+                localStorage.removeItem('userId');
+                sessionStorage.removeItem('redirectCount');
+                return;
+            }
+            
             if (userLoggedIn && token) {
-                window.location.href = '/';
+                console.log('User is logged in, redirecting to /app');
+                sessionStorage.setItem('redirectCount', parseInt(redirectCount) + 1);
+                window.location.href = '/app';
+            } else {
+                sessionStorage.removeItem('redirectCount');
             }
         });
 
@@ -175,7 +194,7 @@
                     if (data.role === 'admin') {
                         window.location.href = '/admin';
                     } else {
-                        window.location.href = '/';
+                        window.location.href = '/app';
                     }
                 } else {
                     // Show error message

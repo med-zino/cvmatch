@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thank You for Subscribing to CVMatch</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #4F46E5;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+        }
+        .content {
+            background-color: #f9fafb;
+            padding: 30px;
+            border: 1px solid #e5e7eb;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #6b7280;
+        }
+        .button {
+            display: inline-block;
+            background-color: #10B981;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .logo span {
+            color: #10B981;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">CV<span>Match</span></div>
+            <h1>Thank You for Subscribing!</h1>
+        </div>
+        <div class="content">
+            <p>Hello {{to_name}},</p>
+            
+            <p>Thank you for subscribing to early access in CVMatch! We're excited to have you on board.</p>
+            
+            <p>Our AI-powered platform is designed to revolutionize your job search experience by:</p>
+            <ul>
+                <li>Analyzing your CV to identify key skills and experiences</li>
+                <li>Matching you with the most relevant job opportunities</li>
+                <li>Providing personalized recommendations to improve your profile</li>
+                <li>Offering real-time updates on new matching positions</li>
+            </ul>
+            
+            <p>We're working hard to launch CVMatch and will notify you as soon as it's available. In the meantime, feel free to follow us on social media for updates and job search tips.</p>
+            
+            <a href="https://cvmatch.vercel.app/" class="button">Visit Our Website</a>
+            
+            <p>Best regards,<br>The CVMatch Team</p>
+        </div>
+        <div class="footer">
+            <p>© 2025 CVMatch. All rights reserved.</p>
+            <p>If you did not subscribe to CVMatch, please ignore this email.</p>
+        </div>
+    </div>
+</body>
+</html> 

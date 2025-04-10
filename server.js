@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -13,14 +14,44 @@ const PORT = process.env.PORT || 3000;
 const authRoutes = require('./routes/auth');
 const pageRoutes = require('./routes/pages');
 const cvRoutes = require('./routes/cv');
+const emailRoutes = require('./routes/emailRoutes');
 
 // MongoDB Connection
-mongoose.connect('mongodb+srv://medzino:password1234@cluster0.olsp0js.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0', {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-})
-.then(() => console.log('MongoDB connected successfully'))
-.catch(err => console.error('MongoDB connection error:', err));
+let cachedDb = null;
+
+async function connectToDatabase() {
+    if (cachedDb) {
+        console.log('Using cached database instance');
+        return cachedDb;
+    }
+
+    console.log('Attempting to connect to MongoDB...');
+    try {
+        const conn = await mongoose.connect(process.env.MONGODB_URI, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+            // Serverless-friendly options
+            serverSelectionTimeoutMS: 5000,
+            socketTimeoutMS: 45000,
+            connectTimeoutMS: 10000,
+            maxPoolSize: 10
+        });
+        
+        console.log('MongoDB connected successfully');
+        console.log('Connected to database:', conn.connection.db.databaseName);
+        
+        cachedDb = conn;
+        return conn;
+    } catch (err) {
+        console.error('MongoDB connection error:', err);
+        throw err;
+    }
+}
+
+// Connect to MongoDB at startup
+connectToDatabase().catch(err => {
+    console.error('Failed to connect to MongoDB:', err);
+});
 
 // Middleware
 app.use(cors({
@@ -29,7 +60,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type'] // Allow Content-Type header
 }));
 app.use(express.json());
-app.use(express.static('public'));
 app.use(cookieParser());
 app.use((req, res, next) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -38,10 +68,16 @@ app.use((req, res, next) => {
   next();
 });
 
-// Use routes
+// Use routes - IMPORTANT: Order matters!
 app.use('/api', authRoutes);
-app.use('/', pageRoutes);
 app.use('/api', cvRoutes);
+app.use('/api', emailRoutes);
+app.use('/', pageRoutes);
+
+// Static files - Serve AFTER routes to prevent overriding
+app.use(express.static('public'));
+app.use('/public', express.static('public'));
+app.use('/email-templates', express.static('email-templates'));
 
 // Add this route to serve the index.html file from the public directory (protected)
 app.get('/public', auth, (req, res) => {

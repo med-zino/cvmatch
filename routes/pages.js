@@ -3,9 +3,16 @@ const router = express.Router();
 const path = require('path');
 const { auth, isAdmin } = require('../middleware/auth');
 
-// Serve main page (protected, requires authentication)
-router.get('/', auth, (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'index.html'));
+// Landing page route - serve the root index.html
+router.get('/', (req, res) => {
+  console.log('Serving landing page');
+  res.sendFile(path.join(__dirname, '..', 'index.html'));
+});
+
+// Main application route (protected)
+router.get('/app', auth, (req, res) => {
+  console.log('Serving main application');
+  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 
 // Serve login page
