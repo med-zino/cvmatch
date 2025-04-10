@@ -17,6 +17,10 @@ const userSchema = new mongoose.Schema({
         enum: ['client', 'admin'],
         default: 'client'
     },
+    lastFindMatches: {
+        type: Date,
+        default: null
+    },
     createdAt: {
         type: Date,
         default: Date.now

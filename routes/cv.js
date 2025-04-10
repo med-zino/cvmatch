@@ -342,14 +342,54 @@ router.post('/find-matches', async (req, res) => {
 
     const GEMINI_API_KEY = 'AIzaSyBnCC9iO5EQY823GJKIurFF2SUp_Yi0zPE';
     
-    const { query, cvText } = req.body;
+    const { query, cvText, userId } = req.body;
     
     if (!cvText) {
       res.write(`data: ${JSON.stringify({ error: 'CV text is required' })}\n\n`);
       return res.end();
     }
 
+    // Check if user ID is provided
+    if (!userId) {
+      res.write(`data: ${JSON.stringify({ error: 'User ID is required' })}\n\n`);
+      return res.end();
+    }
+
+    // Check rate limiting
+    const User = require('../models/User');
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      res.write(`data: ${JSON.stringify({ error: 'User not found' })}\n\n`);
+      return res.end();
+    }
+
+    // Check if user has made a request in the last 30 minutes
+    if (user.lastFindMatches) {
+      const now = new Date();
+      const lastRequest = new Date(user.lastFindMatches);
+      const timeDiff = (now - lastRequest) / 1000 / 60; // Difference in minutes
+      
+      if (timeDiff < 30) {
+        // Calculate time remaining
+        const minutesRemaining = Math.ceil(30 - timeDiff);
+        const nextAllowedTime = new Date(lastRequest.getTime() + 30 * 60 * 1000);
+        
+        res.write(`data: ${JSON.stringify({ 
+          status: 'error',
+          error: 'Rate limit exceeded',
+          message: `You can only make one request every 30 minutes. Please try again in ${minutesRemaining} minutes.`,
+          nextAllowedTime: nextAllowedTime.toISOString()
+        })}\n\n`);
+        return res.end();
+      }
+    }
+
     try {
+      // Update lastFindMatches timestamp
+      user.lastFindMatches = new Date();
+      await user.save();
+
       // Step 1: Analyze CV
       res.write(`data: ${JSON.stringify({ status: 'analyzing_cv', message: 'Analyzing your CV...' })}\n\n`);
       const cvAnalysis = await analyzeCV(GEMINI_API_KEY, cvText);

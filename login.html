@@ -28,26 +28,92 @@
             color: var(--dark);
             background-color: var(--light);
             line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+        }
+        
+        .split-container {
+            display: flex;
+            width: 100%;
+            min-height: 100vh;
+        }
+        
+        .image-section {
+            flex: 1;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .image-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url('https://images.unsplash.com/photo-1551434678-e076c223a692?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.2;
+        }
+        
+        .image-content {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            max-width: 500px;
+        }
+        
+        .image-content h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+        
+        .image-content p {
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+        
+        .login-section {
+            flex: 1;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
+            padding: 2rem;
         }
         
         .login-container {
             background-color: white;
-            border-radius: 8px;
+            border-radius: 12px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            padding: 2rem;
+            padding: 2.5rem;
             width: 100%;
             max-width: 400px;
         }
         
-        h1 {
-            font-size: 1.8rem;
-            margin-bottom: 1.5rem;
+        .login-header {
             text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .login-header h1 {
+            font-size: 2rem;
             color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .login-header p {
+            color: var(--gray);
+            font-size: 0.95rem;
         }
         
         .form-group {
@@ -58,15 +124,23 @@
             display: block;
             margin-bottom: 0.5rem;
             font-weight: 500;
+            color: var(--dark);
         }
         
         input {
             width: 100%;
             padding: 0.8rem 1rem;
             border: 1px solid var(--gray-light);
-            border-radius: 6px;
+            border-radius: 8px;
             font-family: 'Inter', sans-serif;
             font-size: 1rem;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
         }
         
         .btn {
@@ -75,8 +149,8 @@
             background-color: var(--primary);
             color: white;
             padding: 0.8rem 1.5rem;
-            border-radius: 6px;
-            font-weight: 500;
+            border-radius: 8px;
+            font-weight: 600;
             text-decoration: none;
             transition: all 0.3s;
             border: none;
@@ -84,10 +158,12 @@
             font-family: 'Inter', sans-serif;
             font-size: 1rem;
             text-align: center;
+            margin-top: 1rem;
         }
         
         .btn:hover {
             background-color: var(--primary-dark);
+            transform: translateY(-1px);
         }
         
         .error-message {
@@ -95,74 +171,77 @@
             margin-top: 1rem;
             text-align: center;
             display: none;
+            padding: 0.75rem;
+            background-color: #FEE2E2;
+            border-radius: 6px;
         }
 
         .register-link {
             text-align: center;
-            margin-top: 1rem;
+            margin-top: 1.5rem;
             font-size: 0.9rem;
+            color: var(--gray);
         }
 
         .register-link a {
             color: var(--primary);
             text-decoration: none;
+            font-weight: 500;
         }
 
         .register-link a:hover {
             text-decoration: underline;
         }
+
+        @media (max-width: 768px) {
+            .split-container {
+                flex-direction: column;
+            }
+            
+            .image-section {
+                display: none;
+            }
+            
+            .login-section {
+                padding: 1rem;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <h1>Login</h1>
-        <form id="login-form">
-            <div class="form-group">
-                <label for="email">Email</label>
-                <input type="email" id="email" placeholder="Enter your email" required>
+    <div class="split-container">
+        <div class="image-section">
+            <div class="image-content">
+                <h2>Welcome Back!</h2>
+                <p>Your next career opportunity is just a login away. Join thousands of professionals who trust CVMatch for their job search journey.</p>
             </div>
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" placeholder="Enter password" required>
+        </div>
+        <div class="login-section">
+            <div class="login-container">
+                <div class="login-header">
+                    <h1>Login to CVMatch</h1>
+                    <p>Access your personalized job matching dashboard</p>
+                </div>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" placeholder="Enter your email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" placeholder="Enter password" required>
+                    </div>
+                    <button type="submit" class="btn">Sign In</button>
+                    <div id="error-message" class="error-message">Incorrect email or password. Please try again.</div>
+                </form>
+                <div class="register-link">
+                    Don't have an account? <a href="/register">Create one now</a>
+                </div>
             </div>
-            <button type="submit" class="btn">Login</button>
-            <div id="error-message" class="error-message">Incorrect email or password. Please try again.</div>
-        </form>
-        <div class="register-link">
-            Don't have an account? <a href="/register">Register here</a>
         </div>
     </div>
     
     <script>
-        // Check if user is already logged in
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Login page loaded');
-            const userLoggedIn = localStorage.getItem('userLoggedIn');
-            const token = localStorage.getItem('token');
-            
-            console.log('Auth status:', userLoggedIn ? 'Logged in with token: ' + token.substring(0, 10) + '...' : 'Not logged in');
-            
-            // Check for redirect loop
-            const redirectCount = sessionStorage.getItem('redirectCount') || 0;
-            if (redirectCount > 5) {
-                console.error('Possible redirect loop detected! Clearing auth data...');
-                localStorage.removeItem('userLoggedIn');
-                localStorage.removeItem('token');
-                localStorage.removeItem('userRole');
-                localStorage.removeItem('userId');
-                sessionStorage.removeItem('redirectCount');
-                return;
-            }
-            
-            if (userLoggedIn && token) {
-                console.log('User is logged in, redirecting to /app');
-                sessionStorage.setItem('redirectCount', parseInt(redirectCount) + 1);
-                window.location.href = '/app';
-            } else {
-                sessionStorage.removeItem('redirectCount');
-            }
-        });
-
         document.getElementById('login-form').addEventListener('submit', async function(event) {
             event.preventDefault();
             

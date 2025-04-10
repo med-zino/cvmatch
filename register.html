@@ -28,26 +28,92 @@
             color: var(--dark);
             background-color: var(--light);
             line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+        }
+        
+        .split-container {
+            display: flex;
+            width: 100%;
+            min-height: 100vh;
+        }
+        
+        .image-section {
+            flex: 1;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .image-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url('https://images.unsplash.com/photo-1521737604893-d14cc237f11d?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.2;
+        }
+        
+        .image-content {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            max-width: 500px;
+        }
+        
+        .image-content h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+        
+        .image-content p {
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+        
+        .register-section {
+            flex: 1;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
+            padding: 2rem;
         }
         
         .register-container {
             background-color: white;
-            border-radius: 8px;
+            border-radius: 12px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            padding: 2rem;
+            padding: 2.5rem;
             width: 100%;
             max-width: 400px;
         }
         
-        h1 {
-            font-size: 1.8rem;
-            margin-bottom: 1.5rem;
+        .register-header {
             text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .register-header h1 {
+            font-size: 2rem;
             color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .register-header p {
+            color: var(--gray);
+            font-size: 0.95rem;
         }
         
         .form-group {
@@ -58,15 +124,23 @@
             display: block;
             margin-bottom: 0.5rem;
             font-weight: 500;
+            color: var(--dark);
         }
         
         input {
             width: 100%;
             padding: 0.8rem 1rem;
             border: 1px solid var(--gray-light);
-            border-radius: 6px;
+            border-radius: 8px;
             font-family: 'Inter', sans-serif;
             font-size: 1rem;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
         }
         
         .btn {
@@ -75,8 +149,8 @@
             background-color: var(--primary);
             color: white;
             padding: 0.8rem 1.5rem;
-            border-radius: 6px;
-            font-weight: 500;
+            border-radius: 8px;
+            font-weight: 600;
             text-decoration: none;
             transition: all 0.3s;
             border: none;
@@ -84,10 +158,12 @@
             font-family: 'Inter', sans-serif;
             font-size: 1rem;
             text-align: center;
+            margin-top: 1rem;
         }
         
         .btn:hover {
             background-color: var(--primary-dark);
+            transform: translateY(-1px);
         }
         
         .error-message {
@@ -95,6 +171,9 @@
             margin-top: 1rem;
             text-align: center;
             display: none;
+            padding: 0.75rem;
+            background-color: #FEE2E2;
+            border-radius: 6px;
         }
         
         .success-message {
@@ -102,46 +181,78 @@
             margin-top: 1rem;
             text-align: center;
             display: none;
+            padding: 0.75rem;
+            background-color: #D1FAE5;
+            border-radius: 6px;
         }
 
         .login-link {
             text-align: center;
-            margin-top: 1rem;
+            margin-top: 1.5rem;
             font-size: 0.9rem;
+            color: var(--gray);
         }
 
         .login-link a {
             color: var(--primary);
             text-decoration: none;
+            font-weight: 500;
         }
 
         .login-link a:hover {
             text-decoration: underline;
         }
+
+        @media (max-width: 768px) {
+            .split-container {
+                flex-direction: column;
+            }
+            
+            .image-section {
+                display: none;
+            }
+            
+            .register-section {
+                padding: 1rem;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="register-container">
-        <h1>Registration</h1>
-        <form id="register-form">
-            <div class="form-group">
-                <label for="email">Email</label>
-                <input type="email" id="email" placeholder="Enter your email" required>
+    <div class="split-container">
+        <div class="image-section">
+            <div class="image-content">
+                <h2>Join CVMatch Today</h2>
+                <p>Start your journey to your dream job. Our AI-powered platform matches you with opportunities that align with your skills and aspirations.</p>
             </div>
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" placeholder="Enter password" required>
+        </div>
+        <div class="register-section">
+            <div class="register-container">
+                <div class="register-header">
+                    <h1>Create Account</h1>
+                    <p>Begin your professional journey with CVMatch</p>
+                </div>
+                <form id="register-form">
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" placeholder="Enter your email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" placeholder="Create a password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm-password">Confirm Password</label>
+                        <input type="password" id="confirm-password" placeholder="Confirm your password" required>
+                    </div>
+                    <button type="submit" class="btn">Create Account</button>
+                    <div id="error-message" class="error-message"></div>
+                    <div id="success-message" class="success-message">Registration successful! Redirecting to login...</div>
+                </form>
+                <div class="login-link">
+                    Already have an account? <a href="/login">Sign in here</a>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="confirm-password">Confirm Password</label>
-                <input type="password" id="confirm-password" placeholder="Confirm password" required>
-            </div>
-            <button type="submit" class="btn">Register</button>
-            <div id="error-message" class="error-message"></div>
-            <div id="success-message" class="success-message">Registration successful! Redirecting to login...</div>
-        </form>
-        <div class="login-link">
-            Already have an account? <a href="/login">Login here</a>
         </div>
     </div>
     

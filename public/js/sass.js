@@ -171,6 +171,14 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
+        // Get user ID from localStorage
+        const userId = localStorage.getItem('userId');
+        if (!userId) {
+            alert('You must be logged in to use this feature');
+            window.location.href = '/login';
+            return;
+        }
+        
         // Show loading indicator with progress updates
         const loading = document.getElementById('loading');
         const results = document.getElementById('results');
@@ -210,7 +218,7 @@ document.addEventListener('DOMContentLoaded', function() {
             headers: {
                 'Content-Type': 'application/json'
             },
-                body: JSON.stringify({ query, cvText }),
+                body: JSON.stringify({ query, cvText, userId }),
                 signal: controller.signal
             });
 
@@ -239,6 +247,61 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (line.startsWith('data: ')) {
                         try {
                             const data = JSON.parse(line.slice(6));
+                            
+                            // Check for rate limit error
+                            if (data.status === 'error' && data.error === 'Rate limit exceeded') {
+                                // Clear the progress indicator
+                                loading.innerHTML = '';
+                                
+                                // Show rate limit message with countdown
+                                const rateLimitDiv = document.createElement('div');
+                                rateLimitDiv.className = 'rate-limit-message';
+                                
+                                // Parse the next allowed time
+                                const nextAllowedTime = new Date(data.nextAllowedTime);
+                                const now = new Date();
+                                const minutesRemaining = Math.ceil((nextAllowedTime - now) / 1000 / 60);
+                                
+                                rateLimitDiv.innerHTML = `
+                                    <div class="rate-limit-container">
+                                        <h3>⏱️ Rate Limit Reached</h3>
+                                        <p>${data.message}</p>
+                                        <div class="countdown-container">
+                                            <div class="countdown" id="countdown">${minutesRemaining}:00</div>
+                                            <p>Time remaining</p>
+                                        </div>
+                                        <button id="refresh-btn" class="btn-refresh" disabled>Refresh</button>
+                                    </div>
+                                `;
+                                
+                                loading.appendChild(rateLimitDiv);
+                                
+                                // Start countdown timer
+                                let secondsRemaining = minutesRemaining * 60;
+                                const countdownElement = document.getElementById('countdown');
+                                const refreshButton = document.getElementById('refresh-btn');
+                                
+                                const countdownInterval = setInterval(() => {
+                                    secondsRemaining--;
+                                    const minutes = Math.floor(secondsRemaining / 60);
+                                    const seconds = secondsRemaining % 60;
+                                    countdownElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                                    
+                                    if (secondsRemaining <= 0) {
+                                        clearInterval(countdownInterval);
+                                        refreshButton.disabled = false;
+                                        refreshButton.textContent = 'Try Again';
+                                    }
+                                }, 1000);
+                                
+                                // Add event listener to refresh button
+                                refreshButton.addEventListener('click', () => {
+                                    window.location.reload();
+                                });
+                                
+                                return;
+                            }
+                            
                             handleStreamUpdate(data, progressDiv);
                         } catch (e) {
                             console.error('Error parsing SSE data:', e);
