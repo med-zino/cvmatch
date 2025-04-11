@@ -186,6 +186,16 @@
             border-radius: 6px;
         }
 
+        .verification-info {
+            color: #F59E0B;
+            margin-top: 1rem;
+            text-align: center;
+            padding: 0.75rem;
+            background-color: #FEF3C7;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
         .login-link {
             text-align: center;
             margin-top: 1.5rem;
@@ -247,7 +257,10 @@
                     </div>
                     <button type="submit" class="btn">Create Account</button>
                     <div id="error-message" class="error-message"></div>
-                    <div id="success-message" class="success-message">Registration successful! Redirecting to login...</div>
+                    <div id="success-message" class="success-message">Registration successful! Please check your email to verify your account.</div>
+                    <div class="verification-info">
+                        After registration, you'll receive a verification email. Please check your inbox (and spam folder) to verify your account before logging in.
+                    </div>
                 </form>
                 <div class="login-link">
                     Already have an account? <a href="/login">Sign in here</a>
@@ -290,10 +303,10 @@
                     // Show success message
                     document.getElementById('success-message').style.display = 'block';
                     
-                    // Redirect to login page after 2 seconds
+                    // Redirect to login page after 3 seconds
                     setTimeout(() => {
                         window.location.href = '/login';
-                    }, 2000);
+                    }, 3000);
                 } else {
                     // Show error message
                     document.getElementById('error-message').textContent = data.error || 'Registration failed. Please try again.';

@@ -17,6 +17,10 @@ const userSchema = new mongoose.Schema({
         enum: ['client', 'admin'],
         default: 'client'
     },
+    verified: {
+        type: Boolean,
+        default: false
+    },
     lastFindMatches: {
         type: Date,
         default: null

@@ -225,7 +225,79 @@ async function sendWelcomeEmail(email) {
   }
 }
 
+/**
+ * Send a verification email to a new user
+ * @param {string} email - Recipient email
+ * @param {string} verificationLink - The verification link with JWT token
+ * @returns {Promise} - Success or failure
+ */
+async function sendVerificationEmail(email, verificationLink) {
+  try {
+    const name = email.split('@')[0]; // Use part before @ as name
+    let template;
+    
+    // Try to read the template file with multiple path resolution attempts
+    try {
+      let templatePath;
+      
+      // First attempt - standard path
+      try {
+        templatePath = path.join(process.cwd(), 'email-templates', 'verify-email.html');
+        console.log('Trying to load verification email template from:', templatePath);
+        template = await fs.readFile(templatePath, 'utf8');
+      } catch (readError) {
+        console.log('Failed to read verification template from primary path, trying alternative path...');
+        
+        // Second attempt - relative path
+        templatePath = path.join(__dirname, '..', 'email-templates', 'verify-email.html');
+        console.log('Trying to load verification email template from:', templatePath);
+        template = await fs.readFile(templatePath, 'utf8');
+      }
+      
+      console.log('Successfully loaded verification email template');
+    } catch (error) {
+      console.log('Could not load external verification template, using embedded template:', error.message);
+      // Create a simple embedded template as fallback
+      template = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h1 style="color: #4F46E5;">CV<span style="color: #10B981;">Match</span></h1>
+          </div>
+          
+          <p>Hello ${name},</p>
+          
+          <p>Thank you for registering with CVMatch! To complete your registration and access your account, please verify your email address by clicking the button below:</p>
+          
+          <div style="margin: 30px 0; text-align: center;">
+            <a href="${verificationLink}" style="background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Verify My Email</a>
+          </div>
+          
+          <p>This verification link will not expire, so you can use it at any time.</p>
+          
+          <p>If you did not create an account with CVMatch, please ignore this email.</p>
+          
+          <p>Best regards,<br>The CVMatch Team</p>
+        </div>
+      `;
+    }
+    
+    // Replace template variables with actual values
+    template = template.replace(/{{to_name}}/g, name);
+    template = template.replace(/{{verification_link}}/g, verificationLink);
+    
+    return await sendEmail({
+      to: email,
+      subject: 'Verify Your Email - CVMatch',
+      html: template
+    });
+  } catch (error) {
+    console.error('Error sending verification email:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 module.exports = {
   sendEmail,
-  sendWelcomeEmail
+  sendWelcomeEmail,
+  sendVerificationEmail
 }; 

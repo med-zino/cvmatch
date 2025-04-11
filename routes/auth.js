@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { auth, isAdmin } = require('../middleware/auth');
+const { sendVerificationEmail } = require('../utils/emailService');
 
 // Registration route
 router.post('/register', async (req, res) => {
@@ -20,19 +21,117 @@ router.post('/register', async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Create new user with default role 'client'
+        // Create new user with default role 'client' and verified = false
         const user = new User({
             email,
             password: hashedPassword,
-            role: 'client' // Explicitly set role to client
+            role: 'client', // Explicitly set role to client
+            verified: false // User starts as unverified
         });
 
         await user.save();
 
-        res.status(201).json({ message: 'User registered successfully' });
+        // Generate verification token (non-expiring)
+        const verificationToken = jwt.sign(
+            { userId: user._id, purpose: 'email-verification' },
+            process.env.JWT_SECRET || 'your-secret-key'
+        );
+
+        // Create verification link using environment-aware base URL
+        const baseUrl = process.env.NODE_ENV === 'production' 
+            ? 'https://cvmatch.vercel.app'
+            : 'http://localhost:3000';
+        const verificationLink = `${baseUrl}/verify-email?token=${verificationToken}`;
+
+        // Send verification email
+        try {
+            await sendVerificationEmail(email, verificationLink);
+            console.log('Verification email sent successfully');
+        } catch (emailError) {
+            console.error('Error sending verification email:', emailError);
+            // Continue with registration even if email fails
+        }
+
+        res.status(201).json({ 
+            message: 'User registered successfully. Please check your email to verify your account.',
+            requiresVerification: true
+        });
     } catch (error) {
         console.error('Registration error:', error);
         res.status(500).json({ error: 'Error registering user' });
+    }
+});
+
+// Email verification route
+router.get('/verify-email', async (req, res) => {
+    try {
+        const { token } = req.query;
+        
+        if (!token) {
+            return res.status(400).json({ error: 'Verification token is required' });
+        }
+
+        // Verify the token
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+        
+        // Check if token is for email verification
+        if (decoded.purpose !== 'email-verification') {
+            return res.status(400).json({ error: 'Invalid verification token' });
+        }
+
+        // Find the user
+        const user = await User.findById(decoded.userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Update user as verified
+        user.verified = true;
+        await user.save();
+
+        // Redirect to login page with success message
+        res.redirect('/login?verified=true');
+    } catch (error) {
+        console.error('Email verification error:', error);
+        res.status(500).json({ error: 'Error verifying email' });
+    }
+});
+
+// Resend verification email route
+router.post('/resend-verification', async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        // Find the user
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Check if already verified
+        if (user.verified) {
+            return res.status(400).json({ error: 'Email already verified' });
+        }
+
+        // Generate new verification token
+        const verificationToken = jwt.sign(
+            { userId: user._id, purpose: 'email-verification' },
+            process.env.JWT_SECRET || 'your-secret-key'
+        );
+
+        // Create verification link
+        const baseUrl = process.env.NODE_ENV === 'production' 
+            ? 'https://cvmatch.vercel.app'
+            : 'http://localhost:3000';
+        const verificationLink = `${baseUrl}/verify-email?token=${verificationToken}`;
+
+        // Send verification email
+        await sendVerificationEmail(email, verificationLink);
+
+        res.json({ message: 'Verification email sent successfully' });
+    } catch (error) {
+        console.error('Resend verification error:', error);
+        res.status(500).json({ error: 'Error resending verification email' });
     }
 });
 
@@ -51,6 +150,15 @@ router.post('/login', async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(400).json({ error: 'Invalid credentials' });
+        }
+
+        // Check if email is verified
+        if (!user.verified) {
+            return res.status(403).json({ 
+                error: 'Email not verified', 
+                requiresVerification: true,
+                message: 'Please verify your email before logging in'
+            });
         }
 
         // Generate JWT token

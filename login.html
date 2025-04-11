@@ -176,6 +176,48 @@
             border-radius: 6px;
         }
 
+        .success-message {
+            color: var(--secondary);
+            margin-top: 1rem;
+            text-align: center;
+            display: none;
+            padding: 0.75rem;
+            background-color: #D1FAE5;
+            border-radius: 6px;
+        }
+
+        .verification-message {
+            color: #F59E0B;
+            margin-top: 1rem;
+            text-align: center;
+            display: none;
+            padding: 1rem;
+            background-color: #FEF3C7;
+            border-radius: 6px;
+            border: 1px solid #FCD34D;
+        }
+
+        .verification-message h3 {
+            color: #D97706;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .verification-message p {
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .verification-message ul {
+            text-align: left;
+            margin: 0.5rem 0;
+            padding-left: 1.5rem;
+        }
+
+        .verification-message li {
+            margin-bottom: 0.25rem;
+        }
+
         .register-link {
             text-align: center;
             margin-top: 1.5rem;
@@ -190,6 +232,25 @@
         }
 
         .register-link a:hover {
+            text-decoration: underline;
+        }
+
+        .resend-verification {
+            text-align: center;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: var(--gray);
+            display: none;
+        }
+
+        .resend-verification a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .resend-verification a:hover {
             text-decoration: underline;
         }
 
@@ -233,6 +294,20 @@
                     </div>
                     <button type="submit" class="btn">Sign In</button>
                     <div id="error-message" class="error-message">Incorrect email or password. Please try again.</div>
+                    <div id="success-message" class="success-message">Email verified successfully! You can now log in.</div>
+                    <div id="verification-message" class="verification-message">
+                        <h3>Email Verification Required</h3>
+                        <p>Please check your email inbox for a verification link. To complete your registration:</p>
+                        <ul>
+                            <li>Open the email from CVMatch</li>
+                            <li>Click the "Verify My Email" button</li>
+                            <li>Return here to log in</li>
+                        </ul>
+                        <p>Can't find the email? Check your spam folder.</p>
+                    </div>
+                    <div id="resend-verification" class="resend-verification">
+                        Didn't receive the verification email? <a id="resend-link">Resend verification email</a>
+                    </div>
                 </form>
                 <div class="register-link">
                     Don't have an account? <a href="/register">Create one now</a>
@@ -242,11 +317,23 @@
     </div>
     
     <script>
+        // Check if user just verified their email
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('verified') === 'true') {
+            document.getElementById('success-message').style.display = 'block';
+        }
+
         document.getElementById('login-form').addEventListener('submit', async function(event) {
             event.preventDefault();
             
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
+            
+            // Reset messages
+            document.getElementById('error-message').style.display = 'none';
+            document.getElementById('success-message').style.display = 'none';
+            document.getElementById('verification-message').style.display = 'none';
+            document.getElementById('resend-verification').style.display = 'none';
             
             try {
                 const response = await fetch('/api/login', {
@@ -276,17 +363,56 @@
                         window.location.href = '/app';
                     }
                 } else {
-                    // Show error message
-                    document.getElementById('error-message').style.display = 'block';
-                    document.getElementById('error-message').textContent = data.error || 'Login failed. Please try again.';
-                    
-                    // Clear the password field
-                    document.getElementById('password').value = '';
+                    // Check if email needs verification
+                    if (data.requiresVerification) {
+                        document.getElementById('verification-message').style.display = 'block';
+                        document.getElementById('resend-verification').style.display = 'block';
+                        
+                        // Store email for resend functionality
+                        document.getElementById('resend-link').setAttribute('data-email', email);
+                    } else {
+                        // Show error message
+                        document.getElementById('error-message').style.display = 'block';
+                        document.getElementById('error-message').textContent = data.error || 'Login failed. Please try again.';
+                        
+                        // Clear the password field
+                        document.getElementById('password').value = '';
+                    }
                 }
             } catch (error) {
                 console.error('Login error:', error);
                 document.getElementById('error-message').style.display = 'block';
                 document.getElementById('error-message').textContent = 'An error occurred. Please try again.';
+            }
+        });
+
+        // Handle resend verification email
+        document.getElementById('resend-link').addEventListener('click', async function() {
+            const email = this.getAttribute('data-email');
+            if (!email) return;
+            
+            try {
+                const response = await fetch('/api/resend-verification', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('verification-message').style.display = 'block';
+                    document.getElementById('resend-verification').style.display = 'none';
+                } else {
+                    document.getElementById('error-message').textContent = data.error || 'Failed to resend verification email.';
+                    document.getElementById('error-message').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Resend verification error:', error);
+                document.getElementById('error-message').textContent = 'An error occurred. Please try again.';
+                document.getElementById('error-message').style.display = 'block';
             }
         });
     </script>

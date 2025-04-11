@@ -27,6 +27,12 @@ router.get('/register', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'register.html'));
 });
 
+// Serve email verification page
+router.get('/verify-email', (req, res) => {
+    console.log('Email verification page requested');
+    res.sendFile(path.join(__dirname, '..', 'verify-email.html'));
+});
+
 // Serve admin page with authentication
 router.get('/admin', auth, isAdmin, (req, res) => {
     console.log('Admin page requested - access granted');
