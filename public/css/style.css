@@ -65,4 +65,41 @@
 
 .btn-refresh:not(:disabled):hover {
     background-color: #2980b9;
+}
+
+/* Error and No Jobs Messages */
+.error-message, .no-jobs-message {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.error-message {
+    border-left: 4px solid #dc3545;
+}
+
+.no-jobs-message {
+    border-left: 4px solid #ffc107;
+}
+
+.error-message h3, .no-jobs-message h3 {
+    margin-top: 0;
+    color: #343a40;
+}
+
+.error-message p, .no-jobs-message p {
+    color: #6c757d;
+    margin-bottom: 15px;
+}
+
+.no-jobs-message ul {
+    padding-left: 20px;
+    margin-bottom: 15px;
+}
+
+.no-jobs-message li {
+    margin-bottom: 5px;
+    color: #6c757d;
 } 

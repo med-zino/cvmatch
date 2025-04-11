@@ -123,9 +123,19 @@ async function searchJobs(query) {
 
   try {
     console.log('🔍 Searching for jobs...');
+    console.log('Making request with query:', query);
     const response = await axios.request(options);
+    console.log('Received response with status:', response.status);
     
     if (response.data && response.data.data) {
+      console.log(`Found ${response.data.data.length} jobs`);
+      
+      // Check if we have any jobs
+      if (response.data.data.length === 0) {
+        console.log('No jobs found for the query');
+        return [];
+      }
+      
       // Format job listings
       const jobs = response.data.data.map(job => ({
         title: job.job_title || '',
@@ -166,13 +176,24 @@ async function searchJobs(query) {
         }
       });
       
+      console.log(`Successfully processed ${jobs.length} jobs`);
       return jobs;
     } else {
-      throw new Error("No job data found in the response");
+      console.error('Invalid response structure:', JSON.stringify(response.data).substring(0, 200));
+      return [];
     }
   } catch (error) {
     console.error('🚨 Error fetching job data:', error.message);
-    throw error;
+    if (error.response) {
+      console.error('API Error Response:', {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data
+      });
+    } else if (error.request) {
+      console.error('No response received from API');
+    }
+    return [];
   }
 }
 
@@ -339,19 +360,20 @@ router.post('/find-matches', async (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
+    res.setHeader('Access-Control-Allow-Origin', '*');
 
     const GEMINI_API_KEY = 'AIzaSyBnCC9iO5EQY823GJKIurFF2SUp_Yi0zPE';
     
     const { query, cvText, userId } = req.body;
     
     if (!cvText) {
-      res.write(`data: ${JSON.stringify({ error: 'CV text is required' })}\n\n`);
+      res.write(`data: ${JSON.stringify({ status: 'error', error: 'CV text is required' })}\n\n`);
       return res.end();
     }
 
     // Check if user ID is provided
     if (!userId) {
-      res.write(`data: ${JSON.stringify({ error: 'User ID is required' })}\n\n`);
+      res.write(`data: ${JSON.stringify({ status: 'error', error: 'User ID is required' })}\n\n`);
       return res.end();
     }
 
@@ -360,7 +382,7 @@ router.post('/find-matches', async (req, res) => {
     const user = await User.findById(userId);
     
     if (!user) {
-      res.write(`data: ${JSON.stringify({ error: 'User not found' })}\n\n`);
+      res.write(`data: ${JSON.stringify({ status: 'error', error: 'User not found' })}\n\n`);
       return res.end();
     }
 
@@ -371,7 +393,6 @@ router.post('/find-matches', async (req, res) => {
       const timeDiff = (now - lastRequest) / 1000 / 60; // Difference in minutes
       
       if (timeDiff < 30) {
-        // Calculate time remaining
         const minutesRemaining = Math.ceil(30 - timeDiff);
         const nextAllowedTime = new Date(lastRequest.getTime() + 30 * 60 * 1000);
         
@@ -386,10 +407,6 @@ router.post('/find-matches', async (req, res) => {
     }
 
     try {
-      // Update lastFindMatches timestamp
-      user.lastFindMatches = new Date();
-      await user.save();
-
       // Step 1: Analyze CV
       res.write(`data: ${JSON.stringify({ status: 'analyzing_cv', message: 'Analyzing your CV...' })}\n\n`);
       const cvAnalysis = await analyzeCV(GEMINI_API_KEY, cvText);
@@ -397,74 +414,102 @@ router.post('/find-matches', async (req, res) => {
 
       // Step 2: Search jobs
       res.write(`data: ${JSON.stringify({ status: 'searching_jobs', message: 'Searching for jobs...' })}\n\n`);
-      const jobs = await searchJobs(query);
-      
-      if (!jobs || jobs.length === 0) {
-        res.write(`data: ${JSON.stringify({ status: 'error', error: 'No job listings found' })}\n\n`);
-        return res.end();
-      }
+      try {
+        const jobs = await searchJobs(query);
+        
+        if (!jobs || jobs.length === 0) {
+          res.write(`data: ${JSON.stringify({ status: 'error', error: 'No job listings found' })}\n\n`);
+          return res.end();
+        }
 
-      res.write(`data: ${JSON.stringify({ 
-        status: 'jobs_found', 
-        message: `Found ${jobs.length} jobs`,
-        totalJobs: jobs.length 
-      })}\n\n`);
+        // Only update lastFindMatches timestamp if we found jobs
+        user.lastFindMatches = new Date();
+        await user.save();
 
-      // Process jobs in chunks of 10
-      const CHUNK_SIZE = 10;
-      const jobsToProcess = jobs.slice(0, 30); // Process up to 30 jobs total
-      const chunks = [];
-      
-      for (let i = 0; i < jobsToProcess.length; i += CHUNK_SIZE) {
-        chunks.push(jobsToProcess.slice(i, i + CHUNK_SIZE));
-      }
-
-      let allMatches = [];
-      for (let i = 0; i < chunks.length; i++) {
-        const chunk = chunks[i];
         res.write(`data: ${JSON.stringify({ 
-          status: 'processing_chunk', 
-          message: `Processing jobs ${i * CHUNK_SIZE + 1}-${Math.min((i + 1) * CHUNK_SIZE, jobsToProcess.length)} of ${jobsToProcess.length}...` 
+          status: 'jobs_found', 
+          message: `Found ${jobs.length} jobs`,
+          totalJobs: jobs.length 
         })}\n\n`);
 
-        const chunkMatches = await matchJobsWithCV(GEMINI_API_KEY, cvAnalysis, chunk);
-        allMatches = allMatches.concat(chunkMatches);
+        // Process jobs in chunks of 10
+        const CHUNK_SIZE = 10;
+        const jobsToProcess = jobs.slice(0, 30); // Process up to 30 jobs total
+        const chunks = [];
+        
+        for (let i = 0; i < jobsToProcess.length; i += CHUNK_SIZE) {
+          chunks.push(jobsToProcess.slice(i, i + CHUNK_SIZE));
+        }
 
-        // Send partial results
+        let allMatches = [];
+        for (let i = 0; i < chunks.length; i++) {
+          const chunk = chunks[i];
+          res.write(`data: ${JSON.stringify({ 
+            status: 'processing_chunk', 
+            message: `Processing jobs ${i * CHUNK_SIZE + 1}-${Math.min((i + 1) * CHUNK_SIZE, jobsToProcess.length)} of ${jobsToProcess.length}...` 
+          })}\n\n`);
+
+          try {
+            const chunkMatches = await matchJobsWithCV(GEMINI_API_KEY, cvAnalysis, chunk);
+            allMatches = allMatches.concat(chunkMatches);
+
+            // Send partial results
+            res.write(`data: ${JSON.stringify({ 
+              status: 'chunk_complete', 
+              matches: chunkMatches,
+              progress: {
+                processed: Math.min((i + 1) * CHUNK_SIZE, jobsToProcess.length),
+                total: jobsToProcess.length
+              }
+            })}\n\n`);
+          } catch (chunkError) {
+            console.error('Error processing chunk:', chunkError);
+            res.write(`data: ${JSON.stringify({ 
+              status: 'chunk_error',
+              error: chunkError.message,
+              progress: {
+                processed: i * CHUNK_SIZE,
+                total: jobsToProcess.length
+              }
+            })}\n\n`);
+            // Continue with next chunk despite error
+            continue;
+          }
+        }
+
+        // Format and send final results
+        const formattedMatches = allMatches.map(match => {
+          const originalJob = jobsToProcess.find(job => job.job_id === match.jobId);
+          if (originalJob) {
+            match.posted = originalJob.posted || originalJob.posted_at || '';
+          }
+          return match;
+        });
+
+        // Send final results
         res.write(`data: ${JSON.stringify({ 
-          status: 'chunk_complete', 
-          matches: chunkMatches,
-          progress: {
-            processed: Math.min((i + 1) * CHUNK_SIZE, jobsToProcess.length),
-            total: jobsToProcess.length
+          status: 'complete',
+          result: {
+            cvAnalysis,
+            jobMatches: formattedMatches,
+            meta: {
+              totalJobsFound: jobs.length,
+              matchedJobs: formattedMatches.length,
+              processedAt: new Date().toISOString()
+            }
           }
         })}\n\n`);
+
+        res.end();
+      } catch (jobSearchError) {
+        console.error('Error in job search:', jobSearchError);
+        res.write(`data: ${JSON.stringify({ 
+          status: 'error',
+          error: 'Job search failed',
+          message: jobSearchError.message 
+        })}\n\n`);
+        res.end();
       }
-
-      // Format and send final results
-      const formattedMatches = allMatches.map(match => {
-        const originalJob = jobsToProcess.find(job => job.job_id === match.jobId);
-        if (originalJob) {
-          match.posted = originalJob.posted || originalJob.posted_at || '';
-        }
-        return match;
-      });
-
-      // Send final results
-      res.write(`data: ${JSON.stringify({ 
-        status: 'complete',
-        result: {
-          cvAnalysis,
-          jobMatches: formattedMatches,
-          meta: {
-            totalJobsFound: jobs.length,
-            matchedJobs: formattedMatches.length,
-            processedAt: new Date().toISOString()
-          }
-        }
-      })}\n\n`);
-
-      res.end();
     } catch (error) {
       console.error('Error in job matching process:', error);
       res.write(`data: ${JSON.stringify({ 

@@ -337,6 +337,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const progressBarContainer = step3.querySelector('.progress-bar-container');
         const progressBar = step3.querySelector('.progress-bar');
         const progressText = step3.querySelector('.progress-text');
+        const jobMatchesContainer = document.getElementById('jobMatchesResults');
 
         switch (data.status) {
             case 'analyzing_cv':
@@ -385,7 +386,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 break;
 
             case 'error':
-                throw new Error(data.message || 'An error occurred');
+                // Handle the case when no jobs are found
+                if (data.error === 'No job listings found') {
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('results').style.display = 'block';
+                    
+                    // Display CV analysis if available
+                    if (data.cvAnalysis) {
+                        displayCVAnalysis(data.cvAnalysis);
+                    }
+                    
+                    // Display a user-friendly message
+                    jobMatchesContainer.innerHTML = '<div class="no-jobs-message"><h3>No Jobs Found</h3><p>We couldn\'t find any jobs matching your search criteria. Please try a different search term or location.</p><p>You can try:</p><ul><li>Using more general search terms</li><li>Searching in a different location</li><li>Checking for typos in your search</li></ul></div>';
+                } else {
+                    // Handle other errors
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('results').style.display = 'block';
+                    
+                    jobMatchesContainer.innerHTML = '<div class="error-message"><h3>Error</h3><p>' + (data.message || data.error || 'An error occurred while processing your request.') + '</p></div>';
+                }
+                break;
         }
     }
     
@@ -525,23 +545,23 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (job.link) {
                 // Check if this is the first job (index 0)
-                if (index === 0) {
+                // if (index === 0) {
                     // First job - show regular apply button
                     actionContainer.innerHTML = `
                         <a href="${job.link}" target="_blank" class="btn-apply">Apply Now</a>
                     `;
-                } else {
-                    // All other jobs - show premium locked button
-                    actionContainer.innerHTML = `
-                        <div class="premium-locked">
-                            <div class="premium-message">
-                                <i class="fas fa-lock premium-icon"></i>
-                                <span>Premium Feature</span>
-                    </div>
-                            <button class="btn-premium" onclick="scrollToSection('earlyAccessForm')">Upgrade to Premium</button>
-                    </div>
-                    `;
-                }
+                // } else {
+                //     // All other jobs - show premium locked button
+                //     actionContainer.innerHTML = `
+                //         <div class="premium-locked">
+                //             <div class="premium-message">
+                //                 <i class="fas fa-lock premium-icon"></i>
+                //                 <span>Premium Feature</span>
+                //     </div>
+                //             <button class="btn-premium" onclick="scrollToSection('earlyAccessForm')">Upgrade to Premium</button>
+                //     </div>
+                //     `;
+                // }
             } else {
                 actionContainer.innerHTML = `
                     <div class="no-link-message">
