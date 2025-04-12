@@ -142,7 +142,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const isVisible = cvAnalysis.style.display !== 'none';
         
         cvAnalysis.style.display = isVisible ? 'none' : 'block';
-        this.textContent = isVisible ? 'Show CV Analysis Details' : 'Hide CV Analysis Details';
+        this.innerHTML = isVisible ? 
+            '<i class="fas fa-eye"></i> Show CV Analysis Details' : 
+            '<i class="fas fa-eye-slash"></i> Hide CV Analysis Details';
     });
     
     // Form submission
@@ -213,10 +215,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
             
+            console.log('Sending request to /api/find-matches...');
             const response = await fetch('/api/find-matches', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'text/event-stream'
             },
                 body: JSON.stringify({ query, cvText, userId }),
                 signal: controller.signal
@@ -225,31 +229,12 @@ document.addEventListener('DOMContentLoaded', function() {
             clearTimeout(timeoutId);
 
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = '';
-
-            // Process the stream
-            while (true) {
-                const { value, done } = await reader.read();
-                if (done) break;
-
-                // Append new data to buffer and split by double newlines
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n\n');
-                buffer = lines.pop() || ''; // Keep the last incomplete chunk in the buffer
-
-                // Process complete messages
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        try {
-                            const data = JSON.parse(line.slice(6));
-                            
-                            // Check for rate limit error
-                            if (data.status === 'error' && data.error === 'Rate limit exceeded') {
+                if (response.status === 429) {
+                    // Handle rate limiting
+                    const data = await response.json();
+                    const retryAfter = response.headers.get('Retry-After');
+                    const rateLimitReset = response.headers.get('X-RateLimit-Reset');
+                    
                                 // Clear the progress indicator
                                 loading.innerHTML = '';
                                 
@@ -257,20 +242,22 @@ document.addEventListener('DOMContentLoaded', function() {
                                 const rateLimitDiv = document.createElement('div');
                                 rateLimitDiv.className = 'rate-limit-message';
                                 
-                                // Parse the next allowed time
-                                const nextAllowedTime = new Date(data.nextAllowedTime);
+                    // Calculate time remaining
+                    const nextAllowedTime = new Date(rateLimitReset);
                                 const now = new Date();
                                 const minutesRemaining = Math.ceil((nextAllowedTime - now) / 1000 / 60);
                                 
                                 rateLimitDiv.innerHTML = `
                                     <div class="rate-limit-container">
-                                        <h3>⏱️ Rate Limit Reached</h3>
+                            <h3><i class="fas fa-clock"></i> Rate Limit Reached</h3>
                                         <p>${data.message}</p>
                                         <div class="countdown-container">
                                             <div class="countdown" id="countdown">${minutesRemaining}:00</div>
-                                            <p>Time remaining</p>
+                                <p>Time remaining until next attempt</p>
                                         </div>
-                                        <button id="refresh-btn" class="btn-refresh" disabled>Refresh</button>
+                            <button id="refresh-btn" class="btn-refresh" disabled>
+                                <i class="fas fa-sync-alt"></i> Try Again
+                            </button>
                                     </div>
                                 `;
                                 
@@ -290,7 +277,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     if (secondsRemaining <= 0) {
                                         clearInterval(countdownInterval);
                                         refreshButton.disabled = false;
-                                        refreshButton.textContent = 'Try Again';
+                            refreshButton.innerHTML = '<i class="fas fa-sync-alt"></i> Try Again';
                                     }
                                 }, 1000);
                                 
@@ -301,10 +288,35 @@ document.addEventListener('DOMContentLoaded', function() {
                                 
                                 return;
                             }
-                            
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            console.log('Response received, setting up event source...');
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+
+            // Process the stream
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) {
+                    console.log('Stream complete');
+                    break;
+                }
+
+                // Decode and process the chunk
+                const chunk = decoder.decode(value, { stream: true });
+                console.log('Received chunk:', chunk);
+
+                // Split the chunk into individual SSE messages
+                const messages = chunk.split('\n\n');
+                for (const message of messages) {
+                    if (message.startsWith('data: ')) {
+                        try {
+                            const data = JSON.parse(message.slice(6));
+                            console.log('Processed SSE message:', data);
                             handleStreamUpdate(data, progressDiv);
                         } catch (e) {
-                            console.error('Error parsing SSE data:', e);
+                            console.error('Error parsing SSE message:', e);
                         }
                     }
                 }
@@ -324,264 +336,362 @@ document.addEventListener('DOMContentLoaded', function() {
                     <p>Please try again. If the problem persists, try with a shorter CV or more specific job search query.</p>
                 </div>
             `;
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('results').style.display = 'block';
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
         }
     });
     
     // Handle stream updates
     function handleStreamUpdate(data, progressDiv) {
+        console.log('Handling stream update:', data);
+        
+        // Get references to UI elements
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const cvAnalysisResults = document.getElementById('cvAnalysisResults');
+        const jobMatchesResults = document.getElementById('jobMatchesResults');
+        
+        // Get progress step elements
         const step1 = document.getElementById('step1');
         const step2 = document.getElementById('step2');
         const step3 = document.getElementById('step3');
         const progressBarContainer = step3.querySelector('.progress-bar-container');
         const progressBar = step3.querySelector('.progress-bar');
         const progressText = step3.querySelector('.progress-text');
-        const jobMatchesContainer = document.getElementById('jobMatchesResults');
-
+        
+        // Handle different status updates
         switch (data.status) {
             case 'analyzing_cv':
+                // Step 1: Analyzing CV
                 step1.classList.add('active');
-                break;
-
-            case 'cv_analyzed':
-                step1.classList.add('complete');
-                step2.classList.add('active');
-                break;
-
-            case 'searching_jobs':
-                step2.classList.add('active');
-                break;
-
-            case 'jobs_found':
-                step2.classList.add('complete');
-                step3.classList.add('active');
-                progressBarContainer.style.display = 'block';
-                break;
-
-            case 'processing_chunk':
-                progressBarContainer.style.display = 'block';
-                break;
-
-            case 'chunk_complete':
-                const { processed, total } = data.progress;
-                const percentage = Math.round((processed / total) * 100);
-                progressBar.style.width = `${percentage}%`;
-                progressText.textContent = `${percentage}%`;
+                step1.classList.remove('complete');
+                step2.classList.remove('active', 'complete');
+                step3.classList.remove('active', 'complete');
+                progressBarContainer.style.display = 'none';
                 
-                // Update partial results if you want to show them
+                // Make sure loading is visible
+                loading.style.display = 'block';
+                results.style.display = 'none';
+                break;
+                
+            case 'cv_analyzed':
+                // Step 1 complete, start Step 2
+                step1.classList.add('complete');
+                step1.classList.remove('active');
+                step2.classList.add('active');
+                step2.classList.remove('complete');
+                step3.classList.remove('active', 'complete');
+                progressBarContainer.style.display = 'none';
+                
+                // Display CV analysis results
+                if (data.cvAnalysis) {
+                    displayCVAnalysis(data.cvAnalysis);
+                }
+                
+                // Make sure loading is visible
+                loading.style.display = 'block';
+                results.style.display = 'none';
+                break;
+                
+            case 'searching_jobs':
+                // Step 2: Searching for jobs
+                step2.classList.add('active');
+                step2.classList.remove('complete');
+                step3.classList.remove('active', 'complete');
+                progressBarContainer.style.display = 'none';
+                
+                // Make sure loading is visible
+                loading.style.display = 'block';
+                results.style.display = 'none';
+                break;
+                
+            case 'jobs_found':
+                // Step 2 complete, start Step 3
+                step2.classList.add('complete');
+                step2.classList.remove('active');
+                step3.classList.add('active');
+                step3.classList.remove('complete');
+                progressBarContainer.style.display = 'block';
+                
+                // Update progress bar
+                progressBar.style.width = '0%';
+                progressText.textContent = '0%';
+                
+                // Make sure loading is visible
+                loading.style.display = 'block';
+                results.style.display = 'none';
+                break;
+                
+            case 'processing_chunk':
+                // Update progress for job matching
+                if (data.progress) {
+                    const { processed, total } = data.progress;
+                    const percentage = Math.round((processed / total) * 100);
+                    progressBar.style.width = `${percentage}%`;
+                    progressText.textContent = `${percentage}%`;
+                }
+                
+                // Make sure loading is visible
+                loading.style.display = 'block';
+                results.style.display = 'none';
+                break;
+                
+            case 'chunk_complete':
+                // Display partial results as they come in
                 if (data.matches && data.matches.length > 0) {
                     displayJobMatches(data.matches);
                 }
+                
+                // Make sure loading is visible
+                loading.style.display = 'block';
+                results.style.display = 'none';
                 break;
-
+                
             case 'complete':
+                // All steps complete
                 step3.classList.add('complete');
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('results').style.display = 'block';
+                step3.classList.remove('active');
+                progressBar.style.width = '100%';
+                progressText.textContent = '100%';
+                
+                // Hide loading, show results
+                loading.style.display = 'none';
+                results.style.display = 'block';
                 
                 // Display final results
-                displayCVAnalysis(data.result.cvAnalysis);
-                displayJobMatches(data.result.jobMatches, data.result.meta);
-                break;
-
-            case 'error':
-                // Handle the case when no jobs are found
-                if (data.error === 'No job listings found') {
-                    document.getElementById('loading').style.display = 'none';
-                    document.getElementById('results').style.display = 'block';
-                    
-                    // Display CV analysis if available
-                    if (data.cvAnalysis) {
-                        displayCVAnalysis(data.cvAnalysis);
+                if (data.result) {
+                    if (data.result.cvAnalysis) {
+                        displayCVAnalysis(data.result.cvAnalysis);
                     }
-                    
-                    // Display a user-friendly message
-                    jobMatchesContainer.innerHTML = '<div class="no-jobs-message"><h3>No Jobs Found</h3><p>We couldn\'t find any jobs matching your search criteria. Please try a different search term or location.</p><p>You can try:</p><ul><li>Using more general search terms</li><li>Searching in a different location</li><li>Checking for typos in your search</li></ul></div>';
-                } else {
-                    // Handle other errors
-                    document.getElementById('loading').style.display = 'none';
-                    document.getElementById('results').style.display = 'block';
-                    
-                    jobMatchesContainer.innerHTML = '<div class="error-message"><h3>Error</h3><p>' + (data.message || data.error || 'An error occurred while processing your request.') + '</p></div>';
+                    if (data.result.jobMatches) {
+                        displayJobMatches(data.result.jobMatches);
+                    }
                 }
+                
+                // Scroll to results
+                setTimeout(() => {
+                    document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 500);
+                break;
+                
+            case 'error':
+                // Handle errors
+                loading.style.display = 'none';
+                results.style.display = 'block';
+                
+                // Display error message
+                jobMatchesResults.innerHTML = `
+                    <div class="error-message">
+                        <h3><i class="fas fa-exclamation-triangle"></i> Error</h3>
+                        <p>${data.message || data.error || 'An error occurred while processing your request.'}</p>
+                    </div>
+                `;
                 break;
         }
     }
     
+    // Display CV analysis results
     function displayCVAnalysis(cvAnalysis) {
-        const container = document.getElementById('cvAnalysisResults');
-        container.innerHTML = `<pre>${JSON.stringify(cvAnalysis, null, 2)}</pre>`;
+        const cvAnalysisResults = document.getElementById('cvAnalysisResults');
+        
+        // Create HTML for CV analysis
+        let html = '<div class="cv-analysis-content">';
+        
+        // Skills section
+        if (cvAnalysis.skills && cvAnalysis.skills.length > 0) {
+            html += `
+                <div class="analysis-section">
+                    <h4><i class="fas fa-tools"></i> Skills</h4>
+                    <ul class="skills-list">
+                        ${cvAnalysis.skills.map(skill => `<li>${skill}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+        
+        // Technical skills section
+        if (cvAnalysis.technical_skills && cvAnalysis.technical_skills.length > 0) {
+            html += `
+                <div class="analysis-section">
+                    <h4><i class="fas fa-code"></i> Technical Skills</h4>
+                    <ul class="skills-list">
+                        ${cvAnalysis.technical_skills.map(skill => `<li>${skill}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+        
+        // Soft skills section
+        if (cvAnalysis.soft_skills && cvAnalysis.soft_skills.length > 0) {
+            html += `
+                <div class="analysis-section">
+                    <h4><i class="fas fa-users"></i> Soft Skills</h4>
+                    <ul class="skills-list">
+                        ${cvAnalysis.soft_skills.map(skill => `<li>${skill}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+        
+        // Experience section
+        if (cvAnalysis.experience && cvAnalysis.experience.length > 0) {
+            html += `
+                <div class="analysis-section">
+                    <h4><i class="fas fa-briefcase"></i> Experience</h4>
+                    ${cvAnalysis.experience.map(exp => `
+                        <div class="experience-item">
+                            <h5>${exp.title} at ${exp.company}</h5>
+                            <p class="duration">${exp.duration}</p>
+                            <ul class="responsibilities">
+                                ${exp.description.map(desc => `<li>${desc}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        // Education section
+        if (cvAnalysis.education && cvAnalysis.education.length > 0) {
+            html += `
+                <div class="analysis-section">
+                    <h4><i class="fas fa-graduation-cap"></i> Education</h4>
+                    ${cvAnalysis.education.map(edu => `
+                        <div class="education-item">
+                            <h5>${edu.degree}</h5>
+                            <p>${edu.institution} (${edu.year})</p>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        // Languages section
+        if (cvAnalysis.languages && cvAnalysis.languages.length > 0) {
+            html += `
+                <div class="analysis-section">
+                    <h4><i class="fas fa-language"></i> Languages</h4>
+                    <ul class="languages-list">
+                        ${cvAnalysis.languages.map(lang => `<li>${lang}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+        
+        // Certifications section
+        if (cvAnalysis.certifications && cvAnalysis.certifications.length > 0) {
+            html += `
+                <div class="analysis-section">
+                    <h4><i class="fas fa-certificate"></i> Certifications</h4>
+                    <ul class="certifications-list">
+                        ${cvAnalysis.certifications.map(cert => `<li>${cert}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+        
+        html += '</div>';
+        
+        // Update the DOM
+        cvAnalysisResults.innerHTML = html;
+        
+        // Make sure the CV analysis section is visible
+        document.getElementById('cvAnalysis').style.display = 'block';
     }
     
-    function displayJobMatches(jobMatches, meta) {
-        console.log('Displaying job matches:', jobMatches);
-        const jobMatchesContainer = document.getElementById('jobMatchesResults');
-        jobMatchesContainer.innerHTML = '';
+    // Display job matches
+    function displayJobMatches(jobMatches) {
+        const jobMatchesResults = document.getElementById('jobMatchesResults');
+        const infoSection = document.querySelector('.info-section');
         
-        if (jobMatches.length === 0) {
-            jobMatchesContainer.innerHTML = '<p>No job matches found.</p>';
+        if (!jobMatches || jobMatches.length === 0) {
+            // Hide info section when there are no matches
+            if (infoSection) {
+                infoSection.style.display = 'none';
+            }
+            
+            jobMatchesResults.innerHTML = `
+                <div class="no-matches">
+                    <h3><i class="fas fa-search"></i> No Job Matches Found</h3>
+                    <p>We couldn't find any jobs that match your CV. Try adjusting your search query or uploading a different CV.</p>
+                </div>
+            `;
             return;
         }
         
-        // Add info about the job search
-        if (meta) {
-            const infoDiv = document.createElement('div');
-            infoDiv.className = 'info-section';
-            infoDiv.innerHTML = `
-                <p>Found ${meta.totalJobsFound} jobs (source: ${meta.jobsSource})</p>
-                <p>Processed at: ${new Date(meta.processedAt).toLocaleString()}</p>
-            `;
-            jobMatchesContainer.appendChild(infoDiv);
+        // Show info section when we have matches
+        if (infoSection) {
+            infoSection.style.display = 'block';
         }
         
+        // Create HTML for job matches
+        let html = '<div class="job-matches-container">';
+        
         jobMatches.forEach((job, index) => {
-            const jobCard = document.createElement('div');
-            jobCard.className = 'job-card';
+            // Format the score with color coding
+            let scoreClass = 'score-low';
+            if (job.score >= 80) {
+                scoreClass = 'score-high';
+            } else if (job.score >= 60) {
+                scoreClass = 'score-medium';
+            }
             
-            // Create job title and company
-            const jobHeader = document.createElement('div');
-            jobHeader.className = 'job-header';
-            jobHeader.innerHTML = `
-                <h3>${job.title}</h3>
-                <p class="company">${job.company}</p>
-            `;
-            
-            // Create match score
-            const matchScore = document.createElement('div');
-            matchScore.className = 'match-score';
-            matchScore.innerHTML = `
-                <div class="score-circle ${getScoreClass(job.score)}">
-                    <span>${job.score}%</span>
-                </div>
-                <p>Match Score</p>
-            `;
-            
-            // Create job details section with publish date
-            const jobDetails = document.createElement('div');
-            jobDetails.className = 'job-details';
-            
-            // Format the publish date if available
-            let publishDate = 'Not available';
+            // Format the posted date
+            let postedDate = 'Not specified';
             if (job.posted) {
-                try {
-                    // Check if the date is in the format "il y a X jours"
-                    if (job.posted.includes('il y a')) {
-                        publishDate = job.posted; // Use the relative date as is
-                    } else {
-                        // Try to parse as a regular date
-                        const date = new Date(job.posted);
-                        if (!isNaN(date.getTime())) {
-                            publishDate = date.toLocaleDateString();
-                        }
-                    }
-                } catch (e) {
-                    console.error('Error parsing date:', e);
+                const date = new Date(job.posted);
+                if (!isNaN(date.getTime())) {
+                    postedDate = date.toLocaleDateString();
                 }
             }
             
-            jobDetails.innerHTML = `
-                <div class="job-meta">
-                    <span class="job-date"><i class="far fa-calendar-alt"></i> Posted: ${publishDate}</span>
+            html += `
+                <div class="job-card">
+                    <div class="job-header">
+                        <div class="job-title-container">
+                            <h3>${job.title}</h3>
+                            <div class="job-score ${scoreClass}">
+                                <div class="score-value">${job.score}%</div>
+                                <div class="score-label">Match</div>
+                            </div>
+                        </div>
+                        <div class="job-meta">
+                            <span class="posted-date"><i class="far fa-calendar-alt"></i> Posted: ${postedDate}</span>
+                            <a href="${job.link}" target="_blank" class="apply-link"><i class="fas fa-external-link-alt"></i> Apply</a>
+                        </div>
+                    </div>
+                    <p class="company">${job.company}</p>
+                    <div class="job-details">
+                        <div class="matching-skills">
+                            <h4><i class="fas fa-check-circle"></i> Matching Skills</h4>
+                            <ul>
+                                ${job.skillsMatch.map(skill => `<li>${skill}</li>`).join('')}
+                            </ul>
+                        </div>
+                        <div class="missing-skills">
+                            <h4><i class="fas fa-times-circle"></i> Missing Skills</h4>
+                            <ul>
+                                ${job.missingSkills.map(skill => `<li>${skill}</li>`).join('')}
+                            </ul>
+                        </div>
+                        <div class="match-reasons">
+                            <h4><i class="fas fa-lightbulb"></i> Why This Job Matches</h4>
+                            <ul>
+                                ${job.reasons.map(reason => `<li>${reason}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             `;
-            
-            // Create reasons for match
-            const reasonsContainer = document.createElement('div');
-            reasonsContainer.className = 'reasons-container';
-            reasonsContainer.innerHTML = '<h4>Why this job matches your profile:</h4>';
-            
-            const reasonsList = document.createElement('ul');
-            reasonsList.className = 'reasons-list';
-            job.reasons.forEach(reason => {
-                const reasonItem = document.createElement('li');
-                reasonItem.textContent = reason;
-                reasonsList.appendChild(reasonItem);
-            });
-            reasonsContainer.appendChild(reasonsList);
-            
-            // Create skills match section
-            const skillsContainer = document.createElement('div');
-            skillsContainer.className = 'skills-container';
-            
-            // Matching skills
-            if (job.skillsMatch && job.skillsMatch.length > 0) {
-                const matchingSkills = document.createElement('div');
-                matchingSkills.className = 'matching-skills';
-                matchingSkills.innerHTML = '<h4>Matching Skills:</h4>';
-                
-                const skillsList = document.createElement('ul');
-                skillsList.className = 'skills-list';
-                job.skillsMatch.forEach(skill => {
-                    const skillItem = document.createElement('li');
-                    skillItem.textContent = skill;
-                    skillsList.appendChild(skillItem);
-                });
-                matchingSkills.appendChild(skillsList);
-                skillsContainer.appendChild(matchingSkills);
-            }
-            
-            // Missing skills
-            if (job.missingSkills && job.missingSkills.length > 0) {
-                const missingSkills = document.createElement('div');
-                missingSkills.className = 'missing-skills';
-                missingSkills.innerHTML = '<h4>Skills to Develop:</h4>';
-                
-                const skillsList = document.createElement('ul');
-                skillsList.className = 'skills-list';
-                job.missingSkills.forEach(skill => {
-                    const skillItem = document.createElement('li');
-                    skillItem.textContent = skill;
-                    skillItem.className = 'skills-missing';
-                    skillsList.appendChild(skillItem);
-                });
-                missingSkills.appendChild(skillsList);
-                skillsContainer.appendChild(missingSkills);
-            }
-            
-            // Add apply button or premium message based on job link availability
-            const actionContainer = document.createElement('div');
-            actionContainer.className = 'job-action';
-            
-            if (job.link) {
-                // Check if this is the first job (index 0)
-                // if (index === 0) {
-                    // First job - show regular apply button
-                    actionContainer.innerHTML = `
-                        <a href="${job.link}" target="_blank" class="btn-apply">Apply Now</a>
-                    `;
-                // } else {
-                //     // All other jobs - show premium locked button
-                //     actionContainer.innerHTML = `
-                //         <div class="premium-locked">
-                //             <div class="premium-message">
-                //                 <i class="fas fa-lock premium-icon"></i>
-                //                 <span>Premium Feature</span>
-                //     </div>
-                //             <button class="btn-premium" onclick="scrollToSection('earlyAccessForm')">Upgrade to Premium</button>
-                //     </div>
-                //     `;
-                // }
-            } else {
-                actionContainer.innerHTML = `
-                    <div class="no-link-message">
-                        <i class="fas fa-link-slash"></i>
-                        <span>No link available</span>
-                </div>
-            `;
-            }
-            
-            // Append all elements to the job card
-            jobCard.appendChild(jobHeader);
-            jobCard.appendChild(matchScore);
-            jobCard.appendChild(jobDetails);
-            jobCard.appendChild(reasonsContainer);
-            jobCard.appendChild(skillsContainer);
-            jobCard.appendChild(actionContainer);
-            
-            // Add the job card to the container
-            jobMatchesContainer.appendChild(jobCard);
         });
+        
+        html += '</div>';
+        
+        // Update the DOM
+        jobMatchesResults.innerHTML = html;
+        
+        // Make sure the results container is visible
+        document.getElementById('results').style.display = 'block';
     }
     
     function getScoreClass(score) {

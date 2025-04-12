@@ -356,6 +356,12 @@ function sanitizeJson(jsonStr) {
 // Route to handle job search and matching
 router.post('/find-matches', async (req, res) => {
   try {
+    console.log('Received find-matches request:', {
+      query: req.body.query,
+      userId: req.body.userId,
+      cvTextLength: req.body.cvText?.length
+    });
+
     // Set headers for SSE
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -366,22 +372,28 @@ router.post('/find-matches', async (req, res) => {
     
     const { query, cvText, userId } = req.body;
     
+    console.log('Validating request parameters...');
+
     if (!cvText) {
+      console.log('Error: CV text is missing');
       res.write(`data: ${JSON.stringify({ status: 'error', error: 'CV text is required' })}\n\n`);
       return res.end();
     }
 
     // Check if user ID is provided
     if (!userId) {
+      console.log('Error: User ID is missing');
       res.write(`data: ${JSON.stringify({ status: 'error', error: 'User ID is required' })}\n\n`);
       return res.end();
     }
 
     // Check rate limiting
+    console.log('Checking rate limiting for user:', userId);
     const User = require('../models/User');
     const user = await User.findById(userId);
     
     if (!user) {
+      console.log('Error: User not found:', userId);
       res.write(`data: ${JSON.stringify({ status: 'error', error: 'User not found' })}\n\n`);
       return res.end();
     }
@@ -396,13 +408,25 @@ router.post('/find-matches', async (req, res) => {
         const minutesRemaining = Math.ceil(30 - timeDiff);
         const nextAllowedTime = new Date(lastRequest.getTime() + 30 * 60 * 1000);
         
-        res.write(`data: ${JSON.stringify({ 
-          status: 'error',
+        // Set proper rate limit headers
+        res.setHeader('Retry-After', Math.ceil(timeDiff * 60)); // Retry-After in seconds
+        res.setHeader('X-RateLimit-Limit', '1');
+        res.setHeader('X-RateLimit-Remaining', '0');
+        res.setHeader('X-RateLimit-Reset', nextAllowedTime.toISOString());
+        
+        // Return 429 status code with detailed error message
+        res.status(429).json({
           error: 'Rate limit exceeded',
           message: `You can only make one request every 30 minutes. Please try again in ${minutesRemaining} minutes.`,
-          nextAllowedTime: nextAllowedTime.toISOString()
-        })}\n\n`);
-        return res.end();
+          nextAllowedTime: nextAllowedTime.toISOString(),
+          retryAfter: Math.ceil(timeDiff * 60),
+          rateLimitInfo: {
+            limit: 1,
+            remaining: 0,
+            reset: nextAllowedTime.toISOString()
+          }
+        });
+        return;
       }
     }
 
