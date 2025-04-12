@@ -14,7 +14,7 @@ async function testApi() {
       date_posted: 'all'
     },
     headers: {
-      'x-rapidapi-key': '0db77bb548msh9ea6798adb4cbd1p174554jsn3f0e3af19743',
+      'x-rapidapi-key': '0c95d219d8msh62c6c9ae0a52d43p106ffbjsnc2b6ba9abffd',
       'x-rapidapi-host': 'jsearch.p.rapidapi.com'
     }
   };
