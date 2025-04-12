@@ -227,8 +227,8 @@
                         </div>
                     </div>
                     
-                    <div id="results" class="results" style="display: none;">
-                        <div class="info-section">
+                    <div id="results" class="results">
+                        <div class="info-section" style="display: none;">
                             <h3><i class="fas fa-chart-bar"></i> Job Matching Results</h3>
                             <p>We've analyzed your CV and found the best matching jobs based on your skills and experience.</p>
                             <button id="toggleCvAnalysis" class="toggle-cv-analysis">
@@ -236,13 +236,36 @@
                             </button>
                         </div>
                         
-                        <div id="cvAnalysis" class="cv-analysis">
+                        <!-- <div id="cvAnalysis" class="cv-analysis">
                             <h3><i class="fas fa-file-alt"></i> CV Analysis</h3>
                             <div id="cvAnalysisResults"></div>
-                        </div>
+                        </div> -->
                         
                         <h3><i class="fas fa-briefcase"></i> Top Job Matches</h3>
-                        <div id="jobMatchesResults"></div>
+                        <div id="jobMatchesResults">
+                            <!-- Initial state message -->
+                            <div class="initial-state-message">
+                                <div class="message-icon">
+                                    <i class="fas fa-file-upload"></i>
+                                </div>
+                                <h3>Ready to Find Your Perfect Job Match?</h3>
+                                <p>Upload your CV and enter a job search query on the left to get started. We'll analyze your CV and match you with the most relevant job opportunities.</p>
+                                <div class="features-list">
+                                    <div class="feature">
+                                        <i class="fas fa-check-circle"></i>
+                                        <span>Instant CV Analysis</span>
+                                    </div>
+                                    <div class="feature">
+                                        <i class="fas fa-check-circle"></i>
+                                        <span>Skills Matching</span>
+                                    </div>
+                                    <div class="feature">
+                                        <i class="fas fa-check-circle"></i>
+                                        <span>Personalized Job Recommendations</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
