@@ -278,6 +278,77 @@
                 padding: 1.5rem;
             }
         }
+
+        .google-signin-container {
+            max-width: 400px;
+            margin-top: 1.5rem;
+        }
+        
+        /* Google button styling */
+        .google-signin-container .nsm7Bb-HzV7m-LgbsSe {
+            background-color: white !important;
+            color: #333 !important;
+            border: 1px solid #ddd !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+            margin-top: 1rem !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 0.5rem !important;
+            border-radius: 4px !important;
+            font-family: 'Roboto', sans-serif !important;
+            font-size: 14px !important;
+            font-weight: 500 !important;
+            height: 40px !important;
+            padding: 0 12px !important;
+            transition: background-color 0.2s, box-shadow 0.2s !important;
+            width: 100% !important;
+        }
+        
+        .google-signin-container .nsm7Bb-HzV7m-LgbsSe:hover {
+            background-color: #f8f9fa !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12) !important;
+        }
+        
+        .google-signin-container .nsm7Bb-HzV7m-LgbsSe-BPrWId {
+            font-family: 'Roboto', sans-serif !important;
+            font-size: 14px !important;
+            font-weight: 500 !important;
+            color: #333 !important;
+        }
+        
+        /* Additional selectors for production environment */
+        .google-signin-container div[role="button"] {
+            background-color: white !important;
+            color: #333 !important;
+            border: 1px solid #ddd !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+            margin-top: 1rem !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 0.5rem !important;
+            border-radius: 4px !important;
+            font-family: 'Roboto', sans-serif !important;
+            font-size: 14px !important;
+            font-weight: 500 !important;
+            height: 40px !important;
+            padding: 0 12px !important;
+            transition: background-color 0.2s, box-shadow 0.2s !important;
+            width: 100% !important;
+        }
+        
+        .google-signin-container div[role="button"]:hover {
+            background-color: #f8f9fa !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12) !important;
+        }
+        
+        .google-signin-container div[role="button"] span {
+            font-family: 'Roboto', sans-serif !important;
+            font-size: 14px !important;
+            font-weight: 500 !important;
+            color: #333 !important;
+        }
     </style>
 </head>
 <body>
@@ -294,10 +365,8 @@
                     <h1>Create Account</h1>
                     <p>Begin your professional journey with CVMatch</p>
                 </div>
-                <button type="button" class="btn btn-google" onclick="console.log('Google SSO clicked')">
-                    <img src="https://www.google.com/favicon.ico" alt="Google logo">
-                    Sign up with Google
-                </button>
+                <div id="google-signin-container" class="google-signin-container"></div>
+
                 <div class="divider">
                     <span>or</span>
                 </div>
@@ -328,7 +397,51 @@
         </div>
     </div>
     
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
     <script>
+        // Google Sign-In function
+        function handleGoogleSignIn(response) {
+            const idToken = response.credential;
+            
+            // Call our backend API with the ID token
+            fetch('/api/google', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ idToken })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Set a flag in localStorage to indicate successful login
+                    localStorage.setItem('userLoggedIn', 'true');
+                    localStorage.setItem('userRole', data.role);
+                    localStorage.setItem('userId', data.userId);
+                    localStorage.setItem('token', data.token);
+                    
+                    // Set token in cookie for server authentication
+                    document.cookie = `token=${data.token}; path=/; max-age=86400`;
+                    
+                    // Redirect based on role
+                    if (data.role === 'admin') {
+                        window.location.href = '/admin';
+                    } else {
+                        window.location.href = '/app';
+                    }
+                } else {
+                    document.getElementById('error-message').textContent = data.error || 'Google authentication failed';
+                    document.getElementById('error-message').style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Google authentication error:', error);
+                document.getElementById('error-message').textContent = 'An error occurred during Google authentication';
+                document.getElementById('error-message').style.display = 'block';
+            });
+        }
+
         document.getElementById('register-form').addEventListener('submit', async function(event) {
             event.preventDefault();
             
@@ -377,6 +490,37 @@
                 document.getElementById('error-message').style.display = 'block';
             }
         });
+
+        // Initialize Google Sign-In
+        window.onload = function() {
+            // Use the client ID directly
+            const GOOGLE_CLIENT_ID = '1001210903692-505to271nee2u0502j0ko2ftcdn5l9a0.apps.googleusercontent.com';
+            
+            // Get the current origin for the redirect URI
+            const origin = window.location.origin;
+            
+            google.accounts.id.initialize({
+                client_id: GOOGLE_CLIENT_ID,
+                callback: handleGoogleSignIn,
+                auto_select: false,
+                cancel_on_tap_outside: true,
+                use_fedcm_for_prompt: true
+            });
+            
+            // Render the button in the container
+            google.accounts.id.renderButton(
+                document.getElementById('google-signin-container'),
+                { 
+                    theme: 'outline', 
+                    size: 'large', 
+                    width: '100%',
+                    text: 'signup_with'
+                }
+            );
+            
+            // Also add a one-tap sign-in prompt
+            google.accounts.id.prompt();
+        };
     </script>
 </body>
 </html> 

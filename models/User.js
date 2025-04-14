@@ -12,6 +12,19 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    firstName: {
+        type: String,
+        trim: true
+    },
+    lastName: {
+        type: String,
+        trim: true
+    },
+    googleId: {
+        type: String,
+        sparse: true,
+        unique: true
+    },
     role: {
         type: String,
         enum: ['client', 'admin'],

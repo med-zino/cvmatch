@@ -5,6 +5,15 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { auth, isAdmin } = require('../middleware/auth');
 const { sendVerificationEmail } = require('../utils/emailService');
+const { OAuth2Client } = require('google-auth-library');
+const crypto = require('crypto');
+
+// Google client ID and secret
+const GOOGLE_CLIENT_ID = '1001210903692-505to271nee2u0502j0ko2ftcdn5l9a0.apps.googleusercontent.com';
+const GOOGLE_CLIENT_SECRET = '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';
+
+// Initialize Google OAuth client
+const client = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 // Registration route
 router.post('/register', async (req, res) => {
@@ -40,7 +49,9 @@ router.post('/register', async (req, res) => {
         // Create verification link using environment-aware base URL
         const baseUrl = process.env.NODE_ENV === 'production' 
             ? 'https://cvmatch.vercel.app'
-            : 'http://localhost:3000';
+            : process.env.VERCEL_URL 
+                ? `https://${process.env.VERCEL_URL}`
+                : 'http://localhost:3000';
         const verificationLink = `${baseUrl}/verify-email?token=${verificationToken}`;
 
         // Send verification email
@@ -122,7 +133,9 @@ router.post('/resend-verification', async (req, res) => {
         // Create verification link
         const baseUrl = process.env.NODE_ENV === 'production' 
             ? 'https://cvmatch.vercel.app'
-            : 'http://localhost:3000';
+            : process.env.VERCEL_URL 
+                ? `https://${process.env.VERCEL_URL}`
+                : 'http://localhost:3000';
         const verificationLink = `${baseUrl}/verify-email?token=${verificationToken}`;
 
         // Send verification email
@@ -186,6 +199,87 @@ router.post('/login', async (req, res) => {
         console.error('Login error:', error);
         res.status(500).json({ error: 'Error logging in' });
     }
+});
+
+// Google Authentication route
+router.post('/google', async (req, res) => {
+  try {
+    const { idToken } = req.body;
+    
+    if (!idToken) {
+      return res.status(400).json({ error: 'ID token is required' });
+    }
+    
+    console.log('Received Google ID token, verifying...');
+    
+    // Verify Google token
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: GOOGLE_CLIENT_ID
+    });
+    
+    const payload = ticket.getPayload();
+    console.log('Google token verified, payload:', payload.email);
+    
+    // First try to find user by Google ID
+    let user = await User.findOne({ googleId: payload.sub });
+    
+    // If not found by Google ID, try to find by email
+    if (!user) {
+      user = await User.findOne({ email: payload.email });
+      
+      if (user) {
+        // User exists but hasn't linked Google account
+        user.googleId = payload.sub;
+        user.verified = true; // Google emails are verified
+        await user.save();
+        console.log('Linked existing user with Google account:', user.email);
+      } else {
+        // Create new user with random password
+        const randomPassword = crypto.randomBytes(16).toString('hex');
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(randomPassword, salt);
+        
+        user = new User({
+          email: payload.email,
+          firstName: payload.given_name,
+          lastName: payload.family_name,
+          password: hashedPassword,
+          googleId: payload.sub,
+          verified: true, // Google emails are verified
+          role: 'client'
+        });
+        
+        await user.save();
+        console.log('Created new user from Google account:', user.email);
+      }
+    }
+    
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: user._id, role: user.role },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '24h' }
+    );
+    
+    // Set a cookie with the token
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    });
+    
+    res.json({ 
+      success: true,
+      message: 'Google authentication successful',
+      role: user.role,
+      userId: user._id,
+      token
+    });
+  } catch (error) {
+    console.error('Google Login Error:', error);
+    res.status(401).json({ error: 'Invalid Google token', details: error.message });
+  }
 });
 
 // Admin route - protected by auth and isAdmin middleware

@@ -6,6 +6,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const cookieParser = require('cookie-parser');
 const { auth } = require('./middleware/auth');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -86,6 +87,43 @@ app.get('/public', auth, (req, res) => {
 // Add a route to serve the test.html file
 app.get('/test', (req, res) => {
   res.sendFile(path.join(__dirname, 'test.html'));
+});
+
+// Google client ID
+const GOOGLE_CLIENT_ID = '1001210903692-505to271nee2u0502j0ko2ftcdn5l9a0.apps.googleusercontent.com';
+
+// Serve login page with Google client ID
+app.get('/login', (req, res) => {
+  // Read the login.html file
+  fs.readFile(path.join(__dirname, 'login.html'), 'utf8', (err, data) => {
+    if (err) {
+      console.error('Error reading login.html:', err);
+      return res.status(500).send('Error loading login page');
+    }
+    
+    // Inject the Google client ID
+    const modifiedHtml = data.replace('<body>', `<body data-google-client-id="${GOOGLE_CLIENT_ID}">`);
+    
+    // Send the modified HTML
+    res.send(modifiedHtml);
+  });
+});
+
+// Serve register page with Google client ID
+app.get('/register', (req, res) => {
+  // Read the register.html file
+  fs.readFile(path.join(__dirname, 'register.html'), 'utf8', (err, data) => {
+    if (err) {
+      console.error('Error reading register.html:', err);
+      return res.status(500).send('Error loading register page');
+    }
+    
+    // Inject the Google client ID
+    const modifiedHtml = data.replace('<body>', `<body data-google-client-id="${GOOGLE_CLIENT_ID}">`);
+    
+    // Send the modified HTML
+    res.send(modifiedHtml);
+  });
 });
 
 // Update the server startup to work with Vercel
