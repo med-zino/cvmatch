@@ -402,32 +402,32 @@ router.post('/find-matches', async (req, res) => {
     if (user.lastFindMatches) {
       const now = new Date();
       const lastRequest = new Date(user.lastFindMatches);
-      const timeDiff = (now - lastRequest) / 1000 / 60; // Difference in minutes
+      const timeDiff = (now - lastRequest) / 1000 / 60; 
       
-      if (timeDiff < 30) {
-        const minutesRemaining = Math.ceil(30 - timeDiff);
-        const nextAllowedTime = new Date(lastRequest.getTime() + 30 * 60 * 1000);
+      // if (timeDiff < 30) {
+      //   const minutesRemaining = Math.ceil(30 - timeDiff);
+      //   const nextAllowedTime = new Date(lastRequest.getTime() + 30 * 60 * 1000);
         
-        // Set proper rate limit headers
-        res.setHeader('Retry-After', Math.ceil(timeDiff * 60)); // Retry-After in seconds
-        res.setHeader('X-RateLimit-Limit', '1');
-        res.setHeader('X-RateLimit-Remaining', '0');
-        res.setHeader('X-RateLimit-Reset', nextAllowedTime.toISOString());
+      //   // Set proper rate limit headers
+      //   res.setHeader('Retry-After', Math.ceil(timeDiff * 60)); // Retry-After in seconds
+      //   res.setHeader('X-RateLimit-Limit', '1');
+      //   res.setHeader('X-RateLimit-Remaining', '0');
+      //   res.setHeader('X-RateLimit-Reset', nextAllowedTime.toISOString());
         
-        // Return 429 status code with detailed error message
-        res.status(429).json({
-          error: 'Rate limit exceeded',
-          message: `You can only make one request every 30 minutes. Please try again in ${minutesRemaining} minutes.`,
-          nextAllowedTime: nextAllowedTime.toISOString(),
-          retryAfter: Math.ceil(timeDiff * 60),
-          rateLimitInfo: {
-            limit: 1,
-            remaining: 0,
-            reset: nextAllowedTime.toISOString()
-          }
-        });
-        return;
-      }
+      //   // Return 429 status code with detailed error message
+      //   res.status(429).json({
+      //     error: 'Rate limit exceeded',
+      //     message: `You can only make one request every 30 minutes. Please try again in ${minutesRemaining} minutes.`,
+      //     nextAllowedTime: nextAllowedTime.toISOString(),
+      //     retryAfter: Math.ceil(timeDiff * 60),
+      //     rateLimitInfo: {
+      //       limit: 1,
+      //       remaining: 0,
+      //       reset: nextAllowedTime.toISOString()
+      //     }
+      //   });
+      //   return;
+      // }
     }
 
     try {

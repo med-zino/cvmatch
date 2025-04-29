@@ -187,6 +187,10 @@ document.addEventListener('DOMContentLoaded', function() {
         loading.style.display = 'block';
         results.style.display = 'none';
         
+        // Remove any existing progress-updates divs
+const oldProgress = loading.querySelectorAll('.progress-updates');
+oldProgress.forEach(el => el.remove());
+
         // Add progress indicator
         const progressDiv = document.createElement('div');
         progressDiv.className = 'progress-updates';
