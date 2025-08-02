@@ -104,19 +104,43 @@ ${cvText}` }]
 }
 
 // Search for jobs
-async function searchJobs(query) {
+async function searchJobs(query, filters = {}) {
+  // Build the params object with default values
+  const params = {
+    query: query || 'marketing in france',
+    page: '1',
+    num_pages: '1',
+    country: 'us' // Default to US, can be made configurable
+  };
+  
+  // Add filters only if they have values and are not 'all'
+  if (filters.date_posted && filters.date_posted !== 'all') {
+    params.date_posted = filters.date_posted;
+  }
+  
+  if (filters.work_from_home !== undefined && filters.work_from_home !== '' && filters.work_from_home !== 'all') {
+    // Convert string boolean to actual boolean
+    if (filters.work_from_home === 'true') {
+      params.work_from_home = true;
+    } else if (filters.work_from_home === 'false') {
+      params.work_from_home = false;
+    }
+  }
+  
+  if (filters.job_requirements && filters.job_requirements !== 'all' && filters.job_requirements !== '') {
+    params.job_requirements = filters.job_requirements;
+  }
+  
+  if (filters.employment_types && filters.employment_types !== 'all' && filters.employment_types !== '') {
+    params.employment_types = filters.employment_types;
+  }
+  
   const options = {
     method: 'GET',
     url: 'https://jsearch.p.rapidapi.com/search',
-    params: {
-      query: query || 'marketing in france',
-      page: '1',
-      num_pages: '1',
-      country: 'fr',
-      date_posted: 'all'
-    },
+    params,
     headers: {
-      'x-rapidapi-key': '0c95d219d8msh62c6c9ae0a52d43p106ffbjsnc2b6ba9abffd',
+      'x-rapidapi-key': '0db77bb548msh9ea6798adb4cbd1p174554jsn3f0e3af19743',
       'x-rapidapi-host': 'jsearch.p.rapidapi.com'
     }
   };
@@ -124,6 +148,18 @@ async function searchJobs(query) {
   try {
     console.log('🔍 Searching for jobs...');
     console.log('Making request with query:', query);
+    console.log('=== API REQUEST DEBUG ===');
+    console.log('Filters received:', filters);
+    console.log('Final params object:', params);
+    
+    // Build the full URL for debugging
+    const urlParams = new URLSearchParams();
+    Object.keys(params).forEach(key => {
+      urlParams.append(key, params[key]);
+    });
+    const fullUrl = `https://jsearch.p.rapidapi.com/search?${urlParams.toString()}`;
+    console.log('Full API URL:', fullUrl);
+    console.log('========================');
     const response = await axios.request(options);
     console.log('Received response with status:', response.status);
     
@@ -359,7 +395,8 @@ router.post('/find-matches', async (req, res) => {
     console.log('Received find-matches request:', {
       query: req.body.query,
       userId: req.body.userId,
-      cvTextLength: req.body.cvText?.length
+      cvTextLength: req.body.cvText?.length,
+      filters: req.body.filters
     });
 
     // Set headers for SSE
@@ -370,7 +407,13 @@ router.post('/find-matches', async (req, res) => {
 
     const GEMINI_API_KEY = 'AIzaSyBnCC9iO5EQY823GJKIurFF2SUp_Yi0zPE';
     
-    const { query, cvText, userId } = req.body;
+    const { query, cvText, userId, filters = {} } = req.body;
+    
+    // Debug: Log the filters being used
+    console.log('=== BACKEND API REQUEST DEBUG ===');
+    console.log('Query:', query);
+    console.log('Filters received:', filters);
+    console.log('================================');
     
     console.log('Validating request parameters...');
 
@@ -439,7 +482,7 @@ router.post('/find-matches', async (req, res) => {
       // Step 2: Search jobs
       res.write(`data: ${JSON.stringify({ status: 'searching_jobs', message: 'Searching for jobs...' })}\n\n`);
       try {
-        const jobs = await searchJobs(query);
+        const jobs = await searchJobs(query, filters);
         
         if (!jobs || jobs.length === 0) {
           res.write(`data: ${JSON.stringify({ status: 'error', error: 'No job listings found' })}\n\n`);

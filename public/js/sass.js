@@ -147,11 +147,65 @@ document.addEventListener('DOMContentLoaded', function() {
             '<i class="fas fa-eye-slash"></i> Hide CV Analysis Details';
     });
     
+    // Filters toggle functionality
+    document.getElementById('filtersToggle').addEventListener('change', function() {
+        const filtersSection = document.getElementById('filtersSection');
+        const isChecked = this.checked;
+        
+        if (isChecked) {
+            filtersSection.style.display = 'block';
+        } else {
+            filtersSection.style.display = 'none';
+        }
+    });
+    
     // Form submission
     document.getElementById('matchForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         
         const query = document.getElementById('query').value;
+        const location = document.getElementById('location').value;
+        
+        // Validate required fields
+        if (!query.trim()) {
+            alert('Please enter a job search query');
+            return;
+        }
+        
+        if (!location.trim()) {
+            alert('Please enter a location');
+            return;
+        }
+        
+        // Combine query with location
+        const finalQuery = `${query.trim()} in ${location.trim()}`;
+        
+        // Collect additional filters (only include non-empty values)
+        const filters = {};
+        
+        // Date posted filter
+        const datePosted = document.getElementById('date_posted').value;
+        if (datePosted) {
+            filters.date_posted = datePosted;
+        }
+        
+        // Work from home filter
+        const workFromHome = document.getElementById('work_from_home').value;
+        if (workFromHome) {
+            filters.work_from_home = workFromHome === 'true';
+        }
+        
+        // Job requirements filter (single select)
+        const jobRequirements = document.getElementById('job_requirements').value;
+        if (jobRequirements) {
+            filters.job_requirements = jobRequirements;
+        }
+        
+        // Employment types filter (single select)
+        const employmentTypes = document.getElementById('employment_types').value;
+        if (employmentTypes) {
+            filters.employment_types = employmentTypes;
+        }
         
         // Get CV text based on active input method
         let cvText = '';
@@ -181,7 +235,22 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Show loading indicator with progress updates
+        // Prepare request data
+        const requestData = { 
+            query: finalQuery, 
+            cvText, 
+            userId, 
+            filters 
+        };
+        
+        // Debug: Log the request data
+        console.log('=== API REQUEST DEBUG ===');
+        console.log('Final Query:', finalQuery);
+        console.log('Filters being sent:', filters);
+        console.log('Full request data:', requestData);
+        console.log('========================');
+        
+        // Show loading state
         const loading = document.getElementById('loading');
         const results = document.getElementById('results');
         loading.style.display = 'block';
@@ -226,7 +295,7 @@ oldProgress.forEach(el => el.remove());
                     'Content-Type': 'application/json',
                     'Accept': 'text/event-stream'
             },
-                body: JSON.stringify({ query, cvText, userId }),
+                body: JSON.stringify({ query: finalQuery, cvText, userId, filters }),
                 signal: controller.signal
             });
 
@@ -483,13 +552,42 @@ oldProgress.forEach(el => el.remove());
                 loading.style.display = 'none';
                 results.style.display = 'block';
                 
-                // Display error message
-                jobMatchesResults.innerHTML = `
-                    <div class="error-message">
-                        <h3><i class="fas fa-exclamation-triangle"></i> Error</h3>
-                        <p>${data.message || data.error || 'An error occurred while processing your request.'}</p>
-                    </div>
-                `;
+                // Check if it's a "no jobs found" error and show friendly message
+                const errorMessage = data.message || data.error || 'An error occurred while processing your request.';
+                const isNoJobsFound = errorMessage.includes('No job listings found') || errorMessage.includes('Found 0 jobs');
+                
+                if (isNoJobsFound) {
+                    // Display friendly "no jobs found" message
+                    jobMatchesResults.innerHTML = `
+                        <div class="no-jobs-message">
+                            <div class="no-jobs-icon">
+                                <i class="fas fa-search"></i>
+                            </div>
+                            <h3>No Jobs Found</h3>
+                            <p>We couldn't find any job listings matching your search criteria.</p>
+                            <div class="suggestions">
+                                <h4><i class="fas fa-lightbulb"></i> Try these suggestions:</h4>
+                                <ul>
+                                    <li><strong>Broaden your search:</strong> Use more general keywords or try synonyms</li>
+                                    <li><strong>Check your location:</strong> Try searching in nearby cities or regions</li>
+                                    <li><strong>Adjust filters:</strong> Remove some filters or try different date ranges</li>
+                                    <li><strong>Alternative terms:</strong> Use industry-specific terms or job titles</li>
+                                </ul>
+                            </div>
+                            <div class="search-tips">
+                                <p><i class="fas fa-info-circle"></i> <strong>Tip:</strong> Try searching for "software developer in London" or "marketing manager in New York" for better results.</p>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // Display regular error message
+                    jobMatchesResults.innerHTML = `
+                        <div class="error-message">
+                            <h3><i class="fas fa-exclamation-triangle"></i> Error</h3>
+                            <p>${errorMessage}</p>
+                        </div>
+                    `;
+                }
                 break;
         }
     }

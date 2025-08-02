@@ -234,12 +234,35 @@ a:hover {
     padding: 2rem;
     border-radius: 12px;
     box-shadow: var(--shadow);
+    border: 1px solid var(--border-color);
     max-width: 800px;
     margin: 0 auto;
 }
 
 .form-group {
     margin-bottom: 1.5rem;
+}
+
+.form-group-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.form-group-row .form-group {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+    .form-group-row {
+        flex-direction: column;
+        gap: 0;
+    }
+    
+    .form-group-row .form-group {
+        margin-bottom: 1.5rem;
+    }
 }
 
 .form-group label {
@@ -250,12 +273,143 @@ a:hover {
 }
 
 .form-group input,
-.form-group textarea {
+.form-group textarea,
+.form-group select {
     width: 100%;
     padding: 0.75rem;
     border: 1px solid var(--border-color);
     border-radius: 6px;
     font-size: 1rem;
+    background-color: var(--background);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.form-group input:hover,
+.form-group textarea:hover,
+.form-group select:hover {
+    border-color: var(--primary-light);
+}
+
+.form-group select[multiple] {
+    min-height: 100px;
+    padding: 0.5rem;
+}
+
+.form-group select[multiple] option {
+    padding: 0.25rem 0.5rem;
+    margin: 0.1rem 0;
+}
+
+.help-text {
+    font-size: 0.8rem;
+    color: var(--text-light);
+    margin-top: 0.25rem;
+    display: block;
+}
+
+.filters-section {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background-color: var(--background-alt);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.filters-title {
+    color: var(--primary-color);
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.required {
+    color: var(--error-color);
+    font-weight: bold;
+}
+
+.filters-toggle-container {
+    margin-bottom: 1.5rem;
+    text-align: left;
+}
+
+.filters-toggle-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-color);
+    cursor: pointer;
+    gap: 1rem;
+}
+
+.filters-toggle-label i {
+    color: var(--primary-color);
+    margin-right: 0.5rem;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+}
+
+.toggle-input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: 0.3s;
+    border-radius: 24px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+}
+
+.toggle-input:checked + .toggle-slider {
+    background-color: var(--primary-color);
+}
+
+.toggle-input:checked + .toggle-slider:before {
+    transform: translateX(26px);
+}
+
+.toggle-slider:hover {
+    background-color: var(--primary-light);
+}
+
+.toggle-input:checked + .toggle-slider:hover {
+    background-color: var(--primary-dark);
 }
 
 textarea {
@@ -1056,6 +1210,106 @@ textarea {
     color: #555;
     margin: 0;
     line-height: 1.5;
+}
+
+/* No jobs found message styles */
+.no-jobs-message {
+    text-align: center;
+    padding: 3rem 2rem;
+    background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    color: #4a5568;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.no-jobs-icon {
+    font-size: 4rem;
+    color: #718096;
+    margin-bottom: 1.5rem;
+}
+
+.no-jobs-message h3 {
+    font-size: 1.8rem;
+    color: #2d3748;
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.no-jobs-message > p {
+    font-size: 1.1rem;
+    color: #718096;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+}
+
+.suggestions {
+    text-align: left;
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin: 2rem 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.suggestions h4 {
+    color: #2d3748;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+}
+
+.suggestions h4 i {
+    color: #f6ad55;
+    margin-right: 0.5rem;
+}
+
+.suggestions ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.suggestions li {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #e2e8f0;
+    color: #4a5568;
+    line-height: 1.5;
+}
+
+.suggestions li:last-child {
+    border-bottom: none;
+}
+
+.suggestions li strong {
+    color: #2d3748;
+    font-weight: 600;
+}
+
+.search-tips {
+    background: #ebf8ff;
+    border: 1px solid #bee3f8;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1.5rem;
+}
+
+.search-tips p {
+    margin: 0;
+    color: #2b6cb0;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.search-tips i {
+    color: #3182ce;
+    margin-right: 0.5rem;
+}
+
+.search-tips strong {
+    color: #1a365d;
 }
 
 /* No Matches Message Styles */
