@@ -109,8 +109,8 @@ async function searchJobs(query, filters = {}) {
   const params = {
     query: query || 'marketing in france',
     page: '1',
-    num_pages: '1',
-    country: 'us' // Default to US, can be made configurable
+    num_pages: '1'
+    // Removed country restriction to allow global job searches
   };
   
   // Add filters only if they have values and are not 'all'

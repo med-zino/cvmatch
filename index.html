@@ -634,6 +634,112 @@
                 margin-top: 1rem;
             }
         }
+        
+        /* Try Our App Section Styles */
+        .try-app {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            padding: 4rem 0;
+            text-align: center;
+            width: 100%;
+        }
+        
+        .try-app .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+        
+        .try-app .section-head {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .try-app .section-head h2 {
+            color: white;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+            text-align: center;
+        }
+        
+        .try-app .section-subtitle {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1.2rem;
+            margin-bottom: 3rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.6;
+            text-align: center;
+        }
+        
+        .app-cta-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5rem;
+            text-align: center;
+            width: 100%;
+        }
+        
+        .btn-large {
+            font-size: 1.3rem;
+            padding: 1rem 2.5rem;
+            border-radius: 50px;
+            background: white;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn-large:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+            color: var(--primary);
+            text-decoration: none;
+        }
+        
+        .btn-large i {
+            transition: transform 0.3s ease;
+        }
+        
+        .btn-large:hover i {
+            transform: translateX(5px);
+        }
+        
+        .cta-description {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1rem;
+            margin: 0;
+            font-style: italic;
+        }
+        
+        @media (max-width: 768px) {
+            .try-app {
+                padding: 3rem 0;
+            }
+            
+            .try-app .section-head h2 {
+                font-size: 2rem;
+            }
+            
+            .try-app .section-subtitle {
+                font-size: 1.1rem;
+                margin-bottom: 2rem;
+            }
+            
+            .btn-large {
+                font-size: 1.1rem;
+                padding: 0.875rem 2rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -659,7 +765,7 @@
                 <div class="hero-content">
                     <h1>Find Your <span>Perfect Job Match</span> with AI</h1>
                     <p class="subtitle">Our AI-powered platform analyzes your CV and matches you with the most relevant job opportunities, saving you time and maximizing your chances of landing the perfect role.</p>
-                    <a href="#early-access" class="btn">Get Early Access</a>
+                    <a href="/app" class="btn">Get Early Access</a>
                     <a href="#how-it-works" class="btn btn-secondary">Learn More</a>
                 </div>
                 <div class="hero-image">
@@ -751,32 +857,19 @@
         </div>
     </section>
     
-    <section class="early-access" id="early-access">
+    <section class="try-app" id="try-app">
         <div class="container">
             <div class="section-head">
-                <h2>Join Our Early Access Program</h2>
-                <p class="section-subtitle">Be among the first to experience our AI-powered job matching. Limited spots available for our beta testers.</p>
+                <h2>Ready to Find Your Perfect Job Match?</h2>
+                <p class="section-subtitle">Our AI-powered job matching platform is now live! Start finding jobs that perfectly match your skills and experience.</p>
             </div>
             
-            <div class="form-container">
-                <form id="early-access-form">
-                    <div class="form-group">
-                        <input type="email" id="email" placeholder="Your email address" required>
-                        <button type="submit" class="btn btn-form">
-                            Get Early Access
-                            <span class="spinner" id="submit-spinner"></span>
-                        </button>
-                    </div>
-                    <div class="message success-message" id="success-message">
-                        Thank you for joining our early access list! We'll be in touch soon.
-                    </div>
-                    <div class="message error-message" id="error-message">
-                        There was an error submitting your email. Please try again.
-                    </div>
-                    <div class="message warning-message" id="warning-message">
-                        This email is already registered. Thank you for your interest!
-                    </div>
-                </form>
+            <div class="app-cta-container">
+                <a href="/app" class="btn btn-primary btn-large">
+                    Try Our App
+                    <i class="fas fa-arrow-right"></i>
+                </a>
+                <p class="cta-description">Upload your CV and discover personalized job matches in seconds</p>
             </div>
         </div>
     </section>
