@@ -105,13 +105,40 @@ ${cvText}` }]
 
 // Search for jobs
 async function searchJobs(query, filters = {}) {
-  // Build the params object with default values
-  const params = {
-    query: query || 'marketing in france',
-    page: '1',
-    num_pages: '1'
-    // Removed country restriction to allow global job searches
+  // Smart country detection based on query location
+  let detectedCountry = 'us'; // default
+  const queryLower = (query || '').toLowerCase();
+  
+  // Common international locations and their country codes
+  const locationMap = {
+    'france': 'fr', 'paris': 'fr', 'lyon': 'fr', 'marseille': 'fr',
+    'uk': 'gb', 'london': 'gb', 'manchester': 'gb', 'birmingham': 'gb',
+    'canada': 'ca', 'toronto': 'ca', 'vancouver': 'ca', 'montreal': 'ca',
+    'germany': 'de', 'berlin': 'de', 'munich': 'de', 'hamburg': 'de',
+    'australia': 'au', 'sydney': 'au', 'melbourne': 'au', 'brisbane': 'au',
+    'netherlands': 'nl', 'amsterdam': 'nl', 'rotterdam': 'nl',
+    'spain': 'es', 'madrid': 'es', 'barcelona': 'es',
+    'italy': 'it', 'rome': 'it', 'milan': 'it'
   };
+  
+  // Check if query contains international location
+  for (const [location, countryCode] of Object.entries(locationMap)) {
+    if (queryLower.includes(location)) {
+      detectedCountry = countryCode;
+      break;
+    }
+  }
+  
+  // Build the params object with default values (matching working API example)
+  const params = {
+    query: query || 'developer jobs in chicago',
+    page: '1',
+    num_pages: '1',
+    country: detectedCountry,
+    date_posted: 'all'
+  };
+  
+  console.log(`🌍 Detected country: ${detectedCountry} for query: "${query}"`);
   
   // Add filters only if they have values and are not 'all'
   if (filters.date_posted && filters.date_posted !== 'all') {
