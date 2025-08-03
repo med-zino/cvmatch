@@ -759,7 +759,12 @@ oldProgress.forEach(el => el.remove());
                         </div>
                         <div class="job-meta">
                             <span class="posted-date"><i class="far fa-calendar-alt"></i> Posted: ${postedDate}</span>
-                            <a href="${job.link}" target="_blank" class="apply-link"><i class="fas fa-external-link-alt"></i> Apply</a>
+                            <div class="job-actions">
+                                <button class="save-job-btn" onclick="saveJob(${index})" data-job-index="${index}">
+                                    <i class="fas fa-bookmark"></i> Save
+                                </button>
+                                <a href="${job.link}" target="_blank" class="apply-link"><i class="fas fa-external-link-alt"></i> Apply</a>
+                            </div>
                         </div>
                     </div>
                     <p class="company">${job.company}</p>
@@ -792,6 +797,12 @@ oldProgress.forEach(el => el.remove());
         // Update the DOM
         jobMatchesResults.innerHTML = html;
         
+        // Store current job matches globally for saving functionality
+        window.currentJobMatches = jobMatches;
+        
+        // Update save button states
+        updateSaveButtonStates();
+        
         // Make sure the results container is visible
         document.getElementById('results').style.display = 'block';
     }
@@ -802,17 +813,132 @@ oldProgress.forEach(el => el.remove());
         return 'score-red';
     }
 
-    // Handle early access form submission
-    const earlyAccessForm = document.getElementById('earlyAccessForm');
-    earlyAccessForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        const email = document.getElementById('earlyAccessEmail').value;
+    // Save job functionality - make it globally accessible
+    window.saveJob = async function(jobIndex) {
+        if (!window.currentJobMatches || !window.currentJobMatches[jobIndex]) {
+            alert('Job not found!');
+            return;
+        }
+
+        const job = window.currentJobMatches[jobIndex];
+        const userId = localStorage.getItem('userId');
+        const token = localStorage.getItem('token');
         
-        // Here you would typically send this to your server
-        // For now, we'll just show a success message
-        alert('Thank you! We\'ll notify you when premium access is available.');
-        earlyAccessForm.reset();
-    });
+        if (!userId || !token) {
+            alert('Please log in to save jobs.');
+            return;
+        }
+        
+        // Console log all job details
+        console.log('=== SAVING JOB DETAILS ===');
+        console.log('Job Index:', jobIndex);
+        console.log('Job Title:', job.title);
+        console.log('Company:', job.company);
+        console.log('Match Score:', job.score + '%');
+        console.log('Job Link:', job.link);
+        console.log('Posted Date:', job.posted);
+        console.log('Matching Skills:', job.skillsMatch);
+        console.log('Missing Skills:', job.missingSkills);
+        console.log('Match Reasons:', job.reasons);
+        console.log('Full Job Object:', job);
+        console.log('========================');
+        
+        try {
+            // Prepare job data for backend
+            const jobData = {
+                userId: userId,
+                title: job.title,
+                company: job.company,
+                link: job.link,
+                score: job.score,
+                posted: job.posted || 'Not specified',
+                skillsMatch: job.skillsMatch || [],
+                missingSkills: job.missingSkills || [],
+                reasons: job.reasons || []
+            };
+            
+            // Save job to MongoDB backend
+            const response = await fetch('/api/saved-jobs', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(jobData)
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                // Update button state
+                window.updateSaveButtonStates();
+                alert('Job saved successfully! You can view your saved jobs later.');
+            } else {
+                if (response.status === 409) {
+                    alert('This job is already saved!');
+                } else {
+                    alert(result.message || 'Error saving job. Please try again.');
+                }
+            }
+        } catch (error) {
+            console.error('Error saving job:', error);
+            alert('Error saving job. Please check your connection and try again.');
+        }
+    };
+    
+    window.getSavedJobs = function() {
+        const saved = localStorage.getItem('savedJobs');
+        return saved ? JSON.parse(saved) : [];
+    };
+    
+    window.updateSaveButtonStates = async function() {
+        if (!window.currentJobMatches) return;
+        
+        const userId = localStorage.getItem('userId');
+        const token = localStorage.getItem('token');
+        
+        if (!userId || !token) return;
+        
+        try {
+            // Get saved jobs from backend
+            const response = await fetch(`/api/saved-jobs/${userId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                console.error('Failed to fetch saved jobs for button states');
+                return;
+            }
+            
+            const data = await response.json();
+            const savedJobs = data.savedJobs || [];
+            const saveButtons = document.querySelectorAll('.save-job-btn');
+            
+            saveButtons.forEach((button, index) => {
+                const job = window.currentJobMatches[index];
+                if (!job) return;
+                
+                const isAlreadySaved = savedJobs.some(savedJob => 
+                    savedJob.link === job.link && savedJob.title === job.title
+                );
+                
+                if (isAlreadySaved) {
+                    button.innerHTML = '<i class="fas fa-bookmark"></i> Saved';
+                    button.classList.add('saved');
+                    button.disabled = true;
+                } else {
+                    button.innerHTML = '<i class="fas fa-bookmark"></i> Save';
+                    button.classList.remove('saved');
+                    button.disabled = false;
+                }
+            });
+        } catch (error) {
+            console.error('Error updating save button states:', error);
+        }
+    };
 
     // Function to scroll to a specific section
     function scrollToSection(sectionId) {
@@ -915,6 +1041,56 @@ oldProgress.forEach(el => el.remove());
         .error-update ul {
             margin: 10px 0;
             padding-left: 20px;
+        }
+        
+        /* Save Job Button Styles */
+        .job-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .save-job-btn {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+            height: 40px;
+            min-width: 80px;
+            justify-content: center;
+        }
+        
+        .save-job-btn:hover {
+            background: #059669;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+        }
+        
+        .save-job-btn:active {
+            transform: translateY(0);
+        }
+        
+        .save-job-btn.saved {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        
+        .save-job-btn.saved:hover {
+            background: #6c757d;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .save-job-btn i {
+            font-size: 0.9em;
         }
     `;
     document.head.appendChild(style);

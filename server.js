@@ -16,6 +16,7 @@ const authRoutes = require('./routes/auth');
 const pageRoutes = require('./routes/pages');
 const cvRoutes = require('./routes/cv');
 const emailRoutes = require('./routes/emailRoutes');
+const savedJobsRoutes = require('./routes/savedJobs');
 
 // MongoDB Connection
 let cachedDb = null;
@@ -56,8 +57,8 @@ connectToDatabase().catch(err => {
 // Middleware
 app.use(cors({
   origin: '*', // Allow all origins
-  methods: ['GET', 'POST'], // Allow GET and POST methods
-  allowedHeaders: ['Content-Type'] // Allow Content-Type header
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allow all HTTP methods for saved jobs API
+  allowedHeaders: ['Content-Type', 'Authorization'] // Allow Content-Type and Authorization headers
 }));
 app.use(express.json());
 app.use(cookieParser());
@@ -72,6 +73,7 @@ app.use((req, res, next) => {
 app.use('/api', authRoutes);
 app.use('/api', cvRoutes);
 app.use('/api', emailRoutes);
+app.use('/api/saved-jobs', savedJobsRoutes);
 app.use('/', pageRoutes);
 
 // Static files - Serve AFTER routes to prevent overriding

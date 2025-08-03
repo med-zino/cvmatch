@@ -45,4 +45,10 @@ router.get('/test-admin', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'test-admin.html'));
 });
 
+// Serve saved jobs page (protected)
+router.get('/saved-jobs', auth, (req, res) => {
+    console.log('Saved jobs page requested');
+    res.sendFile(path.join(__dirname, '..', 'saved-jobs.html'));
+});
+
 module.exports = router; 
