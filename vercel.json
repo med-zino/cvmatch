@@ -11,10 +11,6 @@
       {
         "src": "public/**",
         "use": "@vercel/static"
-      },
-      {
-        "src": "*.html",
-        "use": "@vercel/static"
       }
     ],
     "routes": [
@@ -95,6 +91,7 @@
     ],
     "env": {
       "NODE_ENV": "production",
-      "JWT_SECRET": "${JWT_SECRET}"
+      "JWT_SECRET": "@jwt_secret",
+      "MONGODB_URI": "@mongodb_uri"
     }
   } 
