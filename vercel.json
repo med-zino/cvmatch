@@ -72,6 +72,15 @@
         "dest": "server.js"
       },
       {
+        "src": "/saved-jobs",
+        "dest": "server.js",
+        "headers": {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "Pragma": "no-cache",
+          "Expires": "0"
+        }
+      },
+      {
         "src": "/admin",
         "dest": "server.js"
       },
