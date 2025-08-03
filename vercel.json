@@ -90,8 +90,6 @@
       }
     ],
     "env": {
-      "NODE_ENV": "production",
-      "JWT_SECRET": "@jwt_secret",
-      "MONGODB_URI": "@mongodb_uri"
+      "NODE_ENV": "production"
     }
   } 
