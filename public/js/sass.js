@@ -763,7 +763,9 @@ oldProgress.forEach(el => el.remove());
                                 <button class="save-job-btn" onclick="saveJob(${index})" data-job-index="${index}">
                                     <i class="fas fa-bookmark"></i> Save
                                 </button>
-                                <a href="${job.link}" target="_blank" class="apply-link"><i class="fas fa-external-link-alt"></i> Apply</a>
+                                <button class="apply-btn" onclick="showApplyModal(${index})" data-job-index="${index}">
+                                    <i class="fas fa-external-link-alt"></i> Apply
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -885,6 +887,205 @@ oldProgress.forEach(el => el.remove());
             alert('Error saving job. Please check your connection and try again.');
         }
     };
+    
+    // Show apply modal functionality - make it globally accessible
+    window.showApplyModal = function(jobIndex) {
+        if (!window.currentJobMatches || !window.currentJobMatches[jobIndex]) {
+            alert('Job not found!');
+            return;
+        }
+
+        const job = window.currentJobMatches[jobIndex];
+        
+        // Create modal if it doesn't exist
+        let modal = document.getElementById('applyModal');
+        if (!modal) {
+            modal = createApplyModal();
+        }
+        
+        // Update modal content with job details
+        const jobTitle = modal.querySelector('.modal-job-title');
+        const jobCompany = modal.querySelector('.modal-job-company');
+        const applyButton = modal.querySelector('.modal-apply-btn');
+        const saveAndApplyButton = modal.querySelector('.modal-save-apply-btn');
+        
+        jobTitle.textContent = job.title;
+        jobCompany.textContent = job.company;
+        
+        // Set up button click handlers
+        applyButton.onclick = () => {
+            window.open(job.link, '_blank');
+            closeApplyModal();
+        };
+        
+        saveAndApplyButton.onclick = () => {
+            saveJobWithStatus(jobIndex, 'applied').then(() => {
+                window.open(job.link, '_blank');
+                closeApplyModal();
+            });
+        };
+        
+        // Show modal
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    };
+    
+    // Create apply modal
+    function createApplyModal() {
+        const modal = document.createElement('div');
+        modal.id = 'applyModal';
+        modal.className = 'apply-modal';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-external-link-alt"></i> Apply to Job</h3>
+                    <button class="modal-close" onclick="closeApplyModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="job-info">
+                        <h4 class="modal-job-title"></h4>
+                        <p class="modal-job-company"></p>
+                    </div>
+                    <p class="modal-message">
+                        You're about to apply to this job. Would you like to save it to your saved jobs list for tracking?
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button class="modal-btn modal-apply-btn">
+                        <i class="fas fa-external-link-alt"></i> Just Apply
+                    </button>
+                    <button class="modal-btn modal-save-apply-btn primary">
+                        <i class="fas fa-bookmark"></i> Save & Apply
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        // Close modal when clicking outside
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                closeApplyModal();
+            }
+        };
+        
+        document.body.appendChild(modal);
+        return modal;
+    }
+    
+    // Close apply modal
+    window.closeApplyModal = function() {
+        const modal = document.getElementById('applyModal');
+        if (modal) {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+    };
+    
+    // Save job with specific status
+    async function saveJobWithStatus(jobIndex, status = 'saved') {
+        if (!window.currentJobMatches || !window.currentJobMatches[jobIndex]) {
+            alert('Job not found!');
+            return;
+        }
+
+        const job = window.currentJobMatches[jobIndex];
+        const userId = localStorage.getItem('userId');
+        const token = localStorage.getItem('token');
+        
+        if (!userId || !token) {
+            alert('Please log in to save jobs.');
+            return;
+        }
+        
+        try {
+            // Prepare job data for backend
+            const jobData = {
+                userId: userId,
+                title: job.title,
+                company: job.company,
+                link: job.link,
+                score: job.score,
+                posted: job.posted || 'Not specified',
+                skillsMatch: job.skillsMatch || [],
+                missingSkills: job.missingSkills || [],
+                reasons: job.reasons || [],
+                status: status
+            };
+            
+            // Save job to MongoDB backend
+            const response = await fetch('/api/saved-jobs', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(jobData)
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                // Update button state
+                window.updateSaveButtonStates();
+                if (status === 'applied') {
+                    console.log('Job saved with applied status');
+                } else {
+                    alert('Job saved successfully!');
+                }
+            } else {
+                if (response.status === 409) {
+                    // Job already exists, try to update status
+                    await updateExistingJobStatus(job.link, status);
+                } else {
+                    alert(result.message || 'Error saving job. Please try again.');
+                }
+            }
+        } catch (error) {
+            console.error('Error saving job:', error);
+            alert('Error saving job. Please check your connection and try again.');
+        }
+    }
+    
+    // Update existing job status
+    async function updateExistingJobStatus(jobLink, status) {
+        const userId = localStorage.getItem('userId');
+        const token = localStorage.getItem('token');
+        
+        try {
+            // First get the saved job ID
+            const response = await fetch(`/api/saved-jobs/${userId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                const existingJob = data.savedJobs.find(job => job.link === jobLink);
+                
+                if (existingJob) {
+                    // Update the job status
+                    const updateResponse = await fetch(`/api/saved-jobs/${existingJob._id}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ status: status })
+                    });
+                    
+                    if (updateResponse.ok) {
+                        console.log(`Job status updated to ${status}`);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error updating job status:', error);
+        }
+    }
     
     window.getSavedJobs = function() {
         const saved = localStorage.getItem('savedJobs');
@@ -1091,6 +1292,206 @@ oldProgress.forEach(el => el.remove());
         
         .save-job-btn i {
             font-size: 0.9em;
+        }
+        
+        /* Apply Button Styles */
+        .apply-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+            height: 40px;
+            min-width: 80px;
+            justify-content: center;
+            text-decoration: none;
+        }
+        
+        .apply-btn:hover {
+            background: #0056b3;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+        }
+        
+        .apply-btn:active {
+            transform: translateY(0);
+        }
+        
+        .apply-btn i {
+            font-size: 0.9em;
+        }
+        
+        /* Apply Modal Styles */
+        .apply-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.3s ease-out;
+        }
+        
+        @keyframes modalSlideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .modal-header {
+            padding: 20px 24px 16px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h3 {
+            margin: 0;
+            color: #333;
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.2em;
+            cursor: pointer;
+            color: #6c757d;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+        
+        .modal-close:hover {
+            background: #f8f9fa;
+            color: #333;
+        }
+        
+        .modal-body {
+            padding: 24px;
+        }
+        
+        .job-info {
+            margin-bottom: 20px;
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .modal-job-title {
+            margin: 0 0 8px 0;
+            color: #333;
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+        
+        .modal-job-company {
+            margin: 0;
+            color: #6c757d;
+            font-size: 0.95em;
+        }
+        
+        .modal-message {
+            color: #555;
+            line-height: 1.5;
+            margin: 0;
+        }
+        
+        .modal-footer {
+            padding: 16px 24px 24px;
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+        
+        .modal-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+            min-width: 120px;
+            justify-content: center;
+        }
+        
+        .modal-apply-btn {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .modal-apply-btn:hover {
+            background: #5a6268;
+            transform: translateY(-1px);
+        }
+        
+        .modal-save-apply-btn {
+            background: #28a745;
+            color: white;
+        }
+        
+        .modal-save-apply-btn:hover {
+            background: #218838;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+        }
+        
+        .modal-btn:active {
+            transform: translateY(0);
+        }
+        
+        .modal-btn i {
+            font-size: 0.9em;
+        }
+        
+        /* Responsive modal */
+        @media (max-width: 768px) {
+            .modal-content {
+                width: 95%;
+                margin: 20px;
+            }
+            
+            .modal-footer {
+                flex-direction: column;
+            }
+            
+            .modal-btn {
+                width: 100%;
+            }
         }
     `;
     document.head.appendChild(style);
