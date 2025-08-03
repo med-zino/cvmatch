@@ -300,6 +300,236 @@
                 justify-content: center;
             }
         }
+        
+        /* Notes Modal Styles */
+        .notes-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+        
+        .notes-modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+            animation: notesModalSlideIn 0.3s ease-out;
+            overflow: hidden;
+        }
+        
+        @keyframes notesModalSlideIn {
+            from {
+                transform: translateY(-30px) scale(0.95);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+        }
+        
+        .notes-modal-header {
+            padding: 24px 24px 16px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .notes-modal-header h3 {
+            margin: 0;
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .notes-modal-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 1.2em;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+        
+        .notes-modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+        
+        .notes-modal-body {
+            padding: 24px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        
+        .notes-job-info {
+            margin-bottom: 24px;
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .notes-job-title {
+            margin: 0 0 8px 0;
+            color: #333;
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+        
+        .notes-job-company {
+            margin: 0;
+            color: #6c757d;
+            font-size: 1em;
+        }
+        
+        .notes-input-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .notes-input-section label {
+            font-weight: 600;
+            color: #333;
+            font-size: 1em;
+        }
+        
+        .notes-textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.95em;
+            line-height: 1.5;
+            resize: vertical;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+        
+        .notes-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .notes-textarea::placeholder {
+            color: #adb5bd;
+            line-height: 1.6;
+        }
+        
+        .notes-char-count {
+            text-align: right;
+            font-size: 0.85em;
+            color: #6c757d;
+        }
+        
+        .char-count {
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .notes-modal-footer {
+            padding: 16px 24px 24px;
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            background: #f8f9fa;
+        }
+        
+        .notes-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            min-width: 120px;
+            justify-content: center;
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        .notes-cancel-btn {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .notes-cancel-btn:hover {
+            background: #5a6268;
+            transform: translateY(-1px);
+        }
+        
+        .notes-save-btn {
+            background: #28a745;
+            color: white;
+        }
+        
+        .notes-save-btn:hover {
+            background: #218838;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+        }
+        
+        .notes-btn:active {
+            transform: translateY(0);
+        }
+        
+        .notes-btn i {
+            font-size: 0.9em;
+        }
+        
+        /* Responsive notes modal */
+        @media (max-width: 768px) {
+            .notes-modal-content {
+                width: 95%;
+                margin: 20px;
+                max-height: 90vh;
+            }
+            
+            .notes-modal-header {
+                padding: 20px 16px 12px;
+            }
+            
+            .notes-modal-body {
+                padding: 20px 16px;
+                max-height: 50vh;
+            }
+            
+            .notes-modal-footer {
+                padding: 12px 16px 20px;
+                flex-direction: column;
+            }
+            
+            .notes-btn {
+                width: 100%;
+            }
+            
+            .notes-textarea {
+                min-height: 150px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -677,10 +907,119 @@
         function addNotes(jobId) {
             const job = savedJobs.find(j => j._id === jobId);
             const currentNotes = job ? job.notes : '';
-            const notes = prompt('Add notes for this job:', currentNotes);
+            showNotesModal(jobId, currentNotes, job.title, job.company);
+        }
+        
+        // Show notes modal
+        function showNotesModal(jobId, currentNotes, jobTitle, jobCompany) {
+            // Create modal if it doesn't exist
+            let modal = document.getElementById('notesModal');
+            if (!modal) {
+                modal = createNotesModal();
+            }
             
-            if (notes !== null) {
+            // Update modal content
+            const modalJobTitle = modal.querySelector('.notes-job-title');
+            const modalJobCompany = modal.querySelector('.notes-job-company');
+            const notesTextarea = modal.querySelector('.notes-textarea');
+            const saveButton = modal.querySelector('.notes-save-btn');
+            const cancelButton = modal.querySelector('.notes-cancel-btn');
+            
+            modalJobTitle.textContent = jobTitle;
+            modalJobCompany.textContent = jobCompany;
+            notesTextarea.value = currentNotes || '';
+            
+            // Set up button handlers
+            saveButton.onclick = () => {
+                const notes = notesTextarea.value.trim();
                 updateJobNotes(jobId, notes);
+                closeNotesModal();
+            };
+            
+            cancelButton.onclick = () => {
+                closeNotesModal();
+            };
+            
+            // Show modal and focus textarea
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            setTimeout(() => {
+                notesTextarea.focus();
+                notesTextarea.setSelectionRange(notesTextarea.value.length, notesTextarea.value.length);
+            }, 100);
+        }
+        
+        // Create notes modal
+        function createNotesModal() {
+            const modal = document.createElement('div');
+            modal.id = 'notesModal';
+            modal.className = 'notes-modal';
+            modal.innerHTML = `
+                <div class="notes-modal-content">
+                    <div class="notes-modal-header">
+                        <h3><i class="fas fa-sticky-note"></i> Edit Job Notes</h3>
+                        <button class="notes-modal-close" onclick="closeNotesModal()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="notes-modal-body">
+                        <div class="notes-job-info">
+                            <h4 class="notes-job-title"></h4>
+                            <p class="notes-job-company"></p>
+                        </div>
+                        <div class="notes-input-section">
+                            <label for="notesTextarea">Your Notes:</label>
+                            <textarea class="notes-textarea" id="notesTextarea" placeholder="Add your notes about this job opportunity...\n\nFor example:\n• Interview scheduled for...\n• Salary range discussed\n• Key requirements to highlight\n• Follow-up actions needed"></textarea>
+                            <div class="notes-char-count">
+                                <span class="char-count">0</span> characters
+                            </div>
+                        </div>
+                    </div>
+                    <div class="notes-modal-footer">
+                        <button class="notes-btn notes-cancel-btn">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                        <button class="notes-btn notes-save-btn primary">
+                            <i class="fas fa-save"></i> Save Notes
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Close modal when clicking outside
+            modal.onclick = (e) => {
+                if (e.target === modal) {
+                    closeNotesModal();
+                }
+            };
+            
+            // Character counter
+            const textarea = modal.querySelector('.notes-textarea');
+            const charCount = modal.querySelector('.char-count');
+            textarea.addEventListener('input', () => {
+                charCount.textContent = textarea.value.length;
+            });
+            
+            // Handle Enter key (Ctrl+Enter to save)
+            textarea.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.key === 'Enter') {
+                    modal.querySelector('.notes-save-btn').click();
+                }
+                if (e.key === 'Escape') {
+                    closeNotesModal();
+                }
+            });
+            
+            document.body.appendChild(modal);
+            return modal;
+        }
+        
+        // Close notes modal
+        function closeNotesModal() {
+            const modal = document.getElementById('notesModal');
+            if (modal) {
+                modal.style.display = 'none';
+                document.body.style.overflow = 'auto';
             }
         }
 
