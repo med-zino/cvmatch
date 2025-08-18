@@ -17,37 +17,9 @@ const pageRoutes = require('./routes/pages');
 const cvRoutes = require('./routes/cv');
 const emailRoutes = require('./routes/emailRoutes');
 const savedJobsRoutes = require('./routes/savedJobs');
+const { connectToDatabase } = require('./utils/db');
 
-// MongoDB Connection
-let cachedDb = null;
-
-async function connectToDatabase() {
-    if (cachedDb) {
-        console.log('Using cached database instance');
-        return cachedDb;
-    }
-
-    console.log('Attempting to connect to MongoDB...');
-    try {
-        const conn = await mongoose.connect(process.env.MONGODB_URI, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-            serverSelectionTimeoutMS: 30000,
-            socketTimeoutMS: 45000,
-            connectTimeoutMS: 30000,
-            maxPoolSize: 10
-        });
-        
-        console.log('MongoDB connected successfully');
-        console.log('Connected to database:', conn.connection.db.databaseName);
-        
-        cachedDb = conn;
-        return conn;
-    } catch (err) {
-        console.error('MongoDB connection error:', err);
-        throw err;
-    }
-}
+// MongoDB Connection handled via utils/db with global cache for serverless
 
 // Connect to MongoDB at startup
 connectToDatabase().catch(err => {

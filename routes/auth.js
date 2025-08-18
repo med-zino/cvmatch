@@ -7,6 +7,7 @@ const { auth, isAdmin } = require('../middleware/auth');
 const { sendVerificationEmail } = require('../utils/emailService');
 const { OAuth2Client } = require('google-auth-library');
 const crypto = require('crypto');
+const { connectToDatabase } = require('../utils/db');
 
 // Google client ID and secret
 const GOOGLE_CLIENT_ID = '1001210903692-505to271nee2u0502j0ko2ftcdn5l9a0.apps.googleusercontent.com';
@@ -14,6 +15,17 @@ const GOOGLE_CLIENT_SECRET = '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';
 
 // Initialize Google OAuth client
 const client = new OAuth2Client(GOOGLE_CLIENT_ID);
+
+// Ensure DB connection for all routes in this router (important on Vercel cold starts)
+router.use(async (req, res, next) => {
+  try {
+    await connectToDatabase();
+    next();
+  } catch (err) {
+    console.error('Database connection error in auth router:', err);
+    res.status(500).json({ error: 'Database connection error' });
+  }
+});
 
 // Registration route
 router.post('/register', async (req, res) => {
