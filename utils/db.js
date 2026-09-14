@@ -21,10 +21,14 @@ async function connectToDatabase() {
 
   if (!cached.promise) {
     cached.promise = mongoose.connect(process.env.MONGODB_URI, {
-      serverSelectionTimeoutMS: 30000,
+      serverSelectionTimeoutMS: 10000,
       socketTimeoutMS: 45000,
-      connectTimeoutMS: 30000,
+      connectTimeoutMS: 10000,
       maxPoolSize: 10,
+    }).catch(err => {
+      // Forget the failed attempt so the next request retries instead of reusing the failure
+      cached.promise = null;
+      throw err;
     });
   }
 
