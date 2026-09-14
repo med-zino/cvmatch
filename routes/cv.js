@@ -4,11 +4,12 @@ const User = require('../models/User');
 
 const router = express.Router();
 
-const GEMINI_API_KEY = 'AIzaSyBnCC9iO5EQY823GJKIurFF2SUp_Yi0zPE';
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
-const RAPIDAPI_KEY = '0db77bb548msh9ea6798adb4cbd1p174554jsn3f0e3af19743';
+// Keys come from the environment only: a key committed to a public repo gets revoked
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 const CHUNK_SIZE = 10;
 const MAX_JOBS = 30;
+const DESCRIPTION_LIMIT = 1500;
 
 // Fills in required_skills when JSearch doesn't provide any
 const COMMON_SKILLS = [
@@ -31,20 +32,38 @@ const LOCATION_COUNTRIES = {
   'italy': 'it', 'rome': 'it', 'milan': 'it'
 };
 
-async function askGemini(prompt) {
+// Asks Gemini for JSON; the key goes in a header so it never shows up in logged URLs
+async function askGemini(prompt, timeout) {
   const response = await axios.post(
     GEMINI_URL,
-    { contents: [{ parts: [{ text: prompt }] }] },
-    { timeout: 30000 }
+    {
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { responseMimeType: 'application/json' }
+    },
+    { timeout, headers: { 'x-goog-api-key': process.env.GEMINI_API_KEY } }
   );
-  return response.data.candidates[0].content.parts[0].text;
+  return response.data.candidates[0].content.parts.map(part => part.text || '').join('');
+}
+
+// JSON mode normally returns clean JSON; the extraction is a fallback for stray text around it
+function parseJson(text, open, close) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    const start = text.indexOf(open);
+    const end = text.lastIndexOf(close) + 1;
+    if (start < 0 || end <= start) {
+      throw new Error("Could not extract JSON from response");
+    }
+    return JSON.parse(text.substring(start, end));
+  }
 }
 
 // Analyze CV with Gemini
 async function analyzeCV(cvText) {
   const responseText = await askGemini(`You are a professional resume/CV analyzer. Extract key skills, experience, education, and qualifications from the provided CV.
 
-Format your response as a valid JSON object with the following structure (and nothing else):
+Return a JSON object with this structure:
 {
   "skills": ["skill1", "skill2", ...],
   "technical_skills": ["skill1", "skill2", ...],
@@ -69,15 +88,9 @@ Format your response as a valid JSON object with the following structure (and no
 }
 
 CV Text:
-${cvText}`);
+${cvText}`, 30000);
 
-  // Extract JSON from response text (it might include additional text)
-  const jsonStart = responseText.indexOf('{');
-  const jsonEnd = responseText.lastIndexOf('}') + 1;
-  if (jsonStart < 0 || jsonEnd <= jsonStart) {
-    throw new Error("Could not extract JSON from response");
-  }
-  return JSON.parse(responseText.substring(jsonStart, jsonEnd));
+  return parseJson(responseText, '{', '}');
 }
 
 // Search for jobs
@@ -113,7 +126,7 @@ async function searchJobs(query, filters = {}) {
     const response = await axios.get('https://jsearch.p.rapidapi.com/search', {
       params,
       headers: {
-        'x-rapidapi-key': RAPIDAPI_KEY,
+        'x-rapidapi-key': process.env.RAPIDAPI_KEY,
         'x-rapidapi-host': 'jsearch.p.rapidapi.com'
       }
     });
@@ -134,14 +147,10 @@ async function searchJobs(query, filters = {}) {
         description,
         highlights: job.job_highlights || {},
         required_skills: requiredSkills,
-        required_experience: job.job_required_experience?.required_experience_in_months || '',
         employment_type: job.job_employment_type || '',
-        salary: job.job_min_salary ? `${job.job_min_salary}-${job.job_max_salary} ${job.job_salary_currency}` : 'Not specified',
-        benefits: job.job_benefits || [],
         is_remote: job.job_is_remote || false,
         publisher: job.job_publisher || '',
-        job_id: job.job_id || '',
-        posted_at: job.job_posted_at || ''
+        job_id: job.job_id || ''
       };
     });
   } catch (error) {
@@ -150,77 +159,65 @@ async function searchJobs(query, filters = {}) {
   }
 }
 
-// Extracts the JSON array from Gemini's reply, repairing common JSON slips as a last resort
-function parseJsonArray(responseText) {
-  const match = responseText.match(/\[\s*\{[\s\S]*\}\s*\]/);
-  if (match) {
-    return JSON.parse(match[0]);
-  }
-
-  const jsonStart = responseText.indexOf('[');
-  const jsonEnd = responseText.lastIndexOf(']') + 1;
-  if (jsonStart < 0 || jsonEnd <= jsonStart) {
-    throw new Error("Could not extract JSON from response");
-  }
-  const jsonStr = responseText.substring(jsonStart, jsonEnd);
-  try {
-    return JSON.parse(jsonStr);
-  } catch {
-    return JSON.parse(sanitizeJson(jsonStr));
-  }
+// Only what the scoring needs, with long descriptions cut down, keeps the prompt small and fast
+function jobForScoring(job) {
+  return {
+    job_id: job.job_id,
+    title: job.title,
+    company: job.company,
+    location: job.location,
+    employment_type: job.employment_type,
+    is_remote: job.is_remote,
+    required_skills: job.required_skills,
+    qualifications: (job.highlights.Qualifications || []).slice(0, 8),
+    description: job.description.slice(0, DESCRIPTION_LIMIT)
+  };
 }
 
-function sanitizeJson(jsonStr) {
-  return jsonStr
-    // Fix trailing commas in arrays and objects
-    .replace(/,\s*([}\]])/g, '$1')
-    // Ensure property names are quoted
-    .replace(/([{,]\s*)(\w+)(\s*:)/g, '$1"$2"$3')
-    // Fix missing quotes on string values
-    .replace(/:(\s*)([^{}\[\]"'\d,\s][^{}\[\],:]*)/g, ':"$2"')
-    // Fix single quotes to double quotes
-    .replace(/'/g, '"');
-}
-
-// Compare CV with job listings and rank them (3 attempts, then a placeholder "API Error" match)
+// Compare CV with job listings and rank them (2 attempts, then a placeholder "API Error" match)
 async function matchJobsWithCV(cvAnalysis, jobs) {
-  const prompt = `You are a job matching expert. Given a candidate's CV analysis and a list of job listings, rank the jobs by relevance to the candidate's profile.
+  const prompt = `You are a job matching expert. Score how well the candidate fits each job listing.
 
-Format your response as a valid JSON array of objects with the following structure (and nothing else):
+Return a JSON array with one object per job, in the same order as the jobs below:
 [
   {
-    "jobId": "string",
+    "jobId": "the job's job_id",
     "title": "Job Title",
     "company": "Company Name",
     "score": 85,
-    "reasons": ["reason1", "reason2"],
-    "skillsMatch": ["matching skill 1", "matching skill 2"],
-    "missingSkills": ["missing skill 1", "missing skill 2"],
-    "link": "job application URL",
-    "posted": "job posting date"
+    "reasons": ["one or two short sentences on why it fits or doesn't"],
+    "skillsMatch": ["skills the job asks for that the candidate has"],
+    "missingSkills": ["skills the job asks for that the candidate lacks"]
   }
 ]
 
-Sort the array by score in descending order (highest matches first).
-Make sure the output is valid JSON that can be parsed by JSON.parse().
-Do not include any text before or after the JSON array.
-IMPORTANT: Include the "link" and "posted" properties from the original job data for each job match.
+Candidate:
+${JSON.stringify(cvAnalysis)}
 
-CV Analysis:
-${JSON.stringify(cvAnalysis, null, 2)}
-
-Job Listings (truncated to ${jobs.length} jobs):
-${JSON.stringify(jobs, null, 2)}`;
+Jobs:
+${JSON.stringify(jobs.map(jobForScoring))}`;
 
   let lastError;
-  for (let attempt = 1; attempt <= 3; attempt++) {
+  for (let attempt = 1; attempt <= 2; attempt++) {
     try {
-      return parseJsonArray(await askGemini(prompt));
+      const matches = parseJson(await askGemini(prompt, 40000), '[', ']');
+      // Link, title and posted date come from the listing itself, not from the model
+      return matches.map((match, index) => {
+        const job = jobs.find(j => j.job_id === match.jobId) || jobs[index] || {};
+        return {
+          ...match,
+          jobId: job.job_id || match.jobId,
+          title: job.title || match.title,
+          company: job.company || match.company,
+          link: job.link || '',
+          posted: job.posted || ''
+        };
+      });
     } catch (error) {
       lastError = error;
-      console.error(`Gemini match attempt ${attempt} failed:`, error.message);
-      if (attempt < 3) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
+      console.error(`Gemini match attempt ${attempt} failed:`, error.response?.data?.error?.message || error.message);
+      if (attempt < 2) {
+        await new Promise(resolve => setTimeout(resolve, 1500));
       }
     }
   }
@@ -230,7 +227,7 @@ ${JSON.stringify(jobs, null, 2)}`;
     title: "API Error",
     company: "Error",
     score: 0,
-    reasons: ["Error calling API: " + lastError.message],
+    reasons: ["Error calling API: " + (lastError.response?.data?.error?.message || lastError.message)],
     skillsMatch: [],
     missingSkills: [],
     link: "",
@@ -248,6 +245,10 @@ router.post('/find-matches', async (req, res) => {
   const { query, cvText, userId, filters = {} } = req.body;
 
   try {
+    if (!process.env.GEMINI_API_KEY || !process.env.RAPIDAPI_KEY) {
+      send({ status: 'error', error: 'Job matching is not configured', message: 'The server is missing GEMINI_API_KEY or RAPIDAPI_KEY.' });
+      return res.end();
+    }
     if (!cvText) {
       send({ status: 'error', error: 'CV text is required' });
       return res.end();
@@ -274,24 +275,15 @@ router.post('/find-matches', async (req, res) => {
     send({ status: 'jobs_found', message: `Found ${jobs.length} jobs`, totalJobs: jobs.length });
 
     const jobsToProcess = jobs.slice(0, MAX_JOBS);
-    let allMatches = [];
+    let jobMatches = [];
     for (let i = 0; i < jobsToProcess.length; i += CHUNK_SIZE) {
       const processed = Math.min(i + CHUNK_SIZE, jobsToProcess.length);
       send({ status: 'processing_chunk', message: `Processing jobs ${i + 1}-${processed} of ${jobsToProcess.length}...` });
 
       const chunkMatches = await matchJobsWithCV(cvAnalysis, jobsToProcess.slice(i, i + CHUNK_SIZE));
-      allMatches = allMatches.concat(chunkMatches);
+      jobMatches = jobMatches.concat(chunkMatches);
       send({ status: 'chunk_complete', matches: chunkMatches, progress: { processed, total: jobsToProcess.length } });
     }
-
-    // Restore the original posted date where Gemini echoed the job_id
-    const jobMatches = allMatches.map(match => {
-      const originalJob = jobsToProcess.find(job => job.job_id === match.jobId);
-      if (originalJob) {
-        match.posted = originalJob.posted || originalJob.posted_at || '';
-      }
-      return match;
-    });
 
     send({
       status: 'complete',
@@ -306,8 +298,9 @@ router.post('/find-matches', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error in job matching process:', error.response?.data?.error?.message || error.message);
-    send({ status: 'error', error: 'Processing error', message: error.message });
+    const message = error.response?.data?.error?.message || error.message;
+    console.error('Error in job matching process:', message);
+    send({ status: 'error', error: 'Processing error', message });
   }
   res.end();
 });
