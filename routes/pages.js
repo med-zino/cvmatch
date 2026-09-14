@@ -1,54 +1,16 @@
 const express = require('express');
-const router = express.Router();
 const path = require('path');
-const { auth, isAdmin } = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 
-// Landing page route - serve the root index.html
-router.get('/', (req, res) => {
-  console.log('Serving landing page');
-  res.sendFile(path.join(__dirname, '..', 'index.html'));
-});
+const router = express.Router();
 
-// Main application route (protected)
-router.get('/app', auth, (req, res) => {
-  console.log('Serving main application');
-  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
-});
+const page = file => (req, res) => res.sendFile(path.join(__dirname, '..', file));
 
-// Serve login page
-router.get('/login', (req, res) => {
-    console.log('Login page requested');
-    res.sendFile(path.join(__dirname, '..', 'login.html'));
-});
+router.get('/', page('index.html'));
+router.get('/login', page('login.html'));
+router.get('/register', page('register.html'));
+router.get('/verify-email', page('verify-email.html'));
+router.get('/app', auth, page('public/index.html'));
+router.get('/saved-jobs', auth, page('saved-jobs.html'));
 
-// Serve registration page
-router.get('/register', (req, res) => {
-    console.log('Registration page requested');
-    res.sendFile(path.join(__dirname, '..', 'register.html'));
-});
-
-// Serve email verification page
-router.get('/verify-email', (req, res) => {
-    console.log('Email verification page requested');
-    res.sendFile(path.join(__dirname, '..', 'verify-email.html'));
-});
-
-// Serve admin page with authentication
-router.get('/admin', auth, isAdmin, (req, res) => {
-    console.log('Admin page requested - access granted');
-    res.sendFile(path.join(__dirname, '..', 'admin.html'));
-});
-
-// Serve test admin page
-router.get('/test-admin', (req, res) => {
-    console.log('Test admin page requested');
-    res.sendFile(path.join(__dirname, '..', 'test-admin.html'));
-});
-
-// Serve saved jobs page (protected)
-router.get('/saved-jobs', auth, (req, res) => {
-    console.log('Saved jobs page requested');
-    res.sendFile(path.join(__dirname, '..', 'saved-jobs.html'));
-});
-
-module.exports = router; 
+module.exports = router;

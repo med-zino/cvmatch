@@ -63,10 +63,4 @@ const savedJobSchema = new mongoose.Schema({
 // Create compound index to prevent duplicate saves of the same job by the same user
 savedJobSchema.index({ userId: 1, link: 1 }, { unique: true });
 
-// Add methods
-savedJobSchema.methods.toJSON = function() {
-    const savedJob = this.toObject();
-    return savedJob;
-};
-
 module.exports = mongoose.model('SavedJob', savedJobSchema);

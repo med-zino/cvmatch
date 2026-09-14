@@ -1,95 +1,29 @@
 {
-    "version": 2,
-    "builds": [
-      {
-        "src": "server.js",
-        "use": "@vercel/node",
-        "config": {
-          "maxDuration": 30
-        }
-      },
-      {
-        "src": "public/**",
-        "use": "@vercel/static"
+  "version": 2,
+  "builds": [
+    {
+      "src": "server.js",
+      "use": "@vercel/node",
+      "config": {
+        "maxDuration": 30
       }
-    ],
-    "routes": [
-      {
-        "src": "/js/(.*)",
-        "dest": "public/js/$1"
-      },
-      {
-        "src": "/css/(.*)",
-        "dest": "public/css/$1"
-      },
-      {
-        "src": "/images/(.*)",
-        "dest": "public/images/$1"
-      },
-      {
-        "src": "/api/(.*)",
-        "headers": {
-          "Access-Control-Allow-Credentials": "true",
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET,OPTIONS,PATCH,DELETE,POST,PUT",
-          "Access-Control-Allow-Headers": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization"
-        },
-        "dest": "server.js"
-      },
-      {
-        "src": "/verify-email",
-        "dest": "server.js",
-        "headers": {
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          "Pragma": "no-cache",
-          "Expires": "0"
-        }
-      },
-      {
-        "src": "/app",
-        "dest": "server.js",
-        "headers": {
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          "Pragma": "no-cache",
-          "Expires": "0"
-        }
-      },
-      {
-        "src": "/login",
-        "dest": "server.js",
-        "headers": {
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          "Pragma": "no-cache",
-          "Expires": "0"
-        }
-      },
-      {
-        "src": "/register",
-        "dest": "server.js"
-      },
-      {
-        "src": "/saved-jobs",
-        "dest": "server.js",
-        "headers": {
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          "Pragma": "no-cache",
-          "Expires": "0"
-        }
-      },
-      {
-        "src": "/admin",
-        "dest": "server.js"
-      },
-      {
-        "src": "/test-admin",
-        "dest": "server.js"
-      },
-      {
-        "src": "/",
-        "dest": "server.js"
-      }
-    ],
-    "env": {
-      "NODE_ENV": "production"
+    },
+    {
+      "src": "public/**",
+      "use": "@vercel/static"
     }
-  } 
+  ],
+  "routes": [
+    {
+      "src": "/(js|css|images)/(.*)",
+      "dest": "public/$1/$2"
+    },
+    {
+      "src": "/(api/.*|app|login|register|verify-email|saved-jobs)?",
+      "dest": "server.js"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
+}

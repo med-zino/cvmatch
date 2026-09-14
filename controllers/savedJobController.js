@@ -96,9 +96,7 @@ const getSavedJobs = async (req, res) => {
         }
 
         // Get saved jobs for the user, sorted by most recent first
-        const savedJobs = await SavedJob.find({ userId })
-            .sort({ savedAt: -1 })
-            .populate('userId', 'firstName lastName email');
+        const savedJobs = await SavedJob.find({ userId }).sort({ savedAt: -1 });
 
         res.status(200).json({
             success: true,

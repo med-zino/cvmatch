@@ -1,20 +1,17 @@
 const express = require('express');
-const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
-const { auth, isAdmin } = require('../middleware/auth');
-const { sendVerificationEmail } = require('../utils/emailService');
-const { OAuth2Client } = require('google-auth-library');
 const crypto = require('crypto');
+const { OAuth2Client } = require('google-auth-library');
+const User = require('../models/User');
+const { sendVerificationEmail } = require('../utils/emailService');
 const { connectToDatabase } = require('../utils/db');
 
-// Google client ID and secret
-const GOOGLE_CLIENT_ID = '1001210903692-505to271nee2u0502j0ko2ftcdn5l9a0.apps.googleusercontent.com';
-const GOOGLE_CLIENT_SECRET = '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';
+const router = express.Router();
 
-// Initialize Google OAuth client
-const client = new OAuth2Client(GOOGLE_CLIENT_ID);
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const GOOGLE_CLIENT_ID = '1001210903692-505to271nee2u0502j0ko2ftcdn5l9a0.apps.googleusercontent.com';
+const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 // Ensure DB connection for all routes in this router (important on Vercel cold starts)
 router.use(async (req, res, next) => {
@@ -27,55 +24,51 @@ router.use(async (req, res, next) => {
   }
 });
 
-// Registration route
+// Verification links don't expire
+function verificationLinkFor(user) {
+    const token = jwt.sign({ userId: user._id, purpose: 'email-verification' }, JWT_SECRET);
+    const baseUrl = process.env.NODE_ENV === 'production'
+        ? 'https://cvmatch.vercel.app'
+        : process.env.VERCEL_URL
+            ? `https://${process.env.VERCEL_URL}`
+            : 'http://localhost:3000';
+    return `${baseUrl}/verify-email?token=${token}`;
+}
+
+// 24h session: httpOnly cookie for page loads, token in the body for API calls
+function sendSession(res, user, message) {
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '24h' });
+    res.cookie('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 24 * 60 * 60 * 1000
+    });
+    res.json({ success: true, message, userId: user._id, email: user.email, token });
+}
+
 router.post('/register', async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // Check if user already exists
-        const existingUser = await User.findOne({ email });
-        if (existingUser) {
+        if (await User.findOne({ email })) {
             return res.status(400).json({ error: 'User already exists' });
         }
 
-        // Hash password
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-
-        // Create new user with default role 'client' and verified = false
         const user = new User({
             email,
-            password: hashedPassword,
-            role: 'client', // Explicitly set role to client
-            verified: false // User starts as unverified
+            password: await bcrypt.hash(password, 10),
+            verified: false
         });
-
         await user.save();
 
-        // Generate verification token (non-expiring)
-        const verificationToken = jwt.sign(
-            { userId: user._id, purpose: 'email-verification' },
-            process.env.JWT_SECRET || 'your-secret-key'
-        );
-
-        // Create verification link using environment-aware base URL
-        const baseUrl = process.env.NODE_ENV === 'production' 
-            ? 'https://cvmatch.vercel.app'
-            : process.env.VERCEL_URL 
-                ? `https://${process.env.VERCEL_URL}`
-                : 'http://localhost:3000';
-        const verificationLink = `${baseUrl}/verify-email?token=${verificationToken}`;
-
-        // Send verification email
         try {
-            await sendVerificationEmail(email, verificationLink);
-            console.log('Verification email sent successfully');
+            await sendVerificationEmail(email, verificationLinkFor(user));
         } catch (emailError) {
+            // Registration still succeeds; the user can resend from the login page
             console.error('Error sending verification email:', emailError);
-            // Continue with registration even if email fails
         }
 
-        res.status(201).json({ 
+        res.status(201).json({
             message: 'User registered successfully. Please check your email to verify your account.',
             requiresVerification: true
         });
@@ -85,34 +78,26 @@ router.post('/register', async (req, res) => {
     }
 });
 
-// Email verification route
 router.get('/verify-email', async (req, res) => {
     try {
         const { token } = req.query;
-        
         if (!token) {
             return res.status(400).json({ error: 'Verification token is required' });
         }
 
-        // Verify the token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-        
-        // Check if token is for email verification
+        const decoded = jwt.verify(token, JWT_SECRET);
         if (decoded.purpose !== 'email-verification') {
             return res.status(400).json({ error: 'Invalid verification token' });
         }
 
-        // Find the user
         const user = await User.findById(decoded.userId);
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        // Update user as verified
         user.verified = true;
         await user.save();
 
-        // Redirect to login page with success message
         res.redirect('/login?verified=true');
     } catch (error) {
         console.error('Email verification error:', error);
@@ -120,39 +105,17 @@ router.get('/verify-email', async (req, res) => {
     }
 });
 
-// Resend verification email route
 router.post('/resend-verification', async (req, res) => {
     try {
-        const { email } = req.body;
-
-        // Find the user
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email: req.body.email });
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
-
-        // Check if already verified
         if (user.verified) {
             return res.status(400).json({ error: 'Email already verified' });
         }
 
-        // Generate new verification token
-        const verificationToken = jwt.sign(
-            { userId: user._id, purpose: 'email-verification' },
-            process.env.JWT_SECRET || 'your-secret-key'
-        );
-
-        // Create verification link
-        const baseUrl = process.env.NODE_ENV === 'production' 
-            ? 'https://cvmatch.vercel.app'
-            : process.env.VERCEL_URL 
-                ? `https://${process.env.VERCEL_URL}`
-                : 'http://localhost:3000';
-        const verificationLink = `${baseUrl}/verify-email?token=${verificationToken}`;
-
-        // Send verification email
-        await sendVerificationEmail(email, verificationLink);
-
+        await sendVerificationEmail(user.email, verificationLinkFor(user));
         res.json({ message: 'Verification email sent successfully' });
     } catch (error) {
         console.error('Resend verification error:', error);
@@ -160,143 +123,73 @@ router.post('/resend-verification', async (req, res) => {
     }
 });
 
-// Login route
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // Find user
         const user = await User.findOne({ email });
-        if (!user) {
+        if (!user || !(await bcrypt.compare(password, user.password))) {
             return res.status(400).json({ error: 'Invalid credentials' });
         }
 
-        // Check password
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res.status(400).json({ error: 'Invalid credentials' });
-        }
-
-        // Check if email is verified
         if (!user.verified) {
-            return res.status(403).json({ 
-                error: 'Email not verified', 
+            return res.status(403).json({
+                error: 'Email not verified',
                 requiresVerification: true,
                 message: 'Please verify your email before logging in'
             });
         }
 
-        // Generate JWT token
-        const token = jwt.sign(
-            { userId: user._id, role: user.role },
-            process.env.JWT_SECRET || 'your-secret-key',
-            { expiresIn: '24h' }
-        );
-
-        // Set a cookie with the token
-        res.cookie('token', token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            maxAge: 24 * 60 * 60 * 1000 // 24 hours
-        });
-
-        res.json({ 
-            success: true,
-            message: 'Login successful',
-            role: user.role,
-            userId: user._id,
-            token
-        });
+        sendSession(res, user, 'Login successful');
     } catch (error) {
         console.error('Login error:', error);
         res.status(500).json({ error: 'Error logging in' });
     }
 });
 
-// Google Authentication route
+// Signs in with a Google ID token; links an existing email account or creates a new one
 router.post('/google', async (req, res) => {
   try {
     const { idToken } = req.body;
-    
     if (!idToken) {
       return res.status(400).json({ error: 'ID token is required' });
     }
-    
-    console.log('Received Google ID token, verifying...');
-    
-    // Verify Google token
-    const ticket = await client.verifyIdToken({
-      idToken,
-      audience: GOOGLE_CLIENT_ID
-    });
-    
+
+    const ticket = await googleClient.verifyIdToken({ idToken, audience: GOOGLE_CLIENT_ID });
     const payload = ticket.getPayload();
-    console.log('Google token verified, payload:', payload.email);
-    
-    // First try to find user by Google ID
+
     let user = await User.findOne({ googleId: payload.sub });
-    
-    // If not found by Google ID, try to find by email
     if (!user) {
       user = await User.findOne({ email: payload.email });
-      
+
       if (user) {
-        // User exists but hasn't linked Google account
         user.googleId = payload.sub;
         user.verified = true; // Google emails are verified
-        await user.save();
-        console.log('Linked existing user with Google account:', user.email);
       } else {
-        // Create new user with random password
-        const randomPassword = crypto.randomBytes(16).toString('hex');
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(randomPassword, salt);
-        
+        // Google-only accounts get a random password they never use
         user = new User({
           email: payload.email,
           firstName: payload.given_name,
           lastName: payload.family_name,
-          password: hashedPassword,
+          password: await bcrypt.hash(crypto.randomBytes(16).toString('hex'), 10),
           googleId: payload.sub,
-          verified: true, // Google emails are verified
-          role: 'client'
+          verified: true
         });
-        
-        await user.save();
-        console.log('Created new user from Google account:', user.email);
       }
+      await user.save();
     }
-    
-    // Generate JWT token
-    const token = jwt.sign(
-      { userId: user._id, role: user.role },
-      process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '24h' }
-    );
-    
-    // Set a cookie with the token
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
-    });
-    
-    res.json({ 
-      success: true,
-      message: 'Google authentication successful',
-      role: user.role,
-      userId: user._id,
-      token
-    });
+
+    sendSession(res, user, 'Google authentication successful');
   } catch (error) {
     console.error('Google Login Error:', error);
     res.status(401).json({ error: 'Invalid Google token', details: error.message });
   }
 });
 
-// Admin route - protected by auth and isAdmin middleware
-router.get('/admin', auth, isAdmin, (req, res) => {
-    res.json({ message: 'Admin access granted' });
+// Clears the httpOnly session cookie, which page scripts can't remove themselves
+router.post('/logout', (req, res) => {
+    res.clearCookie('token');
+    res.json({ success: true });
 });
 
-module.exports = router; 
+module.exports = router;

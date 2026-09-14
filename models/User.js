@@ -25,18 +25,9 @@ const userSchema = new mongoose.Schema({
         sparse: true,
         unique: true
     },
-    role: {
-        type: String,
-        enum: ['client', 'admin'],
-        default: 'client'
-    },
     verified: {
         type: Boolean,
         default: false
-    },
-    lastFindMatches: {
-        type: Date,
-        default: null
     },
     createdAt: {
         type: Date,
@@ -44,4 +35,4 @@ const userSchema = new mongoose.Schema({
     }
 });
 
-module.exports = mongoose.model('User', userSchema); 
+module.exports = mongoose.model('User', userSchema);

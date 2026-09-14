@@ -1,37 +1,16 @@
 require('dotenv').config();
 const express = require('express');
-const cors = require('cors');
-const path = require('path');
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
 const cookieParser = require('cookie-parser');
-const { auth } = require('./middleware/auth');
-const fs = require('fs');
+const { connectToDatabase } = require('./utils/db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Import routes
-const authRoutes = require('./routes/auth');
-const pageRoutes = require('./routes/pages');
-const cvRoutes = require('./routes/cv');
-const emailRoutes = require('./routes/emailRoutes');
-const savedJobsRoutes = require('./routes/savedJobs');
-const { connectToDatabase } = require('./utils/db');
-
-// MongoDB Connection handled via utils/db with global cache for serverless
-
-// Connect to MongoDB at startup
+// Connection is cached globally for serverless; routes that need it await it again
 connectToDatabase().catch(err => {
     console.error('Failed to connect to MongoDB:', err);
 });
 
-// Middleware
-app.use(cors({
-  origin: '*', // Allow all origins
-  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allow all HTTP methods for saved jobs API
-  allowedHeaders: ['Content-Type', 'Authorization'] // Allow Content-Type and Authorization headers
-}));
 app.use(express.json());
 app.use(cookieParser());
 app.use((req, res, next) => {
@@ -41,71 +20,18 @@ app.use((req, res, next) => {
   next();
 });
 
-// Use routes - IMPORTANT: Order matters!
-app.use('/api', authRoutes);
-app.use('/api', cvRoutes);
-app.use('/api', emailRoutes);
-app.use('/api/saved-jobs', savedJobsRoutes);
-app.use('/', pageRoutes);
-
-// Static files - Serve AFTER routes to prevent overriding
+// Routes before static files so they aren't shadowed
+app.use('/api', require('./routes/auth'));
+app.use('/api', require('./routes/cv'));
+app.use('/api/saved-jobs', require('./routes/savedJobs'));
+app.use('/', require('./routes/pages'));
 app.use(express.static('public'));
-app.use('/public', express.static('public'));
-app.use('/email-templates', express.static('email-templates'));
 
-// Add this route to serve the index.html file from the public directory (protected)
-app.get('/public', auth, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// Add a route to serve the test.html file
-app.get('/test', (req, res) => {
-  res.sendFile(path.join(__dirname, 'test.html'));
-});
-
-// Google client ID
-const GOOGLE_CLIENT_ID = '1001210903692-505to271nee2u0502j0ko2ftcdn5l9a0.apps.googleusercontent.com';
-
-// Serve login page with Google client ID
-app.get('/login', (req, res) => {
-  // Read the login.html file
-  fs.readFile(path.join(__dirname, 'login.html'), 'utf8', (err, data) => {
-    if (err) {
-      console.error('Error reading login.html:', err);
-      return res.status(500).send('Error loading login page');
-    }
-    
-    // Inject the Google client ID
-    const modifiedHtml = data.replace('<body>', `<body data-google-client-id="${GOOGLE_CLIENT_ID}">`);
-    
-    // Send the modified HTML
-    res.send(modifiedHtml);
-  });
-});
-
-// Serve register page with Google client ID
-app.get('/register', (req, res) => {
-  // Read the register.html file
-  fs.readFile(path.join(__dirname, 'register.html'), 'utf8', (err, data) => {
-    if (err) {
-      console.error('Error reading register.html:', err);
-      return res.status(500).send('Error loading register page');
-    }
-    
-    // Inject the Google client ID
-    const modifiedHtml = data.replace('<body>', `<body data-google-client-id="${GOOGLE_CLIENT_ID}">`);
-    
-    // Send the modified HTML
-    res.send(modifiedHtml);
-  });
-});
-
-// Update the server startup to work with Vercel
 if (require.main === module) {
-app.listen(PORT, () => {
+  app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
-}); 
+  });
 }
 
-// Export the app for Vercel
-module.exports = app; 
+// Exported for Vercel
+module.exports = app;
