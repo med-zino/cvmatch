@@ -24,14 +24,10 @@ router.use(async (req, res, next) => {
   }
 });
 
-// Verification links don't expire
-function verificationLinkFor(user) {
+// Verification links don't expire; they point back at APP_URL, or else the domain that served the request
+function verificationLinkFor(req, user) {
     const token = jwt.sign({ userId: user._id, purpose: 'email-verification' }, JWT_SECRET);
-    const baseUrl = process.env.NODE_ENV === 'production'
-        ? 'https://cvmatch.vercel.app'
-        : process.env.VERCEL_URL
-            ? `https://${process.env.VERCEL_URL}`
-            : 'http://localhost:3000';
+    const baseUrl = process.env.APP_URL || `${req.get('x-forwarded-proto') || req.protocol}://${req.get('host')}`;
     return `${baseUrl}/verify-email?token=${token}`;
 }
 
@@ -62,7 +58,7 @@ router.post('/register', async (req, res) => {
         await user.save();
 
         try {
-            await sendVerificationEmail(email, verificationLinkFor(user));
+            await sendVerificationEmail(email, verificationLinkFor(req, user));
         } catch (emailError) {
             // Registration still succeeds; the user can resend from the login page
             console.error('Error sending verification email:', emailError);
@@ -115,7 +111,7 @@ router.post('/resend-verification', async (req, res) => {
             return res.status(400).json({ error: 'Email already verified' });
         }
 
-        await sendVerificationEmail(user.email, verificationLinkFor(user));
+        await sendVerificationEmail(user.email, verificationLinkFor(req, user));
         res.json({ message: 'Verification email sent successfully' });
     } catch (error) {
         console.error('Resend verification error:', error);
