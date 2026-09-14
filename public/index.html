@@ -3,429 +3,156 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CV Job Matcher</title>
-    <!-- PDF.js library -->
-    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/sass.css">
-
+    <title>Find matches — CVMatch</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%230E0E0D'/%3E%3Cpath d='M7 8h7M7 12h4M12.5 15.5l2 2 3.5-4' fill='none' stroke='%23F7F7F5' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap">
+    <link rel="stylesheet" href="/css/app.css">
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar">
-        <div class="navbar-container">
-            <a href="#" class="navbar-brand">
-                <i class="fas fa-file-alt"></i> CVMatch
+    <header class="app-nav">
+        <a href="/app" class="brand">
+            <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="6" fill="currentColor"/><path d="M7 8h7M7 12h4M12.5 15.5l2 2 3.5-4" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>CVMatch</span>
+        </a>
+        <nav class="nav-tabs" aria-label="Main">
+            <a class="nav-tab" href="/app" aria-current="page">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                <span>Find matches</span>
             </a>
-            <div class="navbar-links">
-                <a href="#how-it-works" onclick="scrollToSection('how-it-works')">
-                    <i class="fas fa-info-circle"></i> How It Works
-                </a>
-                <a href="#matchForm" onclick="scrollToSection('matchForm')">
-                    <i class="fas fa-search"></i> Find Jobs
-                </a>
-                <a href="#cv-recommendations" onclick="scrollToSection('cv-recommendations')">
-                    <i class="fas fa-lightbulb"></i> CV Tips
-                </a>
-                <a href="/saved-jobs">
-                    <i class="fas fa-bookmark"></i> Saved Jobs
-                </a>
-                <a href="#" id="logout-btn" class="logout-btn">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
+            <a class="nav-tab" href="/saved-jobs">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg>
+                <span>Saved jobs</span>
+                <span class="nav-count" data-saved-count hidden></span>
+            </a>
+        </nav>
+        <div class="nav-user">
+            <span class="nav-email" data-user-email></span>
+            <button type="button" class="nav-signout" data-signout>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/></svg>
+                <span>Sign out</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="page-head">
+            <div>
+                <h1 class="page-title">Find your matches</h1>
+                <p class="page-sub">Add your CV, pick a role and a city. We pull live listings and rank each one against your skills.</p>
             </div>
         </div>
-    </nav>
 
-   
-    <script>
-        // Check if user is logged in
-        document.addEventListener('DOMContentLoaded', function() {
-            const userLoggedIn = localStorage.getItem('userLoggedIn');
-            const token = localStorage.getItem('token');
-            
-            if (!userLoggedIn || !token) {
-                window.location.href = '/login';
-            }
-            
-            // Logout functionality
-            document.getElementById('logout-btn').addEventListener('click', function(e) {
-                e.preventDefault();
-                
-                // Clear localStorage
-                localStorage.removeItem('userLoggedIn');
-                localStorage.removeItem('userRole');
-                localStorage.removeItem('userId');
-                localStorage.removeItem('token');
-                
-                // Redirect to login page
-                window.location.href = '/login';
-            });
-        });
-    </script>
-
-    <!-- Hero Section -->
-    <section class="hero-section">
-        <div class="hero-content">
-            <h1>Find Your Perfect Job Match</h1>
-            <p>Upload your CV and let our AI find the best job opportunities tailored to your skills and experience.</p>
-            <a href="#matchForm" class="cta-button" onclick="scrollToSection('matchForm')">
-                <i class="fas fa-rocket"></i> Get Started
-            </a>
-        </div>
-    </section>
-
-    <!-- Main Content -->
-    <div class="main-content">
-        <!-- Steps Section -->
-        <section class="steps-section" id="how-it-works">
-            <div class="steps-container">
-                <h2 class="section-title">How It Works</h2>
-                <div class="steps-grid">
-                    <div class="step-card">
-                        <div class="step-icon">
-                            <i class="fas fa-upload"></i>
-                        </div>
-                        <div class="step-number">1</div>
-                        <div class="step-title">Upload Your CV</div>
-                        <div class="step-description">Upload your CV in PDF format or paste your CV text directly into our system.</div>
-                    </div>
-                    <div class="step-card">
-                        <div class="step-icon">
-                            <i class="fas fa-sliders-h"></i>
-                        </div>
-                        <div class="step-number">2</div>
-                        <div class="step-title">Enter Job Preferences</div>
-                        <div class="step-description">Specify your desired job location and type to find relevant opportunities.</div>
-                    </div>
-                    <div class="step-card">
-                        <div class="step-icon">
-                            <i class="fas fa-magic"></i>
-                        </div>
-                        <div class="step-number">3</div>
-                        <div class="step-title">Get Matched</div>
-                        <div class="step-description">Our AI analyzes your CV and matches you with the most suitable job opportunities.</div>
+        <div class="match-layout">
+            <form id="matchForm" class="card search-card" novalidate>
+                <div class="form-section">
+                    <span class="label">01 — Search</span>
+                    <label class="field">
+                        <span class="field-label">Role</span>
+                        <input class="input" name="role" placeholder="e.g. Full-stack developer" autocomplete="off">
+                    </label>
+                    <label class="field">
+                        <span class="field-label">City</span>
+                        <input class="input" name="city" placeholder="e.g. Paris, London, Berlin" autocomplete="off">
+                    </label>
+                    <button type="button" class="disclosure" id="filtersToggle" aria-expanded="false" aria-controls="filtersPanel">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+                        <span class="disclosure-text">More filters</span>
+                        <span class="disclosure-summary" id="filtersSummary">None</span>
+                        <svg class="disclosure-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="filters-grid" id="filtersPanel" hidden>
+                        <label class="field">
+                            <span class="field-label">Posted</span>
+                            <select class="select" name="date_posted">
+                                <option value="">Any time</option>
+                                <option value="today">Today</option>
+                                <option value="3days">Last 3 days</option>
+                                <option value="week">Last week</option>
+                                <option value="month">Last month</option>
+                            </select>
+                        </label>
+                        <label class="field">
+                            <span class="field-label">Work from</span>
+                            <select class="select" name="work_from_home">
+                                <option value="">Anywhere</option>
+                                <option value="true">Remote only</option>
+                                <option value="false">On-site only</option>
+                            </select>
+                        </label>
+                        <label class="field">
+                            <span class="field-label">Experience</span>
+                            <select class="select" name="job_requirements">
+                                <option value="">Any</option>
+                                <option value="no_experience">No experience</option>
+                                <option value="under_3_years_experience">Under 3 years</option>
+                                <option value="more_than_3_years_experience">3+ years</option>
+                                <option value="no_degree">No degree needed</option>
+                            </select>
+                        </label>
+                        <label class="field">
+                            <span class="field-label">Contract</span>
+                            <select class="select" name="employment_types">
+                                <option value="">Any</option>
+                                <option value="FULLTIME">Full-time</option>
+                                <option value="PARTTIME">Part-time</option>
+                                <option value="CONTRACTOR">Contractor</option>
+                                <option value="INTERN">Internship</option>
+                            </select>
+                        </label>
                     </div>
                 </div>
-            </div>
-        </section>
 
-        <!-- Job Matching Form Section -->
-        <section class="job-matching-section" id="matchForm">
-            <div class="container">
-                <div class="form-container">
-                    <h2 class="section-title">Find Your Job Match</h2>
-                    <form id="matchForm">
-                        <!-- Trial Notice -->
-                        <!-- <div class="trial-notice">
-                            <i class="fas fa-info-circle"></i>
-                            <strong>Trial Version Notice:</strong> You get one free try every 30 minutes. Make it count! 
-                            For unlimited access and advanced features, consider our premium version.
-                        </div> -->
+                <div class="divider"></div>
 
-                        <!-- Error Message -->
-                        <div class="error-message" id="errorMessage">
-                            <i class="fas fa-exclamation-circle"></i>
-                            <strong>Rate Limit Exceeded:</strong> 
-                            <span id="nextTryTime"></span>
-                        </div>
-
-                        <div class="form-group-row">
-                            <div class="form-group">
-                                <label for="query">
-                                    <i class="fas fa-search"></i> Job Search Query:
-                                </label>
-                                <input type="text" id="query" name="query" placeholder="e.g., marketing expert" value="">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="location">
-                                    <i class="fas fa-map-marker-alt"></i> Location: <span class="required">*</span>
-                                </label>
-                                <input type="text" id="location" name="location" placeholder="e.g., Paris, London, New York" value="" required>
-                            </div>
-                        </div>
-                        
-                        <!-- Toggle for Additional Filters -->
-                        <div class="filters-toggle-container">
-                            <label class="filters-toggle-label" for="filtersToggle">
-                                <i class="fas fa-filter"></i> Additional Filters
-                                <div class="toggle-switch">
-                                    <input type="checkbox" id="filtersToggle" class="toggle-input">
-                                    <span class="toggle-slider"></span>
-                                </div>
-                            </label>
-                        </div>
-                        
-                        <!-- Additional Filters -->
-                        <div class="filters-section" id="filtersSection" style="display: none;">
-                            <h4 class="filters-title">
-                                <i class="fas fa-filter"></i> Additional Filters (Optional)
-                            </h4>
-                            
-                            <div class="form-group-row">
-                                <div class="form-group">
-                                    <label for="date_posted">
-                                        <i class="fas fa-calendar-alt"></i> Date Posted:
-                                    </label>
-                                    <select id="date_posted" name="date_posted">
-                                        <option value="">Any time</option>
-                                        <option value="today">Today</option>
-                                        <option value="3days">Last 3 days</option>
-                                        <option value="week">Last week</option>
-                                        <option value="month">Last month</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="work_from_home">
-                                        <i class="fas fa-home"></i> Work From Home:
-                                    </label>
-                                    <select id="work_from_home" name="work_from_home">
-                                        <option value="">Any</option>
-                                        <option value="true">Remote only</option>
-                                        <option value="false">On-site only</option>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <div class="form-group-row">
-                                <div class="form-group">
-                                    <label for="job_requirements">
-                                        <i class="fas fa-graduation-cap"></i> Job Requirements:
-                                    </label>
-                                    <select id="job_requirements" name="job_requirements">
-                                        <option value="">Any requirements</option>
-                                        <option value="under_3_years_experience">Under 3 years experience</option>
-                                        <option value="more_than_3_years_experience">More than 3 years experience</option>
-                                        <option value="no_experience">No experience required</option>
-                                        <option value="no_degree">No degree required</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="employment_types">
-                                        <i class="fas fa-briefcase"></i> Employment Type:
-                                    </label>
-                                    <select id="employment_types" name="employment_types">
-                                        <option value="">Any type</option>
-                                        <option value="FULLTIME">Full-time</option>
-                                        <option value="PARTTIME">Part-time</option>
-                                        <option value="CONTRACTOR">Contractor</option>
-                                        <option value="INTERN">Intern</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- CV Input Method Toggle -->
-                        <div class="input-toggle">
-                            <div class="input-toggle-option active" data-target="pdf-section">
-                                <i class="fas fa-file-pdf"></i> Upload PDF
-                            </div>
-                            <div class="input-toggle-option" data-target="text-section">
-                                <i class="fas fa-font"></i> Enter Text
-                            </div>
-                        </div>
-                        
-                        <!-- PDF Upload Section -->
-                        <div id="pdf-section" class="cv-input-section active">
-                            <label for="pdfFileInput">
-                                <i class="fas fa-upload"></i> Upload Your CV as PDF:
-                            </label>
-                            <div id="pdfUploadZone" class="pdf-upload-zone">
-                                <div class="pdf-upload-icon">
-                                    <i class="fas fa-file-pdf"></i>
-                                </div>
-                                <p>Drag & drop your PDF here or click to browse</p>
-                                <div id="pdfFilename" class="pdf-filename"></div>
-                                <input type="file" id="pdfFileInput" accept="application/pdf">
-                            </div>
-                        </div>
-                        
-                        <!-- Text Input Section -->
-                        <div id="text-section" class="cv-input-section">
-                            <label for="cvText">
-                                <i class="fas fa-font"></i> Your CV Text:
-                            </label>
-                            <textarea id="cvText" name="cvText" placeholder="Paste your CV text here..."></textarea>
-                        </div>
-                        
-                        <button type="submit" class="submit-button">
-                            <i class="fas fa-search"></i> Find Job Matches
-                        </button>
-                    </form>
-                </div>
-                
-                <div class="results-container">
-                    <div id="loading" class="loading">
-                        <div class="loading-icon">
-                            <i class="fas fa-spinner fa-spin"></i>
-                        </div>
-                        <h2>Analyzing your CV and finding matches...</h2>
-                        <p>This process may take a minute. We're analyzing your skills and finding the best job matches.</p>
-                        
-                        <!-- Skeleton loading animation -->
-                        <div class="skeleton-card">
-                            <div class="skeleton-line skeleton-title"></div>
-                            <div class="skeleton-line skeleton-company"></div>
-                            <div class="skeleton-line skeleton-score"></div>
-                            <div class="skeleton-line skeleton-text medium"></div>
-                            <div class="skeleton-line skeleton-text long"></div>
-                            <div class="skeleton-line skeleton-text short"></div>
-                        </div>
-                        <div class="skeleton-card">
-                            <div class="skeleton-line skeleton-title"></div>
-                            <div class="skeleton-line skeleton-company"></div>
-                            <div class="skeleton-line skeleton-score"></div>
-                            <div class="skeleton-line skeleton-text long"></div>
-                            <div class="skeleton-line skeleton-text medium"></div>
-                            <div class="skeleton-line skeleton-text short"></div>
-                        </div>
-                        <div class="skeleton-card">
-                            <div class="skeleton-line skeleton-title"></div>
-                            <div class="skeleton-line skeleton-company"></div>
-                            <div class="skeleton-line skeleton-score"></div>
-                            <div class="skeleton-line skeleton-text short"></div>
-                            <div class="skeleton-line skeleton-text long"></div>
-                            <div class="skeleton-line skeleton-text medium"></div>
-                        </div>
+                <div class="form-section">
+                    <span class="label">02 — Your CV</span>
+                    <div class="segmented" role="tablist" aria-label="How to add your CV">
+                        <button type="button" role="tab" data-cv-tab="pdf" aria-selected="true">Upload PDF</button>
+                        <button type="button" role="tab" data-cv-tab="text" aria-selected="false">Paste text</button>
                     </div>
-                    
-                    <div id="results" class="results">
-                        <div class="info-section" style="display: none;">
-                            <h3><i class="fas fa-chart-bar"></i> Job Matching Results</h3>
-                            <p>We've analyzed your CV and found the best matching jobs based on your skills and experience.</p>
-                            <button id="toggleCvAnalysis" class="toggle-cv-analysis">
-                                <i class="fas fa-eye"></i> Show CV Analysis Details
+                    <div id="pdfPanel">
+                        <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Upload your CV as a PDF">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 17v-6M9.5 13.5 12 11l2.5 2.5"/></svg>
+                            <span class="dropzone-title">Drop your CV here or <u>browse</u></span>
+                            <span class="dropzone-hint">PDF with selectable text</span>
+                        </div>
+                        <div class="file-row" id="fileRow" hidden>
+                            <span class="file-badge mono">PDF</span>
+                            <div class="file-info">
+                                <span class="file-name" id="fileName"></span>
+                                <span class="file-meta mono" id="fileMeta"></span>
+                            </div>
+                            <button type="button" class="icon-btn icon-btn--ghost" id="removeFile" aria-label="Remove this file">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
                             </button>
                         </div>
-                        
-                        <!-- <div id="cvAnalysis" class="cv-analysis">
-                            <h3><i class="fas fa-file-alt"></i> CV Analysis</h3>
-                            <div id="cvAnalysisResults"></div>
-                        </div> -->
-                        
-                        <h3><i class="fas fa-briefcase"></i> Top Job Matches</h3>
-                        <div id="jobMatchesResults">
-                            <!-- Initial state message -->
-                            <div class="initial-state-message">
-                                <div class="message-icon">
-                                    <i class="fas fa-file-upload"></i>
-                                </div>
-                                <h3>Ready to Find Your Perfect Job Match?</h3>
-                                <p>Upload your CV and enter a job search query on the left to get started. We'll analyze your CV and match you with the most relevant job opportunities.</p>
-                                <div class="features-list">
-                                    <div class="feature">
-                                        <i class="fas fa-check-circle"></i>
-                                        <span>Instant CV Analysis</span>
-                                    </div>
-                                    <div class="feature">
-                                        <i class="fas fa-check-circle"></i>
-                                        <span>Skills Matching</span>
-                                    </div>
-                                    <div class="feature">
-                                        <i class="fas fa-check-circle"></i>
-                                        <span>Personalized Job Recommendations</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <input type="file" id="pdfFileInput" accept="application/pdf" hidden>
+                    </div>
+                    <div id="textPanel" hidden>
+                        <textarea class="textarea" id="cvText" aria-label="Your CV text" placeholder="Paste the text of your CV here…"></textarea>
                     </div>
                 </div>
-            </div>
-        </section>
 
-          <!-- CV Recommendations Section -->
-          <section class="cv-recommendations-section" id="cv-recommendations">
-            <div class="recommendations-container">
-                <h2 class="section-title">CV Recommendations</h2>
-                <p class="section-subtitle">Improve your CV with these expert tips to increase your chances of landing interviews -- personalized tips are available in the premium version</p>
-                
-                <div class="recommendations-grid">
-                    <div class="recommendation-card">
-                        <div class="recommendation-icon">
-                            <i class="fas fa-check-circle"></i>
-                        </div>
-                        <h3>Format & Structure</h3>
-                        <ul>
-                            <li>Use a clean, professional layout</li>
-                            <li>Include a compelling summary</li>
-                            <li>Highlight achievements with metrics</li>
-                            <li>Keep it concise (1-2 pages)</li>
-                        </ul>
-                    </div>
-                    
-                    <div class="recommendation-card">
-                        <div class="recommendation-icon">
-                            <i class="fas fa-key"></i>
-                        </div>
-                        <h3>Keywords & Skills</h3>
-                        <ul>
-                            <li>Include industry-specific keywords</li>
-                            <li>List relevant technical skills</li>
-                            <li>Mention soft skills with examples</li>
-                            <li>Tailor skills to job descriptions</li>
-                        </ul>
-                    </div>
-                    
-                    <div class="recommendation-card">
-                        <div class="recommendation-icon">
-                            <i class="fas fa-bullseye"></i>
-                        </div>
-                        <h3>Content Quality</h3>
-                        <ul>
-                            <li>Focus on achievements, not duties</li>
-                            <li>Use action verbs to start sentences</li>
-                            <li>Quantify results where possible</li>
-                            <li>Proofread for errors</li>
-                        </ul>
-                    </div>
-                    
-                    <div class="recommendation-card">
-                        <div class="recommendation-icon">
-                            <i class="fas fa-plus-circle"></i>
-                        </div>
-                        <h3>Additional Tips</h3>
-                        <ul>
-                            <li>Include a professional photo</li>
-                            <li>Add relevant certifications</li>
-                            <li>Link to your portfolio/LinkedIn</li>
-                            <li>Update regularly</li>
-                        </ul>
-                    </div>
+                <button type="submit" class="btn btn-primary btn-block" id="submitButton">
+                    <span>Find matches</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </button>
+            </form>
+
+            <section class="results" id="results" aria-live="polite">
+                <div class="empty">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg>
+                    <h2 class="empty-title">Your matches will show up here</h2>
+                    <p class="empty-text">Add your CV and a search on the left. Every job comes back with a score, the skills you share and what's missing.</p>
                 </div>
-            </div>
-        </section>
-    </div>
-
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="footer-container">
-            <div class="footer-logo">
-                <i class="fas fa-file-alt"></i> CVMatch
-            </div>
-            <div class="footer-links">
-                <a href="#how-it-works">How It Works</a>
-                <a href="#cv-recommendations">CV Tips</a>
-                <a href="#about">About</a>
-                <a href="#">Privacy Policy</a>
-                <a href="#">Terms of Service</a>
-            </div>
-            <div class="footer-social">
-                <a href="https://www.facebook.com/zinou.med.35/"><i class="fab fa-twitter"></i></a>
-                <a href="https://www.linkedin.com/in/feddag-mohammed-zineddine-879861187/"><i class="fab fa-linkedin"></i></a>
-                <a href="https://www.linkedin.com/in/feddag-mohammed-zineddine-879861187/"><i class="fab fa-facebook"></i></a>
-            </div>
+            </section>
         </div>
-        <div class="footer-bottom">
-            <p>&copy; 2025 CVMatch. All rights reserved.</p>
-        </div>
-    </footer>
+    </main>
 
-    <script src="js/sass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/app.js"></script>
 </body>
 </html>

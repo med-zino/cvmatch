@@ -1,0 +1,428 @@
+// Find matches page: CV input (PDF read in the browser, or pasted text), streamed matching, results
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+
+const form = document.getElementById('matchForm');
+const results = document.getElementById('results');
+const submitButton = document.getElementById('submitButton');
+const cvTextInput = document.getElementById('cvText');
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('pdfFileInput');
+const fileRow = document.getElementById('fileRow');
+const filtersToggle = document.getElementById('filtersToggle');
+const filtersPanel = document.getElementById('filtersPanel');
+
+let cvMode = 'pdf';
+let pdfText = '';
+let savedLinks = new Set();
+let currentMatches = [];
+
+fetchSavedJobs()
+    .then(jobs => {
+        savedLinks = new Set(jobs.map(job => job.link));
+        setSavedCount(jobs.length);
+    })
+    .catch(error => console.error(error));
+
+// ---------- CV input ----------
+
+document.querySelectorAll('[data-cv-tab]').forEach((tab, _, tabs) => {
+    tab.addEventListener('click', () => {
+        cvMode = tab.dataset.cvTab;
+        tabs.forEach(t => t.setAttribute('aria-selected', String(t === tab)));
+        document.getElementById('pdfPanel').hidden = cvMode !== 'pdf';
+        document.getElementById('textPanel').hidden = cvMode !== 'text';
+    });
+});
+
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        fileInput.click();
+    }
+});
+['dragenter', 'dragover'].forEach(type => dropzone.addEventListener(type, e => {
+    e.preventDefault();
+    dropzone.classList.add('is-over');
+}));
+['dragleave', 'drop'].forEach(type => dropzone.addEventListener(type, e => {
+    e.preventDefault();
+    dropzone.classList.remove('is-over');
+}));
+dropzone.addEventListener('drop', e => {
+    if (e.dataTransfer.files.length) readPdf(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', () => {
+    if (fileInput.files.length) readPdf(fileInput.files[0]);
+});
+document.getElementById('removeFile').addEventListener('click', () => {
+    pdfText = '';
+    fileInput.value = '';
+    fileRow.hidden = true;
+    dropzone.hidden = false;
+});
+
+// Extracts the PDF's text layer (scanned CVs have none)
+async function readPdf(file) {
+    if (file.type !== 'application/pdf') {
+        toast('Please choose a PDF file');
+        return;
+    }
+
+    const fileMeta = document.getElementById('fileMeta');
+    document.getElementById('fileName').textContent = file.name;
+    fileMeta.textContent = 'Reading…';
+    dropzone.hidden = true;
+    fileRow.hidden = false;
+
+    try {
+        const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+        const pages = [];
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const content = await (await pdf.getPage(i)).getTextContent();
+            pages.push(content.items.map(item => item.str).join(' '));
+        }
+        pdfText = pages.join('\n\n');
+        // The text tab shows what was read, so it can be corrected
+        cvTextInput.value = pdfText;
+        fileMeta.textContent = pdfText.trim()
+            ? `${pdf.numPages} page${pdf.numPages === 1 ? '' : 's'} read`
+            : 'No text found — paste your CV instead';
+    } catch (error) {
+        console.error('Error reading PDF:', error);
+        pdfText = '';
+        fileMeta.textContent = 'Could not read this PDF';
+    }
+}
+
+// ---------- Filters ----------
+
+filtersToggle.addEventListener('click', () => {
+    const open = filtersToggle.getAttribute('aria-expanded') !== 'true';
+    filtersToggle.setAttribute('aria-expanded', String(open));
+    filtersPanel.hidden = !open;
+});
+filtersPanel.addEventListener('change', () => {
+    const active = [...filtersPanel.querySelectorAll('select')].filter(select => select.value).length;
+    document.getElementById('filtersSummary').textContent = active ? `${active} active` : 'None';
+});
+
+// ---------- Matching ----------
+
+form.addEventListener('submit', e => {
+    e.preventDefault();
+
+    const role = form.elements.role.value.trim();
+    const city = form.elements.city.value.trim();
+    const cvText = cvMode === 'pdf' ? pdfText : cvTextInput.value;
+
+    if (!role || !city) {
+        toast('Add a role and a city');
+        return;
+    }
+    if (!cvText.trim()) {
+        toast(cvMode === 'pdf' ? 'Upload your CV, or paste it as text' : 'Paste your CV text first');
+        return;
+    }
+
+    // The server takes the filter values as the select strings
+    const filters = {};
+    ['date_posted', 'work_from_home', 'job_requirements', 'employment_types'].forEach(name => {
+        if (form.elements[name].value) filters[name] = form.elements[name].value;
+    });
+
+    runMatch({ query: `${role} in ${city}`, cvText, userId: session.userId, filters }, { role, city });
+});
+
+async function runMatch(body, search) {
+    submitButton.disabled = true;
+    renderProgress();
+    let finished = false;
+
+    try {
+        // Only covers waiting for the stream to start; scoring itself can run longer
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        const response = await fetch('/api/find-matches', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
+            body: JSON.stringify(body),
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            throw new Error(`Request failed with status ${response.status}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+
+            // Server-sent events end with a blank line; keep a partial one for the next chunk
+            buffer += decoder.decode(value, { stream: true });
+            const events = buffer.split('\n\n');
+            buffer = events.pop();
+            for (const event of events) {
+                if (event.startsWith('data: ')) {
+                    finished = handleEvent(JSON.parse(event.slice(6)), search) || finished;
+                }
+            }
+        }
+
+        if (!finished) {
+            renderError('The connection closed before matching finished.');
+        }
+    } catch (error) {
+        console.error('Matching failed:', error);
+        renderError(error.name === 'AbortError' ? 'The server took too long to respond.' : error.message);
+    } finally {
+        submitButton.disabled = false;
+    }
+}
+
+// Returns true once the run has ended (results or an error)
+function handleEvent(event, search) {
+    switch (event.status) {
+        case 'cv_analyzed':
+            setStep('cv', 'done', `${(event.cvAnalysis.skills || []).length} skills found`);
+            setStep('search', 'active');
+            return false;
+        case 'jobs_found':
+            setStep('search', 'done', `${event.totalJobs} found`);
+            setStep('score', 'active', '0%', 0);
+            return false;
+        case 'chunk_complete': {
+            const pct = Math.round((event.progress.processed / event.progress.total) * 100);
+            setStep('score', 'active', `${pct}%`, pct);
+            return false;
+        }
+        case 'complete':
+            renderResults(event.result, search);
+            return true;
+        case 'error':
+            if ((event.error || '').includes('No job listings found')) {
+                renderNoJobs();
+            } else {
+                renderError(event.message || event.error);
+            }
+            return true;
+        default:
+            return false;
+    }
+}
+
+function setStep(name, state, meta = '', pct) {
+    const step = results.querySelector(`[data-step="${name}"]`);
+    if (!step) return;
+
+    step.classList.remove('is-active', 'is-done');
+    step.classList.add(`is-${state}`);
+    step.querySelector('.progress-step-meta').textContent = meta;
+
+    const track = step.querySelector('.progress-track');
+    if (track && pct !== undefined) {
+        track.hidden = false;
+        track.firstElementChild.style.width = `${pct}%`;
+    }
+}
+
+// ---------- Rendering ----------
+
+function renderProgress() {
+    const step = (name, label, active) => `
+        <li class="progress-step${active ? ' is-active' : ''}" data-step="${name}">
+            <span class="dot"></span>
+            <span class="progress-step-text">${label}</span>
+            <span class="progress-step-meta"></span>
+            ${name === 'score' ? '<div class="progress-track" hidden><span></span></div>' : ''}
+        </li>`;
+
+    results.innerHTML = `
+        <div class="card progress-card">
+            <div class="progress-head">
+                <h2 class="progress-title">Matching your CV…</h2>
+                <p class="progress-sub">This usually takes under a minute.</p>
+            </div>
+            <ol>
+                ${step('cv', 'Reading your CV', true)}
+                ${step('search', 'Searching live listings')}
+                ${step('score', 'Scoring each job against your profile')}
+            </ol>
+            <div class="skeleton-card" aria-hidden="true">
+                <div class="skeleton" style="width: 55%; height: 14px;"></div>
+                <div class="skeleton" style="width: 35%;"></div>
+                <div class="skeleton-row">
+                    <div class="skeleton" style="width: 64px; height: 24px;"></div>
+                    <div class="skeleton" style="width: 84px; height: 24px;"></div>
+                    <div class="skeleton" style="width: 56px; height: 24px;"></div>
+                </div>
+            </div>
+        </div>`;
+}
+
+function renderResults(result, search) {
+    const allMatches = result.jobMatches || [];
+    // The server returns a placeholder "error" match when scoring fails
+    const matches = allMatches.filter(match => match.jobId !== 'error');
+    if (!matches.length) {
+        const failed = allMatches.find(match => match.jobId === 'error');
+        renderError(failed ? failed.reasons[0] : 'No matches came back for this search.');
+        return;
+    }
+
+    currentMatches = matches.sort((a, b) => b.score - a.score);
+    const skills = (result.cvAnalysis && result.cvAnalysis.skills) || [];
+    const shownSkills = skills.slice(0, 8);
+
+    results.innerHTML = `
+        <div class="results-head">
+            <div class="results-heading">
+                <span class="label">Results</span>
+                <h2 class="results-title">${matches.length} job${matches.length === 1 ? '' : 's'} ranked for ${escapeHtml(search.role)} in ${escapeHtml(search.city)}</h2>
+            </div>
+            <span class="mono muted results-sort">Best match first</span>
+        </div>
+        ${skills.length ? `
+            <div class="cv-strip">
+                <span class="label">Read from your CV</span>
+                <div class="chips">
+                    ${shownSkills.map(skill => `<span class="chip">${escapeHtml(skill)}</span>`).join('')}
+                    ${skills.length > shownSkills.length ? `<span class="chip chip-more">+${skills.length - shownSkills.length} more</span>` : ''}
+                </div>
+            </div>` : ''}
+        <ol class="match-list">${currentMatches.map(matchCard).join('')}</ol>`;
+
+    results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function matchCard(job, index) {
+    const score = Math.max(0, Math.min(100, Math.round(Number(job.score) || 0)));
+    const [tier, tierLabel] = score >= 80 ? ['strong', 'Strong match'] : score >= 60 ? ['good', 'Good match'] : ['partial', 'Partial match'];
+    const meta = [job.company, formatPosted(job.posted)].filter(Boolean);
+    const chips = (list, className = 'chip') => list && list.length
+        ? `<div class="chips">${list.map(item => `<span class="${className}">${escapeHtml(item)}</span>`).join('')}</div>`
+        : '<span class="muted">None listed</span>';
+
+    return `
+        <li class="card match-card" style="--i: ${index}">
+            <div class="match-top">
+                <span class="match-rank mono">${String(index + 1).padStart(2, '0')}</span>
+                <div class="match-heading">
+                    <h3 class="match-title">${escapeHtml(job.title)}</h3>
+                    <p class="match-meta">${meta.map(item => `<span>${escapeHtml(item)}</span>`).join('<span aria-hidden="true">·</span>')}</p>
+                </div>
+                <div class="score score--${tier}">
+                    <span class="score-value">${score}<small>%</small></span>
+                    <span class="score-bar"><span style="width: ${score}%"></span></span>
+                    <span class="label">${tierLabel}</span>
+                </div>
+            </div>
+            <div class="match-body">
+                <div class="match-skills">
+                    <div class="match-group"><span class="label">You have</span>${chips(job.skillsMatch)}</div>
+                    <div class="match-group"><span class="label">Gaps</span>${chips(job.missingSkills, 'chip chip-gap')}</div>
+                </div>
+                ${job.reasons && job.reasons.length ? `
+                    <div class="match-group">
+                        <span class="label">Why it fits</span>
+                        <ul class="match-why">${job.reasons.map(reason => `<li>${escapeHtml(reason)}</li>`).join('')}</ul>
+                    </div>` : ''}
+                ${job.link ? `
+                    <div class="match-foot">
+                        <span class="mono match-source">via ${escapeHtml(hostname(job.link))}</span>
+                        <div class="match-actions">
+                            ${saveButton(savedLinks.has(job.link), index)}
+                            <a class="btn btn-primary" href="${escapeHtml(safeUrl(job.link))}" target="_blank" rel="noopener">Apply ${icon('arrowUpRight')}</a>
+                        </div>
+                    </div>` : ''}
+            </div>
+        </li>`;
+}
+
+function saveButton(saved, index) {
+    return saved
+        ? `<button type="button" class="btn btn-secondary is-saved" disabled>${icon('bookmark', 16, true)}<span>Saved</span></button>`
+        : `<button type="button" class="btn btn-secondary" data-save="${index}">${icon('bookmark')}<span>Save</span></button>`;
+}
+
+function renderError(message) {
+    results.innerHTML = `
+        <div class="alert" role="alert">
+            ${icon('alert', 22)}
+            <div class="alert-body">
+                <h2 class="alert-title">We couldn't finish this search</h2>
+                <p class="alert-text">Your CV and search are still filled in, so you can try again in a moment.</p>
+                ${message ? `<p class="alert-code">${escapeHtml(message)}</p>` : ''}
+            </div>
+            <button type="button" class="btn btn-secondary" data-retry>Try again</button>
+        </div>`;
+}
+
+function renderNoJobs() {
+    results.innerHTML = `
+        <div class="alert alert--soft">
+            ${icon('search', 22)}
+            <div class="alert-body">
+                <h2 class="alert-title">No listings for this search</h2>
+                <p class="alert-text">Try a broader role name, a nearby city, or fewer filters.</p>
+            </div>
+        </div>`;
+}
+
+results.addEventListener('click', e => {
+    const save = e.target.closest('[data-save]');
+    if (save) saveMatch(currentMatches[save.dataset.save], save);
+    if (e.target.closest('[data-retry]')) form.requestSubmit();
+});
+
+async function saveMatch(job, button) {
+    button.disabled = true;
+    try {
+        const response = await fetch('/api/saved-jobs', {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({
+                userId: session.userId,
+                title: job.title,
+                company: job.company,
+                link: job.link,
+                score: Math.round(job.score),
+                posted: job.posted || 'Not specified',
+                skillsMatch: job.skillsMatch || [],
+                missingSkills: job.missingSkills || [],
+                reasons: job.reasons || []
+            })
+        });
+        // 409 means it was already on the list
+        if (!response.ok && response.status !== 409) {
+            throw new Error((await response.json()).message || 'Could not save this job');
+        }
+
+        savedLinks.add(job.link);
+        button.outerHTML = saveButton(true);
+        setSavedCount(savedLinks.size);
+        toast('Saved to your shortlist');
+    } catch (error) {
+        button.disabled = false;
+        toast(error.message);
+    }
+}
+
+// JSearch gives either a date or a relative phrase like "2 days ago"
+function formatPosted(posted) {
+    if (!posted || posted === 'Not specified') return '';
+    const date = new Date(posted);
+    return isNaN(date.getTime()) ? posted : `Posted ${date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`;
+}
+
+function hostname(url) {
+    try {
+        return new URL(url).hostname.replace(/^www\./, '');
+    } catch {
+        return 'listing';
+    }
+}

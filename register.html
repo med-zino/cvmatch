@@ -3,502 +3,140 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CVMatch - Registration</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #4F46E5;
-            --primary-light: #6366F1;
-            --primary-dark: #4338CA;
-            --secondary: #10B981;
-            --dark: #1F2937;
-            --light: #F9FAFB;
-            --gray: #9CA3AF;
-            --gray-light: #E5E7EB;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Inter', sans-serif;
-            color: var(--dark);
-            background-color: var(--light);
-            line-height: 1.6;
-            min-height: 100vh;
-            display: flex;
-        }
-        
-        .split-container {
-            display: flex;
-            width: 100%;
-            height: 100vh;
-        }
-        
-        .image-section {
-            flex: 1;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 2rem;
-            color: white;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .image-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-image: url('https://images.unsplash.com/photo-1521737604893-d14cc237f11d?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80');
-            background-size: cover;
-            background-position: center;
-            opacity: 0.2;
-        }
-        
-        .image-content {
-            position: relative;
-            z-index: 1;
-            text-align: center;
-            max-width: 500px;
-        }
-        
-        .image-content h2 {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-            font-weight: 700;
-        }
-        
-        .image-content p {
-            font-size: 1.1rem;
-            margin-bottom: 2rem;
-            opacity: 0.9;
-        }
-        
-        .register-section {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 2rem;
-            background-color: white;
-        }
-        
-        .register-container {
-          
-            padding: 2rem 3rem;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-        
-        .register-header {
-            text-align: left;
-        }
-        
-        .register-header h1 {
-            font-size: 2rem;
-            color: var(--primary);
-            margin-bottom: 0.5rem;
-        }
-        
-        .register-header p {
-            color: var(--gray);
-            font-size: 1rem;
-        }
-        
-        .form-group {
-            margin-bottom: 1.5rem;
-            max-width: 400px;
-        }
-        
-        label {
-            display: block;
-            margin-bottom: 0.25rem;
-            font-weight: 500;
-            color: var(--dark);
-            font-size: 0.95rem;
-        }
-        
-        input {
-            width: 100%;
-            padding: 0.3rem 0;
-            border: none;
-            border-bottom: 2px solid var(--gray-light);
-            border-radius: 0;
-            font-family: 'Inter', sans-serif;
-            font-size: 1rem;
-            transition: all 0.3s;
-            background-color: transparent;
-        }
-        
-        input:focus {
-            outline: none;
-            border-bottom-color: var(--primary);
-            box-shadow: none;
-        }
-        
-        .btn {
-            max-width: 400px;
-            padding: 0.875rem 2rem;
-            font-size: 1rem;
-            margin-top: 1.5rem;
-            border-radius: 6px;
-            display: block;
-            width: 100%;
-            background-color: var(--primary);
-            color: white;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.3s;
-            border: none;
-            cursor: pointer;
-            font-family: 'Inter', sans-serif;
-            text-align: center;
-            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
-        }
-        
-        .btn:hover {
-            background-color: var(--primary-dark);
-            transform: translateY(-1px);
-            box-shadow: 0 6px 8px -1px rgba(79, 70, 229, 0.3);
-        }
-        
-        .btn-google {
-            background-color: white;
-            color: #333;
-            border: 1px solid #ddd;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-            margin-top: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-        }
-        
-        .btn-google:hover {
-            background-color: #f8f8f8;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
-        }
-        
-        .btn-google img {
-            width: 18px;
-            height: 18px;
-        }
-        
-        .divider {
-            display: flex;
-            align-items: center;
-            text-align: center;
-            max-width: 400px;
-            margin: 1.5rem 0;
-            color: var(--gray);
-            font-size: 0.9rem;
-        }
-        
-        .divider::before,
-        .divider::after {
-            content: '';
-            flex: 1;
-            border-bottom: 1px solid var(--gray-light);
-        }
-        
-        .divider span {
-            margin: 0 0.75rem;
-        }
-        
-        .error-message {
-            color: #EF4444;
-            margin-top: 1rem;
-            text-align: center;
-            display: none;
-            padding: 0.75rem;
-            background-color: #FEE2E2;
-            border-radius: 6px;
-        }
-        
-        .success-message {
-            color: var(--secondary);
-            margin-top: 1rem;
-            text-align: center;
-            display: none;
-            padding: 0.75rem;
-            background-color: #D1FAE5;
-            border-radius: 6px;
-        }
-
-        .verification-info {
-            max-width: 400px;
-            margin-top: 1.5rem;
-            font-size: 0.9rem;
-            padding: 0.75rem;
-            background-color: #FEF3C7;
-            border-radius: 6px;
-            color: #92400E;
-        }
-
-        .login-link {
-            margin-top: 1.5rem;
-            font-size: 0.9rem;
-        }
-
-        .login-link a {
-            color: var(--primary);
-            text-decoration: none;
-            font-weight: 500;
-        }
-
-        .login-link a:hover {
-            text-decoration: underline;
-        }
-
-        @media (max-width: 768px) {
-            .split-container {
-                flex-direction: column;
-            }
-            
-            .image-section {
-                display: none;
-            }
-            
-            .register-section {
-                padding: 1rem;
-            }
-
-            .register-container {
-                padding: 1.5rem;
-            }
-        }
-
-        .google-signin-container {
-            max-width: 400px;
-            margin-top: 1.5rem;
-        }
-        
-        /* Google button styling */
-        .google-signin-container .nsm7Bb-HzV7m-LgbsSe {
-            background-color: white !important;
-            color: #333 !important;
-            border: 1px solid #ddd !important;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
-            margin-top: 1rem !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            gap: 0.5rem !important;
-            border-radius: 4px !important;
-            font-family: 'Roboto', sans-serif !important;
-            font-size: 14px !important;
-            font-weight: 500 !important;
-            height: 40px !important;
-            padding: 0 12px !important;
-            transition: background-color 0.2s, box-shadow 0.2s !important;
-            width: 100% !important;
-        }
-        
-        .google-signin-container .nsm7Bb-HzV7m-LgbsSe:hover {
-            background-color: #f8f9fa !important;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.12) !important;
-        }
-        
-        .google-signin-container .nsm7Bb-HzV7m-LgbsSe-BPrWId {
-            font-family: 'Roboto', sans-serif !important;
-            font-size: 14px !important;
-            font-weight: 500 !important;
-            color: #333 !important;
-        }
-        
-        /* Additional selectors for production environment */
-        .google-signin-container div[role="button"] {
-            background-color: white !important;
-            color: #333 !important;
-            border: 1px solid #ddd !important;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
-            margin-top: 1rem !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            gap: 0.5rem !important;
-            border-radius: 4px !important;
-            font-family: 'Roboto', sans-serif !important;
-            font-size: 14px !important;
-            font-weight: 500 !important;
-            height: 40px !important;
-            padding: 0 12px !important;
-            transition: background-color 0.2s, box-shadow 0.2s !important;
-            width: 100% !important;
-        }
-        
-        .google-signin-container div[role="button"]:hover {
-            background-color: #f8f9fa !important;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.12) !important;
-        }
-        
-        .google-signin-container div[role="button"] span {
-            font-family: 'Roboto', sans-serif !important;
-            font-size: 14px !important;
-            font-weight: 500 !important;
-            color: #333 !important;
-        }
-    </style>
+    <title>Create account — CVMatch</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%230E0E0D'/%3E%3Cpath d='M7 8h7M7 12h4M12.5 15.5l2 2 3.5-4' fill='none' stroke='%23F7F7F5' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap">
+    <link rel="stylesheet" href="/css/app.css">
 </head>
 <body>
-    <div class="split-container">
-        <div class="image-section">
-            <div class="image-content">
-                <h2>Join CVMatch Today</h2>
-                <p>Start your journey to your dream job. Our AI-powered platform matches you with opportunities that align with your skills and aspirations.</p>
+    <div class="auth">
+        <aside class="auth-brand">
+            <a href="/" class="brand brand--inverse">
+                <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="6" fill="currentColor"/><path d="M7 8h7M7 12h4M12.5 15.5l2 2 3.5-4" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <span>CVMatch</span>
+            </a>
+            <div class="auth-brand-copy">
+                <p class="auth-brand-title">Know which jobs <em>fit</em> before you apply.</p>
+                <p class="auth-brand-sub">Add your CV once, then rank live listings for any role and city.</p>
             </div>
-        </div>
-        <div class="register-section">
-            <div class="register-container">
-                <div class="register-header">
-                    <h1>Create Account</h1>
-                    <p>Begin your professional journey with CVMatch</p>
-                </div>
-                <div id="google-signin-container" class="google-signin-container"></div>
+            <span class="mono auth-brand-foot">© 2026 CVMatch</span>
+        </aside>
 
-                <div class="divider">
-                    <span>or</span>
+        <main class="auth-main">
+            <a href="/" class="brand auth-mobile-brand">
+                <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="6" fill="currentColor"/><path d="M7 8h7M7 12h4M12.5 15.5l2 2 3.5-4" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <span>CVMatch</span>
+            </a>
+            <div class="auth-form">
+                <div class="auth-head">
+                    <h1 class="auth-title">Create account</h1>
+                    <p class="muted">Your first matches are about a minute away.</p>
                 </div>
-                <form id="register-form">
-                    <div class="form-group">
-                        <label for="email">Email</label>
-                        <input type="email" id="email" placeholder="Enter your email" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="password">Password</label>
-                        <input type="password" id="password" placeholder="Create a password" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="confirm-password">Confirm Password</label>
-                        <input type="password" id="confirm-password" placeholder="Confirm your password" required>
-                    </div>
-                    <button type="submit" class="btn">Create Account</button>
-                    <div id="error-message" class="error-message"></div>
-                    <div id="success-message" class="success-message">Registration successful! Please check your email to verify your account.</div>
-                    <!-- <div class="verification-info">
-                        After registration, you'll receive a verification email. Please check your inbox (and spam folder) to verify your account before logging in.
-                    </div> -->
-                </form>
-                <div class="login-link">
-                    Already have an account? <a href="/login">Sign in here</a>
+
+                <div class="stack">
+                    <div id="google-signin-container" class="google-button"></div>
+                    <div class="or-divider label">or</div>
+                    <form id="register-form" class="stack">
+                        <label class="field">
+                            <span class="field-label">Email</span>
+                            <input class="input" type="email" id="email" autocomplete="email" required>
+                        </label>
+                        <label class="field">
+                            <span class="field-label">Password</span>
+                            <input class="input" type="password" id="password" autocomplete="new-password" required>
+                        </label>
+                        <label class="field">
+                            <span class="field-label">Confirm password</span>
+                            <input class="input" type="password" id="confirm-password" autocomplete="new-password" required>
+                        </label>
+                        <div id="error-message" class="notice notice-error" role="alert" hidden></div>
+                        <div id="success-message" class="notice notice-success" hidden>Account created. Check your inbox for the verification link — taking you to sign in…</div>
+                        <button type="submit" class="btn btn-primary btn-block">Create account</button>
+                    </form>
                 </div>
+
+                <p class="auth-switch">Already have an account? <a class="link" href="/login">Sign in</a></p>
             </div>
-        </div>
+        </main>
     </div>
-    
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
 
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script>
-        // Google Sign-In function
-        function handleGoogleSignIn(response) {
-            const idToken = response.credential;
-            
-            // Call our backend API with the ID token
-            fetch('/api/google', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ idToken })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Set a flag in localStorage to indicate successful login
-                    localStorage.setItem('userLoggedIn', 'true');
-                    localStorage.setItem('userRole', data.role);
-                    localStorage.setItem('userId', data.userId);
-                    localStorage.setItem('token', data.token);
-                    
-                    // Set token in cookie for server authentication
-                    document.cookie = `token=${data.token}; path=/; max-age=86400`;
-                    
-                    // Redirect based on role
-                    if (data.role === 'admin') {
-                        window.location.href = '/admin';
-                    } else {
-                        window.location.href = '/app';
-                    }
-                } else {
-                    document.getElementById('error-message').textContent = data.error || 'Google authentication failed';
-                    document.getElementById('error-message').style.display = 'block';
-                }
-            })
-            .catch(error => {
-                console.error('Google authentication error:', error);
-                document.getElementById('error-message').textContent = 'An error occurred during Google authentication';
-                document.getElementById('error-message').style.display = 'block';
-            });
+        const GOOGLE_CLIENT_ID = '1001210903692-505to271nee2u0502j0ko2ftcdn5l9a0.apps.googleusercontent.com';
+        const $ = id => document.getElementById(id);
+
+        function showError(text) {
+            $('error-message').textContent = text;
+            $('error-message').hidden = false;
         }
 
-        document.getElementById('register-form').addEventListener('submit', async function(event) {
+        // Keeps the session for the signed-in pages, then opens the app
+        function startSession(data) {
+            localStorage.setItem('userLoggedIn', 'true');
+            localStorage.setItem('userId', data.userId);
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('userEmail', data.email || '');
+            document.cookie = `token=${data.token}; path=/; max-age=86400`;
+            window.location.href = '/app';
+        }
+
+        async function handleGoogleSignIn(response) {
+            try {
+                const res = await fetch('/api/google', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idToken: response.credential })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    startSession(data);
+                } else {
+                    showError(data.error || 'Google sign-up failed.');
+                }
+            } catch (error) {
+                console.error('Google authentication error:', error);
+                showError('Google sign-up failed. Please try again.');
+            }
+        }
+
+        $('register-form').addEventListener('submit', async event => {
             event.preventDefault();
-            
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirm-password').value;
-            
-            // Reset messages
-            document.getElementById('error-message').style.display = 'none';
-            document.getElementById('success-message').style.display = 'none';
-            
-            // Validate passwords match
-            if (password !== confirmPassword) {
-                document.getElementById('error-message').textContent = 'Passwords do not match';
-                document.getElementById('error-message').style.display = 'block';
+            $('error-message').hidden = true;
+
+            const email = $('email').value;
+            const password = $('password').value;
+            if (password !== $('confirm-password').value) {
+                showError("The passwords don't match.");
                 return;
             }
-            
+
             try {
-                const response = await fetch('/api/register', {
+                const res = await fetch('/api/register', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, password })
                 });
+                const data = await res.json();
 
-                const data = await response.json();
-                
-                if (response.ok) {
-                    // Show success message
-                    document.getElementById('success-message').style.display = 'block';
-                    
-                    // Redirect to login page after 3 seconds
-                    setTimeout(() => {
-                        window.location.href = '/login';
-                    }, 3000);
+                if (res.ok) {
+                    $('success-message').hidden = false;
+                    setTimeout(() => { window.location.href = '/login'; }, 3000);
                 } else {
-                    // Show error message
-                    document.getElementById('error-message').textContent = data.error || 'Registration failed. Please try again.';
-                    document.getElementById('error-message').style.display = 'block';
+                    showError(data.error === 'User already exists'
+                        ? 'An account with this email already exists.'
+                        : data.error || 'Registration failed. Please try again.');
                 }
             } catch (error) {
                 console.error('Registration error:', error);
-                document.getElementById('error-message').textContent = 'An error occurred. Please try again.';
-                document.getElementById('error-message').style.display = 'block';
+                showError('Something went wrong. Please try again.');
             }
         });
 
-        // Initialize Google Sign-In
-        window.onload = function() {
-            // Use the client ID directly
-            const GOOGLE_CLIENT_ID = '1001210903692-505to271nee2u0502j0ko2ftcdn5l9a0.apps.googleusercontent.com';
-            
-            // Get the current origin for the redirect URI
-            const origin = window.location.origin;
-            
+        window.onload = function () {
+            if (!window.google) return;
+            const container = $('google-signin-container');
             google.accounts.id.initialize({
                 client_id: GOOGLE_CLIENT_ID,
                 callback: handleGoogleSignIn,
@@ -506,21 +144,14 @@
                 cancel_on_tap_outside: true,
                 use_fedcm_for_prompt: true
             });
-            
-            // Render the button in the container
-            google.accounts.id.renderButton(
-                document.getElementById('google-signin-container'),
-                { 
-                    theme: 'outline', 
-                    size: 'large', 
-                    width: '100%',
-                    text: 'signup_with'
-                }
-            );
-            
-            // Also add a one-tap sign-in prompt
+            google.accounts.id.renderButton(container, {
+                theme: 'outline',
+                size: 'large',
+                text: 'signup_with',
+                width: Math.min(380, container.offsetWidth || 380)
+            });
             google.accounts.id.prompt();
         };
     </script>
 </body>
-</html> 
+</html>

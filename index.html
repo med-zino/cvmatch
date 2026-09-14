@@ -3,1001 +3,380 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CVMatch - AI-Powered Job Matching</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>CVMatch — know which jobs fit before you apply</title>
+    <meta name="description" content="CVMatch reads your CV, pulls live listings for the role and city you pick, and ranks every one against your skills.">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%230E0E0D'/%3E%3Cpath d='M7 8h7M7 12h4M12.5 15.5l2 2 3.5-4' fill='none' stroke='%23F7F7F5' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://images.unsplash.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap">
+    <link rel="stylesheet" href="/css/app.css">
+    <!-- Scroll reveals only hide content when this script can run to show it again -->
+    <script>document.documentElement.classList.add('js');</script>
     <script>
       window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
     </script>
     <script defer src="/_vercel/insights/script.js"></script>
-    <style>
-        :root {
-            --primary: #4F46E5;
-            --primary-light: #6366F1;
-            --primary-dark: #4338CA;
-            --secondary: #10B981;
-            --dark: #1F2937;
-            --light: #F9FAFB;
-            --gray: #9CA3AF;
-            --gray-light: #E5E7EB;
-            --success: #10B981;
-            --error: #EF4444;
-            --warning: #F59E0B;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Inter', sans-serif;
-            color: var(--dark);
-            background-color: var(--light);
-            line-height: 1.6;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 2rem;
-        }
-        
-        header {
-            padding: 1.5rem 0;
-            position: sticky;
-            top: 0;
-            background-color: rgba(249, 250, 251, 0.95);
-            backdrop-filter: blur(10px);
-            z-index: 100;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-        
-        .navbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .logo {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--primary);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        
-        .logo i {
-            color: var(--secondary);
-        }
-        
-        .logo span {
-            color: var(--secondary);
-        }
-        
-        .nav-links {
-            display: flex;
-            gap: 2rem;
-        }
-        
-        .nav-links a {
-            text-decoration: none;
-            color: var(--dark);
-            font-weight: 500;
-            transition: all 0.3s;
-            position: relative;
-        }
-        
-        .nav-links a:hover {
-            color: var(--primary);
-        }
-        
-        .nav-links a::after {
-            content: '';
-            position: absolute;
-            width: 0;
-            height: 2px;
-            bottom: -5px;
-            left: 0;
-            background-color: var(--primary);
-            transition: width 0.3s;
-        }
-        
-        .nav-links a:hover::after {
-            width: 100%;
-        }
-        
-        .hero {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 3rem 0;
-            gap: 2rem;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .hero::before {
-            content: '';
-            position: absolute;
-            top: -100px;
-            right: -100px;
-            width: 400px;
-            height: 400px;
-            background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, rgba(99, 102, 241, 0) 70%);
-            border-radius: 50%;
-            z-index: -1;
-        }
-        
-        .hero::after {
-            content: '';
-            position: absolute;
-            bottom: -100px;
-            left: -100px;
-            width: 300px;
-            height: 300px;
-            background: radial-gradient(circle, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0) 70%);
-            border-radius: 50%;
-            z-index: -1;
-        }
-        
-        .hero-content {
-            flex: 1;
-        }
-        
-        .hero-image {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-        }
-        
-        .hero-image img {
-            max-width: 100%;
-            height: auto;
-            border-radius: 10px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            transition: transform 0.5s;
-        }
-        
-        .hero-image img:hover {
-            transform: translateY(-10px);
-        }
-        
-        .hero-image::before {
-            content: '';
-            position: absolute;
-            top: -20px;
-            right: -20px;
-            width: 100px;
-            height: 100px;
-            background-color: var(--primary-light);
-            border-radius: 50%;
-            opacity: 0.2;
-            z-index: -1;
-        }
-        
-        .hero-image::after {
-            content: '';
-            position: absolute;
-            bottom: -20px;
-            left: -20px;
-            width: 80px;
-            height: 80px;
-            background-color: var(--secondary);
-            border-radius: 50%;
-            opacity: 0.2;
-            z-index: -1;
-        }
-        
-        h1 {
-            font-size: 3.5rem;
-            font-weight: 700;
-            margin-bottom: 1.5rem;
-            line-height: 1.2;
-        }
-        
-        h1 span {
-            color: var(--primary);
-            position: relative;
-            display: inline-block;
-        }
-        
-        h1 span::after {
-            content: '';
-            position: absolute;
-            width: 100%;
-            height: 8px;
-            bottom: 5px;
-            left: 0;
-            background-color: rgba(99, 102, 241, 0.2);
-            z-index: -1;
-        }
-        
-        .subtitle {
-            font-size: 1.3rem;
-            color: var(--gray);
-            margin-bottom: 2rem;
-        }
-        
-        .btn {
-            display: inline-block;
-            background-color: var(--primary);
-            color: white;
-            padding: 0.8rem 1.5rem;
-            border-radius: 6px;
-            font-weight: 500;
-            text-decoration: none;
-            transition: all 0.3s;
-            border: none;
-            cursor: pointer;
-            font-family: 'Inter', sans-serif;
-            font-size: 1rem;
-            position: relative;
-            overflow: hidden;
-            z-index: 1;
-        }
-        
-        .btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 0;
-            height: 100%;
-            background-color: var(--primary-dark);
-            transition: width 0.3s;
-            z-index: -1;
-        }
-        
-        .btn:hover::before {
-            width: 100%;
-        }
-        
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        
-        .btn-secondary {
-            background-color: white;
-            color: var(--primary);
-            border: 1px solid var(--gray-light);
-            margin-left: 1rem;
-        }
-        
-        .btn-secondary:hover {
-            background-color: var(--gray-light);
-        }
-        
-        .features {
-            padding: 6rem 0;
-            background-color: white;
-            position: relative;
-        }
-        
-        .features::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%);
-            z-index: 0;
-        }
-        
-        .section-head {
-            text-align: center;
-            margin-bottom: 4rem;
-            position: relative;
-        }
-        
-        h2 {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-            position: relative;
-            display: inline-block;
-        }
-        
-        h2::after {
-            content: '';
-            position: absolute;
-            width: 50%;
-            height: 4px;
-            bottom: -10px;
-            left: 25%;
-            background-color: var(--primary);
-            border-radius: 2px;
-        }
-        
-        .section-subtitle {
-            font-size: 1.2rem;
-            color: var(--gray);
-            max-width: 700px;
-            margin: 0 auto;
-        }
-        
-        .feature-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-            position: relative;
-        }
-        
-        .feature-card {
-            background-color: var(--light);
-            padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            transition: all 0.3s;
-            position: relative;
-            overflow: hidden;
-            z-index: 1;
-        }
-        
-        .feature-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%);
-            opacity: 0;
-            transition: opacity 0.3s;
-            z-index: -1;
-        }
-        
-        .feature-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        }
-        
-        .feature-card:hover::before {
-            opacity: 1;
-        }
-        
-        .feature-icon {
-            display: inline-flex;
-            justify-content: center;
-            align-items: center;
-            width: 50px;
-            height: 50px;
-            background-color: var(--primary-light);
-            color: white;
-            border-radius: 10px;
-            margin-bottom: 1.5rem;
-            font-size: 1.5rem;
-            transition: all 0.3s;
-        }
-        
-        .feature-card:hover .feature-icon {
-            transform: scale(1.1);
-        }
-        
-        h3 {
-            font-size: 1.5rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-        }
-        
-        .how-it-works {
-            padding: 6rem 0;
-            position: relative;
-        }
-        
-        .steps {
-            display: flex;
-            justify-content: space-between;
-            gap: 2rem;
-            margin: 3rem 0;
-            position: relative;
-        }
-        
-        .step {
-            flex: 1;
-            text-align: center;
-            position: relative;
-            padding: 2rem;
-            background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            transition: all 0.3s;
-        }
-        
-        .step:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        }
-        
-        .step-number {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 40px;
-            height: 40px;
-            background-color: var(--primary);
-            color: white;
-            border-radius: 50%;
-            margin: 0 auto 1.5rem;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-        
-        .step:hover .step-number {
-            transform: scale(1.2);
-            background-color: var(--secondary);
-        }
-        
-        .step:not(:last-child)::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            right: -25%;
-            width: 50%;
-            height: 2px;
-            background-color: var(--gray-light);
-            z-index: -1;
-        }
-        
-        .early-access {
-            padding: 6rem 0;
-            background-color: var(--primary);
-            color: white;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .early-access::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="none"/><circle cx="50" cy="50" r="1" fill="rgba(255,255,255,0.1)"/></svg>');
-            opacity: 0.5;
-            z-index: 0;
-        }
-        
-        .early-access h2 {
-            color: white;
-            position: relative;
-        }
-        
-        .early-access h2::after {
-            background-color: white;
-        }
-        
-        .early-access .section-subtitle {
-            color: rgba(255, 255, 255, 0.8);
-        }
-        
-        .form-container {
-            max-width: 600px;
-            margin: 3rem auto 0;
-            position: relative;
-            z-index: 1;
-        }
-        
-        .form-group {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-        
-        input {
-            flex: 1;
-            padding: 0.8rem 1rem;
-            border: none;
-            border-radius: 6px;
-            font-family: 'Inter', sans-serif;
-            font-size: 1rem;
-            transition: all 0.3s;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        
-        input:focus {
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
-        }
-        
-        .btn-form {
-            background-color: var(--secondary);
-        }
-        
-        .btn-form:hover {
-            background-color: #0EA271;
-        }
-        
-        footer {
-            padding: 3rem 0;
-            background-color: var(--dark);
-            color: white;
-        }
-        
-        .footer-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 2rem;
-        }
-        
-        .social-links {
-            display: flex;
-            gap: 1rem;
-        }
-        
-        .social-links a {
-            display: inline-flex;
-            justify-content: center;
-            align-items: center;
-            width: 40px;
-            height: 40px;
-            background-color: rgba(255, 255, 255, 0.1);
-            color: white;
-            border-radius: 50%;
-            text-decoration: none;
-            transition: all 0.3s;
-        }
-        
-        .social-links a:hover {
-            background-color: var(--primary);
-            transform: translateY(-3px);
-        }
-
-        /* Message styling */
-        .message {
-            display: none;
-            padding: 1rem;
-            border-radius: 6px;
-            margin-top: 1rem;
-            text-align: center;
-            font-weight: 500;
-            animation: fadeIn 0.5s ease-in-out;
-        }
-        
-        .success-message {
-            background-color: var(--success);
-            color: white;
-        }
-        
-        .error-message {
-            background-color: var(--error);
-            color: white;
-        }
-        
-        .warning-message {
-            background-color: var(--warning);
-            color: white;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        @keyframes fadeOut {
-            from { opacity: 1; transform: translateY(0); }
-            to { opacity: 0; transform: translateY(10px); }
-        }
-        
-        /* Loading spinner */
-        .spinner {
-            display: none;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: white;
-            animation: spin 1s ease-in-out infinite;
-            margin-left: 10px;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        /* Responsive styles */
-        @media (max-width: 768px) {
-            .hero {
-                flex-direction: column;
-                text-align: center;
-                padding: 4rem 0;
-            }
-            
-            h1 {
-                font-size: 2.5rem;
-            }
-            
-            .steps {
-                flex-direction: column;
-            }
-            
-            .step:not(:last-child)::after {
-                display: none;
-            }
-            
-            .form-group {
-                flex-direction: column;
-            }
-            
-            .btn-secondary {
-                margin-left: 0;
-                margin-top: 1rem;
-            }
-        }
-        
-        /* Try Our App Section Styles */
-        .try-app {
-            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-            color: white;
-            padding: 4rem 0;
-            text-align: center;
-            width: 100%;
-        }
-        
-        .try-app .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 2rem;
-        }
-        
-        .try-app .section-head {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-        
-        .try-app .section-head h2 {
-            color: white;
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-            font-weight: 700;
-            text-align: center;
-        }
-        
-        .try-app .section-subtitle {
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 1.2rem;
-            margin-bottom: 3rem;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-            line-height: 1.6;
-            text-align: center;
-        }
-        
-        .app-cta-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 1.5rem;
-            text-align: center;
-            width: 100%;
-        }
-        
-        .btn-large {
-            font-size: 1.3rem;
-            padding: 1rem 2.5rem;
-            border-radius: 50px;
-            background: white;
-            color: var(--primary);
-            text-decoration: none;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.75rem;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        }
-        
-        .btn-large:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-            color: var(--primary);
-            text-decoration: none;
-        }
-        
-        .btn-large i {
-            transition: transform 0.3s ease;
-        }
-        
-        .btn-large:hover i {
-            transform: translateX(5px);
-        }
-        
-        .cta-description {
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 1rem;
-            margin: 0;
-            font-style: italic;
-        }
-        
-        @media (max-width: 768px) {
-            .try-app {
-                padding: 3rem 0;
-            }
-            
-            .try-app .section-head h2 {
-                font-size: 2rem;
-            }
-            
-            .try-app .section-subtitle {
-                font-size: 1.1rem;
-                margin-bottom: 2rem;
-            }
-            
-            .btn-large {
-                font-size: 1.1rem;
-                padding: 0.875rem 2rem;
-            }
-        }
-    </style>
 </head>
 <body>
-    <header>
-        <div class="container">
-            <nav class="navbar">
-                <div class="logo">
-                    <i class="fas fa-briefcase"></i>
-                    CV<span>Match</span>
-                </div>
-                <div class="nav-links">
-                    <a href="#features">Features</a>
-                    <a href="#how-it-works">How It Works</a>
-                    <a href="#early-access">Early Access</a>
-                </div>
-            </nav>
-        </div>
+    <header class="site-nav">
+        <a href="/" class="brand">
+            <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="6" fill="currentColor"/><path d="M7 8h7M7 12h4M12.5 15.5l2 2 3.5-4" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>CVMatch</span>
+        </a>
+        <nav class="site-nav-links">
+            <a href="#how-it-works" class="hide-sm">How it works</a>
+            <a href="/login">Sign in</a>
+            <a href="/register" class="btn btn-primary">Get started</a>
+        </nav>
     </header>
-    
-    <section class="hero">
-        <div class="container">
-            <div class="hero">
-                <div class="hero-content">
-                    <h1>Find Your <span>Perfect Job Match</span> with AI</h1>
-                    <p class="subtitle">Our AI-powered platform analyzes your CV and matches you with the most relevant job opportunities, saving you time and maximizing your chances of landing the perfect role.</p>
-                    <a href="/app" class="btn">Get Early Access</a>
-                    <a href="#how-it-works" class="btn btn-secondary">Learn More</a>
-                </div>
-                <div class="hero-image">
-                    <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" alt="Job matching illustration">
-                </div>
-            </div>
-        </div>
-    </section>
-    
-    <section class="features" id="features">
-        <div class="container">
-            <div class="section-head">
-                <h2>Intelligent Job Matching</h2>
-                <p class="section-subtitle">Our platform uses advanced AI to match your skills, experience, and preferences with job opportunities that are truly right for you.</p>
-            </div>
-            
-            <div class="feature-grid">
-                <div class="feature-card">
-                    <div class="feature-icon"><i class="fas fa-search"></i></div>
-                    <h3>Smart CV Analysis</h3>
-                    <p>Our AI analyzes your CV to identify key skills, experiences, and qualifications that make you stand out.</p>
-                </div>
-                
-                <div class="feature-card">
-                    <div class="feature-icon"><i class="fas fa-bullseye"></i></div>
-                    <h3>Personalized Matching</h3>
-                    <p>Get matched with jobs that align with your career goals, skills, and experience level.</p>
-                </div>
-                
-                <div class="feature-card">
-                    <div class="feature-icon"><i class="fas fa-chart-bar"></i></div>
-                    <h3>Match Score</h3>
-                    <p>Each job comes with a match score and detailed explanation of why it's a good fit for you.</p>
-                </div>
-                
-                <div class="feature-card">
-                    <div class="feature-icon"><i class="fas fa-lightbulb"></i></div>
-                    <h3>Skill Recommendations</h3>
-                    <p>Discover which skills to develop to improve your chances for your dream roles.</p>
-                </div>
-                
-                <div class="feature-card">
-                    <div class="feature-icon"><i class="fas fa-sync-alt"></i></div>
-                    <h3>Real-time Updates</h3>
-                    <p>Get notified when new jobs matching your profile become available.</p>
-                </div>
-                
-                <div class="feature-card">
-                    <div class="feature-icon"><i class="fas fa-globe"></i></div>
-                    <h3>Global Job Search</h3>
-                    <p>Find opportunities across multiple job boards and locations in one place.</p>
+
+    <main>
+        <section class="container hero">
+            <div class="hero-copy">
+                <h1 class="hero-title" aria-label="Know which jobs fit before you apply.">
+                    <span class="w" aria-hidden="true"><span style="--i: 0">Know</span></span>
+                    <span class="w" aria-hidden="true"><span style="--i: 1">which</span></span>
+                    <span class="w" aria-hidden="true"><span style="--i: 2">jobs</span></span>
+                    <span class="w" aria-hidden="true"><em style="--i: 3">fit</em></span>
+                    <span class="w" aria-hidden="true"><span style="--i: 4">before</span></span>
+                    <span class="w" aria-hidden="true"><span style="--i: 5">you</span></span>
+                    <span class="w" aria-hidden="true"><span style="--i: 6">apply.</span></span>
+                </h1>
+                <p class="hero-sub">CVMatch pulls live listings from job boards and company career pages into one list, then ranks every job against your CV — with the gaps spelled out.</p>
+                <div class="hero-actions">
+                    <a href="/app" class="btn btn-primary btn-lg">
+                        <span>Match my CV</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                    </a>
+                    <a href="/login" class="link">I have an account</a>
                 </div>
             </div>
-        </div>
-    </section>
-    
-    <section class="how-it-works" id="how-it-works">
-        <div class="container">
-            <div class="section-head">
-                <h2>How It Works</h2>
-                <p class="section-subtitle">Getting matched with your ideal job is simple and straightforward with our AI-powered platform.</p>
-            </div>
-            
-            <div class="steps">
-                <div class="step">
-                    <div class="step-number">1</div>
-                    <h3>Upload Your CV</h3>
-                    <p>Upload your resume or CV in any common format (PDF, Word, TXT).</p>
+
+            <!-- Example match that rotates across professions (sample data; photos from Unsplash) -->
+            <div class="hero-visual" style="--cycle: 5s">
+                <figure class="hero-photo" aria-hidden="true">
+                    <img class="is-active" src="https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=1100&q=75&auto=format&fit=crop" alt="" fetchpriority="high">
+                    <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=1100&q=75&auto=format&fit=crop" alt="" decoding="async">
+                    <img src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=1100&q=75&auto=format&fit=crop" alt="" decoding="async">
+                    <img src="https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=1100&q=75&auto=format&fit=crop" alt="" decoding="async">
+                </figure>
+                <div class="float-card float-cv" aria-hidden="true">
+                    <span class="file-badge mono">PDF</span>
+                    <span class="float-card-text" data-swap><strong data-field="cv">alex-martin-cv.pdf</strong><span class="mono muted" data-field="skillsFound">18 skills found</span></span>
+                    <span class="check-dot"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg></span>
                 </div>
-                
-                <div class="step">
-                    <div class="step-number">2</div>
-                    <h3>AI Analysis</h3>
-                    <p>Our AI analyzes your professional background, skills, and experience.</p>
-                </div>
-                
-                <div class="step">
-                    <div class="step-number">3</div>
-                    <h3>Get Matches</h3>
-                    <p>Review your personalized job matches with detailed match scores.</p>
-                </div>
-                
-                <div class="step">
-                    <div class="step-number">4</div>
-                    <h3>Apply with Confidence</h3>
-                    <p>Apply to jobs knowing you're a strong candidate for the position.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-    
-    <section class="try-app" id="try-app">
-        <div class="container">
-            <div class="section-head">
-                <h2>Ready to Find Your Perfect Job Match?</h2>
-                <p class="section-subtitle">Our AI-powered job matching platform is now live! Start finding jobs that perfectly match your skills and experience.</p>
-            </div>
-            
-            <div class="app-cta-container">
-                <a href="/app" class="btn btn-primary btn-large">
-                    Try Our App
-                    <i class="fas fa-arrow-right"></i>
-                </a>
-                <p class="cta-description">Upload your CV and discover personalized job matches in seconds</p>
-            </div>
-        </div>
-    </section>
-    
-    <footer>
-        <div class="container">
-            <div class="footer-content">
-                <div>
-                    <div class="logo">
-                        <i class="fas fa-briefcase"></i>
-                        CV<span>Match</span>
+                <div class="preview-card" aria-hidden="true">
+                    <div class="preview-top" data-swap>
+                        <div class="row-main">
+                            <span class="preview-title" data-field="title">Full-Stack Developer</span>
+                            <span class="row-sub" data-field="place">Northwind Labs · Paris</span>
+                        </div>
+                        <div class="score score--strong">
+                            <span class="score-value"><span data-count="92" data-field="score">92</span><small>%</small></span>
+                            <span class="score-bar"><span data-field="bar" style="width: 92%"></span></span>
+                        </div>
                     </div>
-                    <p>© 2025 CVMatch. All rights reserved.</p>
+                    <div class="match-group" data-swap>
+                        <span class="label">You have</span>
+                        <div class="chips" data-field="have">
+                            <span class="chip" style="--i: 0">React</span><span class="chip" style="--i: 1">TypeScript</span><span class="chip" style="--i: 2">Node.js</span><span class="chip" style="--i: 3">PostgreSQL</span>
+                        </div>
+                    </div>
+                    <div class="match-group" data-swap>
+                        <span class="label">Gaps</span>
+                        <div class="chips" data-field="gaps"><span class="chip chip-gap" style="--i: 4">GraphQL</span></div>
+                    </div>
+                    <span class="preview-source" data-swap data-field="source">via Welcome to the Jungle</span>
                 </div>
-                
-                <div class="social-links">
-                    <a href="#" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
-                    <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
-                    <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
-                    <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                <div class="float-card float-status" aria-hidden="true">
+                    <span class="float-card-text" data-swap><strong data-field="company">Northwind Labs</strong><span class="muted">Moved to</span></span>
+                    <span class="status-pill" data-status="interview" data-field="status">Interview</span>
+                </div>
+                <div class="hero-examples">
+                    <span class="hero-example-label" data-field="label" aria-live="polite">Full-stack developer · Paris</span>
+                    <div class="hero-dots" role="group" aria-label="Example matches"></div>
                 </div>
             </div>
-        </div>
+        </section>
+
+        <!-- Site names are sources JSearch returned in real test searches; the listings shown are sample data -->
+        <section class="sources" aria-labelledby="sources-title">
+            <div class="container">
+                <div class="sources-head" data-reveal>
+                    <div class="sources-copy">
+                        <div class="section-head">
+                            <span class="label">Every job board, one list</span>
+                            <h2 class="section-title" id="sources-title">Stop checking ten tabs.</h2>
+                        </div>
+                        <p class="section-text">Each search pulls live listings from the big job boards, niche boards and company career pages at once, then ranks them together against your CV. Every result links back to the original posting.</p>
+                    </div>
+                    <div class="sources-stats">
+                        <div class="stat"><span class="stat-num" data-count="8">8</span><span class="stat-text">different sites in one search for nurses in London</span></div>
+                        <div class="stat"><span class="stat-num" data-count="5">5</span><span class="stat-text">different sites in one search for marketing managers in Paris</span></div>
+                    </div>
+                </div>
+
+                <div class="sources-diagram" data-reveal style="--i: 1">
+                    <ul class="source-list" aria-label="Some of the sites we search">
+                        <li class="source-pill" style="--i: 0"><span class="source-mark" aria-hidden="true">L</span>LinkedIn</li>
+                        <li class="source-pill" style="--i: 1"><span class="source-mark" aria-hidden="true">I</span>Indeed</li>
+                        <li class="source-pill" style="--i: 2"><span class="source-mark" aria-hidden="true">W</span>Welcome to the Jungle</li>
+                        <li class="source-pill" style="--i: 3"><span class="source-mark" aria-hidden="true">S</span>SimplyHired</li>
+                        <li class="source-pill" style="--i: 4"><span class="source-mark" aria-hidden="true">J</span>Jooble</li>
+                        <li class="source-pill" style="--i: 5"><span class="source-mark" aria-hidden="true">B</span>Built In</li>
+                        <li class="source-pill" style="--i: 6"><span class="source-mark" aria-hidden="true">N</span>Nurses.co.uk</li>
+                        <li class="source-pill source-pill--muted" style="--i: 7">+ company career pages</li>
+                    </ul>
+                    <svg class="source-lines" viewBox="0 0 200 436" preserveAspectRatio="none" aria-hidden="true">
+                        <path class="source-line" pathLength="1" style="--i: 0" d="M0 22 C100 22 100 218 200 218"/>
+                        <path class="source-line" pathLength="1" style="--i: 1" d="M0 78 C100 78 100 218 200 218"/>
+                        <path class="source-line" pathLength="1" style="--i: 2" d="M0 134 C100 134 100 218 200 218"/>
+                        <path class="source-line" pathLength="1" style="--i: 3" d="M0 190 C100 190 100 218 200 218"/>
+                        <path class="source-line" pathLength="1" style="--i: 4" d="M0 246 C100 246 100 218 200 218"/>
+                        <path class="source-line" pathLength="1" style="--i: 5" d="M0 302 C100 302 100 218 200 218"/>
+                        <path class="source-line" pathLength="1" style="--i: 6" d="M0 358 C100 358 100 218 200 218"/>
+                        <path class="source-line" pathLength="1" style="--i: 7" d="M0 414 C100 414 100 218 200 218"/>
+                        <path class="source-flow" style="--i: 0" d="M0 22 C100 22 100 218 200 218"/>
+                        <path class="source-flow" style="--i: 1" d="M0 78 C100 78 100 218 200 218"/>
+                        <path class="source-flow" style="--i: 2" d="M0 134 C100 134 100 218 200 218"/>
+                        <path class="source-flow" style="--i: 3" d="M0 190 C100 190 100 218 200 218"/>
+                        <path class="source-flow" style="--i: 4" d="M0 246 C100 246 100 218 200 218"/>
+                        <path class="source-flow" style="--i: 5" d="M0 302 C100 302 100 218 200 218"/>
+                        <path class="source-flow" style="--i: 6" d="M0 358 C100 358 100 218 200 218"/>
+                        <path class="source-flow" style="--i: 7" d="M0 414 C100 414 100 218 200 218"/>
+                    </svg>
+                    <div class="source-hub" aria-hidden="true">
+                        <svg class="brand-mark" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="currentColor"/><path d="M7 8h7M7 12h4M12.5 15.5l2 2 3.5-4" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </div>
+                    <div class="card merged-list" aria-hidden="true">
+                        <div class="merged-head">
+                            <span class="merged-query">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                                Registered nurse · London
+                            </span>
+                            <span class="merged-count">One ranked list</span>
+                        </div>
+                        <div class="merged-row" style="--i: 0"><div class="row-main"><span class="row-title">Staff Nurse, Acute Medicine</span><span class="merged-source">Riverside Clinic · via Indeed</span></div><span class="merged-score">91%</span></div>
+                        <div class="merged-row" style="--i: 1"><div class="row-main"><span class="row-title">Registered Nurse, Days</span><span class="merged-source">Northgate Care · via Nurses.co.uk</span></div><span class="merged-score">87%</span></div>
+                        <div class="merged-row" style="--i: 2"><div class="row-main"><span class="row-title">Community Nurse</span><span class="merged-source">Eastwood Health · via LinkedIn</span></div><span class="merged-score">82%</span></div>
+                        <div class="merged-row" style="--i: 3"><div class="row-main"><span class="row-title">Practice Nurse</span><span class="merged-source">Hillside Surgery · via SimplyHired</span></div><span class="merged-score">74%</span></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section section-rule" id="how-it-works">
+            <div class="container">
+                <div class="section-head" data-reveal>
+                    <span class="label">How it works</span>
+                    <h2 class="section-title">Three steps, about a minute.</h2>
+                </div>
+                <ol class="steps">
+                    <li class="step" data-reveal style="--i: 0">
+                        <div class="step-visual" aria-hidden="true">
+                            <div class="mini-doc">
+                                <span class="file-badge mono">PDF</span>
+                                <div class="mini-lines">
+                                    <span style="--w: 70%; --j: 0"></span>
+                                    <span style="--w: 100%; --j: 1"></span>
+                                    <span style="--w: 86%; --j: 2"></span>
+                                    <span style="--w: 92%; --j: 3"></span>
+                                    <span style="--w: 48%; --j: 4"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="step-body">
+                            <span class="step-num">01</span>
+                            <h3 class="step-title">Add your CV</h3>
+                            <p class="step-text">Upload a PDF or paste the text. No reformatting, no profile to fill in.</p>
+                        </div>
+                    </li>
+                    <li class="step" data-reveal style="--i: 1">
+                        <div class="step-visual" aria-hidden="true">
+                            <div class="mini-search" data-search-demo>
+                                <div class="mini-field mini-field--active"><span class="label">Role</span><span><span data-search-role>Full-stack developer</span><i class="caret"></i></span></div>
+                                <div class="mini-field"><span class="label">City</span><span data-search-city>Paris</span></div>
+                            </div>
+                        </div>
+                        <div class="step-body">
+                            <span class="step-num">02</span>
+                            <h3 class="step-title">Pick a role and a city</h3>
+                            <p class="step-text">Any role, any city. We search the job boards for you, filtered by date, remote work and contract type.</p>
+                        </div>
+                    </li>
+                    <li class="step" data-reveal style="--i: 2">
+                        <div class="step-visual" aria-hidden="true">
+                            <div class="mini-ranks">
+                                <div class="mini-rank"><span class="mono" data-count="92">92</span><span class="mini-bar"><span class="grow-bar" style="width: 92%"></span></span></div>
+                                <div class="mini-rank"><span class="mono" data-count="78">78</span><span class="mini-bar mini-bar--good"><span class="grow-bar" style="width: 78%"></span></span></div>
+                                <div class="mini-rank"><span class="mono" data-count="54">54</span><span class="mini-bar mini-bar--partial"><span class="grow-bar" style="width: 54%"></span></span></div>
+                            </div>
+                        </div>
+                        <div class="step-body">
+                            <span class="step-num">03</span>
+                            <h3 class="step-title">Get a ranked shortlist</h3>
+                            <p class="step-text">Every job comes back scored, best fit first, with the reasons attached.</p>
+                        </div>
+                    </li>
+                </ol>
+            </div>
+        </section>
+
+        <section class="examples" aria-labelledby="examples-title">
+            <div class="container examples-head" data-reveal>
+                <div class="section-head">
+                    <span class="label">Example matches</span>
+                    <h2 class="section-title" id="examples-title">Not just for developers.</h2>
+                </div>
+                <p class="examples-sub">Nurses, chefs, teachers, analysts — CVMatch reads any CV and scores it against the live listings for the role you want.</p>
+            </div>
+            <div class="marquee" data-reveal style="--i: 1">
+                <div class="marquee-track">
+                    <article class="example-card">
+                        <div class="example-photo"><img src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=640&q=70&auto=format&fit=crop" alt="" loading="lazy"><span class="example-score example-score--strong">91%</span><span class="example-via">via Nurses.co.uk</span></div>
+                        <div class="example-body">
+                            <div class="row-main"><h3 class="example-title">Registered Nurse</h3><span class="example-meta">Riverside Clinic · London</span></div>
+                            <div class="chips"><span class="chip chip-sm">Patient care</span><span class="chip chip-sm">Triage</span><span class="chip chip-sm">Medication</span><span class="chip chip-sm chip-gap">ICU experience</span></div>
+                        </div>
+                    </article>
+                    <article class="example-card">
+                        <div class="example-photo"><img src="https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=640&q=70&auto=format&fit=crop" alt="" loading="lazy"><span class="example-score example-score--strong">86%</span><span class="example-via">via Indeed</span></div>
+                        <div class="example-body">
+                            <div class="row-main"><h3 class="example-title">Sous Chef</h3><span class="example-meta">Brasserie Lumière · Lyon</span></div>
+                            <div class="chips"><span class="chip chip-sm">Menu planning</span><span class="chip chip-sm">HACCP</span><span class="chip chip-sm">Team leadership</span><span class="chip chip-sm chip-gap">Pastry</span></div>
+                        </div>
+                    </article>
+                    <article class="example-card">
+                        <div class="example-photo"><img src="https://images.unsplash.com/photo-1609921212029-bb5a28e60960?w=640&q=70&auto=format&fit=crop" alt="" loading="lazy"><span class="example-score example-score--strong">84%</span><span class="example-via">via LinkedIn</span></div>
+                        <div class="example-body">
+                            <div class="row-main"><h3 class="example-title">UX Designer</h3><span class="example-meta">Atelier Nine · Berlin</span></div>
+                            <div class="chips"><span class="chip chip-sm">Figma</span><span class="chip chip-sm">User research</span><span class="chip chip-sm">Prototyping</span><span class="chip chip-sm chip-gap">German (B2)</span></div>
+                        </div>
+                    </article>
+                    <article class="example-card">
+                        <div class="example-photo"><img src="https://images.unsplash.com/photo-1577896851231-70ef18881754?w=640&q=70&auto=format&fit=crop" alt="" loading="lazy"><span class="example-score example-score--strong">82%</span><span class="example-via">via Indeed</span></div>
+                        <div class="example-body">
+                            <div class="row-main"><h3 class="example-title">Primary Teacher</h3><span class="example-meta">Oakfield School · Manchester</span></div>
+                            <div class="chips"><span class="chip chip-sm">Lesson planning</span><span class="chip chip-sm">Classroom management</span><span class="chip chip-sm">Safeguarding</span><span class="chip chip-sm chip-gap">SEN support</span></div>
+                        </div>
+                    </article>
+                    <article class="example-card">
+                        <div class="example-photo"><img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=640&q=70&auto=format&fit=crop" alt="" loading="lazy"><span class="example-score">79%</span><span class="example-via">via Built In</span></div>
+                        <div class="example-body">
+                            <div class="row-main"><h3 class="example-title">Data Analyst</h3><span class="example-meta">Quanta Pay · Amsterdam</span></div>
+                            <div class="chips"><span class="chip chip-sm">SQL</span><span class="chip chip-sm">Python</span><span class="chip chip-sm">Tableau</span><span class="chip chip-sm chip-gap">dbt</span></div>
+                        </div>
+                    </article>
+                    <article class="example-card">
+                        <div class="example-photo"><img src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=640&q=70&auto=format&fit=crop" alt="" loading="lazy"><span class="example-score example-score--strong">88%</span><span class="example-via">via Welcome to the Jungle</span></div>
+                        <div class="example-body">
+                            <div class="row-main"><h3 class="example-title">Marketing Manager</h3><span class="example-meta">Maison Verte · Paris</span></div>
+                            <div class="chips"><span class="chip chip-sm">SEO</span><span class="chip chip-sm">Content strategy</span><span class="chip chip-sm">Google Analytics</span><span class="chip chip-sm chip-gap">Salesforce</span></div>
+                        </div>
+                    </article>
+                    <article class="example-card">
+                        <div class="example-photo"><img src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=640&q=70&auto=format&fit=crop" alt="" loading="lazy"><span class="example-score">76%</span><span class="example-via">via LinkedIn</span></div>
+                        <div class="example-body">
+                            <div class="row-main"><h3 class="example-title">Financial Analyst</h3><span class="example-meta">Norte Capital · Madrid</span></div>
+                            <div class="chips"><span class="chip chip-sm">Excel modelling</span><span class="chip chip-sm">Forecasting</span><span class="chip chip-sm">IFRS</span><span class="chip chip-sm chip-gap">Spanish (C1)</span></div>
+                        </div>
+                    </article>
+                    <article class="example-card">
+                        <div class="example-photo"><img src="https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=640&q=70&auto=format&fit=crop" alt="" loading="lazy"><span class="example-score example-score--strong">81%</span><span class="example-via">via Jooble</span></div>
+                        <div class="example-body">
+                            <div class="row-main"><h3 class="example-title">Architect</h3><span class="example-meta">Studio Kilo · Lisbon</span></div>
+                            <div class="chips"><span class="chip chip-sm">Revit</span><span class="chip chip-sm">AutoCAD</span><span class="chip chip-sm">Planning permits</span><span class="chip chip-sm chip-gap">Portuguese (B2)</span></div>
+                        </div>
+                    </article>
+                    <article class="example-card">
+                        <div class="example-photo"><img src="https://images.unsplash.com/photo-1551434678-e076c223a692?w=640&q=70&auto=format&fit=crop" alt="" loading="lazy"><span class="example-score example-score--strong">92%</span><span class="example-via">via Welcome to the Jungle</span></div>
+                        <div class="example-body">
+                            <div class="row-main"><h3 class="example-title">Full-Stack Developer</h3><span class="example-meta">Northwind Labs · Paris</span></div>
+                            <div class="chips"><span class="chip chip-sm">React</span><span class="chip chip-sm">Node.js</span><span class="chip chip-sm">PostgreSQL</span><span class="chip chip-sm chip-gap">GraphQL</span></div>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="section section-white">
+            <div class="container split">
+                <div class="split-copy" data-reveal>
+                    <div class="section-head">
+                        <span class="label">Every match explains itself</span>
+                        <h2 class="section-title">A score is only useful with its reasons.</h2>
+                    </div>
+                    <dl class="explain-list">
+                        <div class="explain-row" data-part-row="score"><dt class="label">Match score</dt><dd>How closely the role fits your whole profile, from 0 to 100.</dd></div>
+                        <div class="explain-row" data-part-row="have"><dt class="label">You have</dt><dd>Skills the listing asks for that your CV already shows.</dd></div>
+                        <div class="explain-row" data-part-row="gaps"><dt class="label">Gaps</dt><dd>What they want that your CV doesn't mention yet — worth addressing in your cover letter.</dd></div>
+                        <div class="explain-row" data-part-row="why"><dt class="label">Why it fits</dt><dd>The reasoning in plain sentences, so you can decide in seconds.</dd></div>
+                    </dl>
+                </div>
+                <div class="demo-stack" data-reveal style="--i: 1">
+                    <div class="role-switch" role="group" aria-label="Example role">
+                        <button type="button" data-role="nurse" aria-pressed="true">Registered nurse</button>
+                        <button type="button" data-role="marketing" aria-pressed="false">Marketing manager</button>
+                        <button type="button" data-role="frontend" aria-pressed="false">Frontend engineer</button>
+                    </div>
+                    <div class="demo-block demo-block--row" data-part="score">
+                        <div class="row-main"><span class="row-title" data-demo="title">Registered Nurse</span><span class="row-sub" data-demo="place">Riverside Clinic · London</span></div>
+                        <span class="mono" style="font-size: 24px; font-weight: 500;"><span data-count="91" data-demo="score">91</span>%</span>
+                    </div>
+                    <div class="demo-block" data-part="have">
+                        <span class="label">You have</span>
+                        <div class="chips" data-demo="have"><span class="chip">Patient care</span><span class="chip">Triage</span><span class="chip">Medication administration</span><span class="chip">NMC registration</span></div>
+                    </div>
+                    <div class="demo-block" data-part="gaps">
+                        <span class="label">Gaps</span>
+                        <div class="chips" data-demo="gaps"><span class="chip chip-gap">ICU experience</span></div>
+                    </div>
+                    <div class="demo-block" data-part="why">
+                        <span class="label">Why it fits</span>
+                        <p class="demo-text" data-demo="why">Eight years on acute wards covers their daily caseload. ICU rotations are listed as a plus you don't have yet.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="container split">
+                <div class="card tracker-demo" data-reveal aria-hidden="true">
+                    <div class="tracker-row"><div class="row-main"><span class="row-title">Registered Nurse</span><span class="row-sub">Riverside Clinic</span></div><span class="status-pill" data-status="interview">Interview</span></div>
+                    <div class="tracker-row"><div class="row-main"><span class="row-title">Marketing Manager</span><span class="row-sub">Maison Verte</span></div><span class="status-pill" data-status="applied">Applied</span></div>
+                    <div class="tracker-row"><div class="row-main"><span class="row-title">UX Designer</span><span class="row-sub">Atelier Nine</span></div><span class="status-pill" data-status="saved" data-status-demo>Saved</span></div>
+                    <div class="tracker-row"><div class="row-main"><span class="row-title">Data Analyst</span><span class="row-sub">Quanta Pay</span></div><span class="status-pill" data-status="saved">Saved</span></div>
+                </div>
+                <div class="split-copy" data-reveal style="--i: 1">
+                    <div class="section-head">
+                        <span class="label">Track what you apply to</span>
+                        <h2 class="section-title">Keep the shortlist moving.</h2>
+                    </div>
+                    <p class="section-text">Save the jobs worth a shot, then move each one from Saved to Applied, Interview and Offer. Your notes stay with the job.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="cta-band">
+            <div class="container cta-inner">
+                <h2 class="cta-title" data-reveal>Your next application, <em>better aimed</em>.</h2>
+                <a href="/app" class="btn btn-inverse btn-lg" data-reveal style="--i: 1">
+                    <span>Match my CV</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <footer class="container site-footer">
+        <div class="site-footer-brand"><strong>CVMatch</strong><span class="mono">© 2026</span></div>
+        <nav>
+            <a href="/login">Sign in</a>
+            <a href="/register">Create account</a>
+        </nav>
     </footer>
 
-    <script>
-        document.getElementById('early-access-form').addEventListener('submit', function(event) {
-            event.preventDefault();
-            
-            const email = document.getElementById('email').value;
-            const submitButton = event.target.querySelector('button[type="submit"]');
-            const spinner = document.getElementById('submit-spinner');
-            const successMessage = document.getElementById('success-message');
-            const errorMessage = document.getElementById('error-message');
-            const warningMessage = document.getElementById('warning-message');
-            
-            // Hide all messages
-            successMessage.style.display = 'none';
-            errorMessage.style.display = 'none';
-            warningMessage.style.display = 'none';
-            
-            // Show loading spinner
-            spinner.style.display = 'inline-block';
-            submitButton.disabled = true;
-            
-            // Send the email to our API endpoint with a relative URL
-            fetch('/api/save-email', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ email: email })
-            })
-            .then(response => {
-                console.log('Response status:', response.status);
-                return response.json();
-            })
-            .then(data => {
-                console.log('Response data:', data);
-                
-                // Hide loading spinner
-                spinner.style.display = 'none';
-                submitButton.disabled = false;
-                
-                // Show appropriate message based on response
-                if (data.alreadyExists) {
-                    warningMessage.style.display = 'block';
-                } else {
-                    successMessage.style.display = 'block';
-                }
-                
-                // Clear the form
-                document.getElementById('email').value = '';
-                
-                // Hide messages after 5 seconds
-                setTimeout(function() {
-                    successMessage.style.animation = 'fadeOut 0.5s ease-in-out forwards';
-                    errorMessage.style.animation = 'fadeOut 0.5s ease-in-out forwards';
-                    warningMessage.style.animation = 'fadeOut 0.5s ease-in-out forwards';
-                    
-                    setTimeout(function() {
-                        successMessage.style.display = 'none';
-                        errorMessage.style.display = 'none';
-                        warningMessage.style.display = 'none';
-                        successMessage.style.animation = '';
-                        errorMessage.style.animation = '';
-                        warningMessage.style.animation = '';
-                    }, 500);
-                }, 5000);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                
-                // Hide loading spinner
-                spinner.style.display = 'none';
-                submitButton.disabled = false;
-                
-                // Show error message
-                errorMessage.style.display = 'block';
-                
-                // Hide error message after 5 seconds
-                setTimeout(function() {
-                    errorMessage.style.animation = 'fadeOut 0.5s ease-in-out forwards';
-                    
-                    setTimeout(function() {
-                        errorMessage.style.display = 'none';
-                        errorMessage.style.animation = '';
-                    }, 500);
-                }, 5000);
-            });
-        });
-        
-        // Smooth scrolling for anchor links
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                
-                const targetId = this.getAttribute('href');
-                const targetElement = document.querySelector(targetId);
-                
-                if (targetElement) {
-                    window.scrollTo({
-                        top: targetElement.offsetTop - 80,
-                        behavior: 'smooth'
-                    });
-                }
-            });
-        });
-    </script>
+    <script src="/js/landing.js"></script>
 </body>
 </html>

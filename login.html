@@ -3,453 +3,159 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CVMatch - Login</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #4F46E5;
-            --primary-light: #6366F1;
-            --primary-dark: #4338CA;
-            --secondary: #10B981;
-            --dark: #1F2937;
-            --light: #F9FAFB;
-            --gray: #9CA3AF;
-            --gray-light: #E5E7EB;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Inter', sans-serif;
-            color: var(--dark);
-            background-color: var(--light);
-            line-height: 1.6;
-            min-height: 100vh;
-            display: flex;
-        }
-        
-        .split-container {
-            display: flex;
-            width: 100%;
-            height: 100vh;
-        }
-        
-        .image-section {
-            flex: 1;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 2rem;
-            color: white;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .image-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-image: url('https://images.unsplash.com/photo-1551434678-e076c223a692?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80');
-            background-size: cover;
-            background-position: center;
-            opacity: 0.2;
-        }
-        
-        .image-content {
-            position: relative;
-            z-index: 1;
-            text-align: center;
-            max-width: 500px;
-        }
-        
-        .image-content h2 {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-            font-weight: 700;
-        }
-        
-        .image-content p {
-            font-size: 1.1rem;
-            margin-bottom: 2rem;
-            opacity: 0.9;
-        }
-        
-        .login-section {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 2rem;
-            background-color: white;
-        }
-        
-        .login-container {
-            
-            padding: 3rem 3rem;
-            min-height: 100vh;
-            flex-direction: column;
-            justify-content: center;
-        }
-        
-        .login-header {
-            text-align: left;
-            margin-bottom: 2rem;
-        }
-        
-        .login-header h1 {
-            font-size: 2rem;
-            color: var(--primary);
-            margin-bottom: 0.5rem;
-        }
-        
-        .login-header p {
-            color: var(--gray);
-            font-size: 1rem;
-        }
-        
-        .form-group {
-            margin-bottom: 1.5rem;
-            max-width: 400px;
-        }
-        
-        label {
-            display: block;
-            margin-bottom: 0.25rem;
-            font-weight: 500;
-            color: var(--dark);
-            font-size: 0.95rem;
-        }
-        
-        input {
-            width: 100%;
-            padding: 0.75rem 0;
-            border: none;
-            border-bottom: 2px solid var(--gray-light);
-            border-radius: 0;
-            font-family: 'Inter', sans-serif;
-            font-size: 1rem;
-            transition: all 0.3s;
-            background-color: transparent;
-        }
-        
-        input:focus {
-            outline: none;
-            border-bottom-color: var(--primary);
-            box-shadow: none;
-        }
-        
-        .btn {
-            max-width: 400px;
-            padding: 0.875rem 2rem;
-            font-size: 1rem;
-            margin-top: 1.5rem;
-            border-radius: 6px;
-            display: block;
-            width: 100%;
-            background-color: var(--primary);
-            color: white;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.3s;
-            border: none;
-            cursor: pointer;
-            font-family: 'Inter', sans-serif;
-            text-align: center;
-            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
-        }
-        
-        .btn:hover {
-            background-color: var(--primary-dark);
-            transform: translateY(-1px);
-            box-shadow: 0 6px 8px -1px rgba(79, 70, 229, 0.3);
-        }
-        
-        .btn-google {
-            background-color: white;
-            color: #333;
-            border: 1px solid #ddd;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-            margin-top: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-        }
-        
-        .btn-google:hover {
-            background-color: #f8f8f8;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
-        }
-        
-        .btn-google img {
-            width: 18px;
-            height: 18px;
-        }
-        
-        .divider {
-            display: flex;
-            align-items: center;
-            text-align: center;
-            max-width: 400px;
-            margin: 1.5rem 0;
-            color: var(--gray);
-            font-size: 0.9rem;
-        }
-        
-        .divider::before,
-        .divider::after {
-            content: '';
-            flex: 1;
-            border-bottom: 1px solid var(--gray-light);
-        }
-        
-        .divider span {
-            margin: 0 0.75rem;
-        }
-        
-        .error-message {
-            color: #EF4444;
-            margin-top: 1rem;
-            text-align: center;
-            display: none;
-            padding: 0.75rem;
-            background-color: #FEE2E2;
-            border-radius: 6px;
-        }
-
-        .success-message {
-            color: var(--secondary);
-            margin-top: 1rem;
-            text-align: center;
-            display: none;
-            padding: 0.75rem;
-            background-color: #D1FAE5;
-            border-radius: 6px;
-        }
-
-        .verification-message {
-            color: #92400E;
-            margin-top: 1rem;
-            text-align: left;
-            display: none;
-            font-size: 0.9rem;
-            max-width: 400px;
-        }
-
-        .verification-message h3 {
-            display: none;
-        }
-
-        .verification-message p {
-            margin: 0;
-        }
-
-        .verification-message ul {
-            display: none;
-        }
-
-        .resend-verification {
-            text-align: left;
-            margin-top: 0.5rem;
-            font-size: 0.9rem;
-            color: var(--gray);
-            display: none;
-            max-width: 400px;
-        }
-
-        .resend-verification a {
-            color: var(--primary);
-            text-decoration: none;
-            font-weight: 500;
-            cursor: pointer;
-        }
-
-        .resend-verification a:hover {
-            text-decoration: underline;
-        }
-
-        .register-link {
-            margin-top: 1.5rem;
-            font-size: 0.9rem;
-        }
-
-        .register-link a {
-            color: var(--primary);
-            text-decoration: none;
-            font-weight: 500;
-        }
-
-        .register-link a:hover {
-            text-decoration: underline;
-        }
-
-        .google-signin-container {
-            max-width: 400px;
-            margin-top: 1.5rem;
-        }
-        
-        /* Google button styling */
-        .google-signin-container .nsm7Bb-HzV7m-LgbsSe {
-            background-color: white !important;
-            color: #333 !important;
-            border: 1px solid #ddd !important;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
-            margin-top: 1rem !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            gap: 0.5rem !important;
-            border-radius: 4px !important;
-            font-family: 'Roboto', sans-serif !important;
-            font-size: 14px !important;
-            font-weight: 500 !important;
-            height: 40px !important;
-            padding: 0 12px !important;
-            transition: background-color 0.2s, box-shadow 0.2s !important;
-            width: 100% !important;
-        }
-        
-        .google-signin-container .nsm7Bb-HzV7m-LgbsSe:hover {
-            background-color: #f8f9fa !important;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.12) !important;
-        }
-        
-        .google-signin-container .nsm7Bb-HzV7m-LgbsSe-BPrWId {
-            font-family: 'Roboto', sans-serif !important;
-            font-size: 14px !important;
-            font-weight: 500 !important;
-            color: #333 !important;
-        }
-        
-        /* Additional selectors for production environment */
-        .google-signin-container div[role="button"] {
-            background-color: white !important;
-            color: #333 !important;
-            border: 1px solid #ddd !important;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
-            margin-top: 1rem !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            gap: 0.5rem !important;
-            border-radius: 4px !important;
-            font-family: 'Roboto', sans-serif !important;
-            font-size: 14px !important;
-            font-weight: 500 !important;
-            height: 40px !important;
-            padding: 0 12px !important;
-            transition: background-color 0.2s, box-shadow 0.2s !important;
-            width: 100% !important;
-        }
-        
-        .google-signin-container div[role="button"]:hover {
-            background-color: #f8f9fa !important;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.12) !important;
-        }
-        
-        .google-signin-container div[role="button"] span {
-            font-family: 'Roboto', sans-serif !important;
-            font-size: 14px !important;
-            font-weight: 500 !important;
-            color: #333 !important;
-        }
-
-        @media (max-width: 768px) {
-            .split-container {
-                flex-direction: column;
-            }
-            
-            .image-section {
-                display: none;
-            }
-            
-            .login-section {
-                padding: 1rem;
-            }
-
-            .login-container {
-                padding: 1.5rem;
-            }
-        }
-    </style>
+    <title>Sign in — CVMatch</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%230E0E0D'/%3E%3Cpath d='M7 8h7M7 12h4M12.5 15.5l2 2 3.5-4' fill='none' stroke='%23F7F7F5' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap">
+    <link rel="stylesheet" href="/css/app.css">
 </head>
 <body>
-    <div class="split-container">
-        <div class="image-section">
-            <div class="image-content">
-                <h2>Welcome Back!</h2>
-                <p>Your next career opportunity is just a login away. Join thousands of professionals who trust CVMatch for their job search journey.</p>
+    <div class="auth">
+        <aside class="auth-brand">
+            <a href="/" class="brand brand--inverse">
+                <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="6" fill="currentColor"/><path d="M7 8h7M7 12h4M12.5 15.5l2 2 3.5-4" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <span>CVMatch</span>
+            </a>
+            <div class="auth-brand-copy">
+                <p class="auth-brand-title">Stop guessing which jobs <em>fit</em>.</p>
+                <p class="auth-brand-sub">Match your CV against live listings and see the gaps before you apply.</p>
             </div>
-        </div>
-        <div class="login-section">
-            <div class="login-container">
-                <div class="login-header">
-                    <h1>Sign in</h1>
-                    <p>Access your personalized job matching dashboard</p>
-                </div>
-                <div id="google-signin-container" class="google-signin-container"></div>
+            <span class="mono auth-brand-foot">© 2026 CVMatch</span>
+        </aside>
 
-                <div class="divider">
-                    <span>or</span>
+        <main class="auth-main">
+            <a href="/" class="brand auth-mobile-brand">
+                <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="6" fill="currentColor"/><path d="M7 8h7M7 12h4M12.5 15.5l2 2 3.5-4" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <span>CVMatch</span>
+            </a>
+            <div class="auth-form">
+                <div class="auth-head">
+                    <h1 class="auth-title">Sign in</h1>
+                    <p class="muted">Welcome back. Pick up where you left off.</p>
                 </div>
-                <form id="login-form">
-                    <div class="form-group">
-                        <label for="email">Email</label>
-                        <input type="email" id="email" placeholder="Enter your email" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="password">Password</label>
-                        <input type="password" id="password" placeholder="Enter password" required>
-                    </div>
-                    <button type="submit" class="btn">Sign In</button>
-                    <div id="error-message" class="error-message">Incorrect email or password. Please try again.</div>
-                    <div id="success-message" class="success-message">Email verified successfully! You can now log in.</div>
-                    <div id="verification-message" class="verification-message">
-                        <h3>Email Verification Required</h3>
-                        <p>Please verify your email to continue.</p>
-                        <ul>
-                            <li>Open the email from CVMatch</li>
-                            <li>Click the "Verify My Email" button</li>
-                            <li>Return here to log in</li>
-                        </ul>
-                    </div>
-                    <div id="resend-verification" class="resend-verification">
-                        Can't find the email? <a id="resend-link">Resend verification email</a>
-                    </div>
-                </form>
-                <div class="register-link">
-                    Don't have an account? <a href="/register">Create one now</a>
+
+                <div id="success-message" class="notice notice-success" hidden>Email verified. You can sign in now.</div>
+
+                <div class="stack">
+                    <div id="google-signin-container" class="google-button"></div>
+                    <div class="or-divider label">or</div>
+                    <form id="login-form" class="stack">
+                        <label class="field">
+                            <span class="field-label">Email</span>
+                            <input class="input" type="email" id="email" autocomplete="email" required>
+                        </label>
+                        <label class="field">
+                            <span class="field-label">Password</span>
+                            <input class="input" type="password" id="password" autocomplete="current-password" required>
+                        </label>
+                        <div id="error-message" class="notice notice-error" role="alert" hidden></div>
+                        <div id="verification-message" class="notice" hidden>
+                            Please verify your email first — the link is in your inbox.
+                            <button type="button" class="link-button" id="resend-link">Resend it</button>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">Sign in</button>
+                    </form>
                 </div>
+
+                <p class="auth-switch">New to CVMatch? <a class="link" href="/register">Create an account</a></p>
             </div>
-        </div>
+        </main>
     </div>
-    
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
 
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script>
-        // Check if user just verified their email
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('verified') === 'true') {
-            document.getElementById('success-message').style.display = 'block';
+        const GOOGLE_CLIENT_ID = '1001210903692-505to271nee2u0502j0ko2ftcdn5l9a0.apps.googleusercontent.com';
+        const $ = id => document.getElementById(id);
+
+        // Shows one message and hides the others
+        function showMessage(id, text) {
+            ['error-message', 'verification-message', 'success-message'].forEach(other => { $(other).hidden = true; });
+            if (text) $(id).textContent = text;
+            $(id).hidden = false;
         }
 
-        // Google client ID
-        const GOOGLE_CLIENT_ID = '1001210903692-505to271nee2u0502j0ko2ftcdn5l9a0.apps.googleusercontent.com';
-        
-        // Initialize Google Sign-In
-        window.onload = function() {
-            // Get the current origin for the redirect URI
-            const origin = window.location.origin;
-            
+        // Keeps the session for the signed-in pages, then opens the app
+        function startSession(data) {
+            localStorage.setItem('userLoggedIn', 'true');
+            localStorage.setItem('userId', data.userId);
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('userEmail', data.email || '');
+            document.cookie = `token=${data.token}; path=/; max-age=86400`;
+            window.location.href = '/app';
+        }
+
+        if (new URLSearchParams(window.location.search).get('verified') === 'true') {
+            showMessage('success-message');
+        }
+
+        async function handleCredentialResponse(response) {
+            try {
+                const res = await fetch('/api/google', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idToken: response.credential })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    startSession(data);
+                } else {
+                    showMessage('error-message', data.error || 'Google sign-in failed.');
+                }
+            } catch (error) {
+                console.error('Google authentication error:', error);
+                showMessage('error-message', 'Google sign-in failed. Please try again.');
+            }
+        }
+
+        $('login-form').addEventListener('submit', async event => {
+            event.preventDefault();
+            const email = $('email').value;
+
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password: $('password').value })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    startSession(data);
+                } else if (data.requiresVerification) {
+                    $('resend-link').dataset.email = email;
+                    showMessage('verification-message');
+                } else {
+                    showMessage('error-message', data.error === 'Invalid credentials'
+                        ? "That email and password don't match."
+                        : data.error || 'Sign-in failed. Please try again.');
+                    $('password').value = '';
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showMessage('error-message', 'Something went wrong. Please try again.');
+            }
+        });
+
+        $('resend-link').addEventListener('click', async function () {
+            try {
+                const res = await fetch('/api/resend-verification', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: this.dataset.email })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+                this.textContent = 'Sent';
+                this.disabled = true;
+            } catch (error) {
+                showMessage('error-message', error.message || 'Could not resend the email.');
+            }
+        });
+
+        window.onload = function () {
+            if (!window.google) return;
+            const container = $('google-signin-container');
             google.accounts.id.initialize({
                 client_id: GOOGLE_CLIENT_ID,
                 callback: handleCredentialResponse,
@@ -457,156 +163,14 @@
                 cancel_on_tap_outside: true,
                 use_fedcm_for_prompt: true
             });
-            
-            // Render the button in the container
-            google.accounts.id.renderButton(
-                document.getElementById('google-signin-container'),
-                { 
-                    theme: 'outline', 
-                    size: 'large', 
-                    width: '100%',
-                    text: 'signin_with'
-                }
-            );
-            
-            // Also add a one-tap sign-in prompt
+            google.accounts.id.renderButton(container, {
+                theme: 'outline',
+                size: 'large',
+                text: 'continue_with',
+                width: Math.min(380, container.offsetWidth || 380)
+            });
             google.accounts.id.prompt();
         };
-
-        // Google Sign-In function
-        function handleCredentialResponse(response) {
-            const idToken = response.credential;
-            
-            // Call our backend API with the ID token
-            fetch('/api/google', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ idToken })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Set a flag in localStorage to indicate successful login
-                    localStorage.setItem('userLoggedIn', 'true');
-                    localStorage.setItem('userRole', data.role);
-                    localStorage.setItem('userId', data.userId);
-                    localStorage.setItem('token', data.token);
-                    
-                    // Set token in cookie for server authentication
-                    document.cookie = `token=${data.token}; path=/; max-age=86400`;
-                    
-                    // Redirect based on role
-                    if (data.role === 'admin') {
-                        window.location.href = '/admin';
-                    } else {
-                        window.location.href = '/app';
-                    }
-                } else {
-                    document.getElementById('error-message').textContent = data.error || 'Google authentication failed';
-                    document.getElementById('error-message').style.display = 'block';
-                }
-            })
-            .catch(error => {
-                console.error('Google authentication error:', error);
-                document.getElementById('error-message').textContent = 'An error occurred during Google authentication';
-                document.getElementById('error-message').style.display = 'block';
-            });
-        }
-
-        document.getElementById('login-form').addEventListener('submit', async function(event) {
-            event.preventDefault();
-            
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            
-            // Reset messages
-            document.getElementById('error-message').style.display = 'none';
-            document.getElementById('success-message').style.display = 'none';
-            document.getElementById('verification-message').style.display = 'none';
-            document.getElementById('resend-verification').style.display = 'none';
-            
-            try {
-                const response = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ email, password })
-                });
-
-                const data = await response.json();
-                
-                if (response.ok) {
-                    // Set a flag in localStorage to indicate successful login
-                    localStorage.setItem('userLoggedIn', 'true');
-                    localStorage.setItem('userRole', data.role);
-                    localStorage.setItem('userId', data.userId);
-                    localStorage.setItem('token', data.token);
-                    
-                    // Set token in cookie for server authentication
-                    document.cookie = `token=${data.token}; path=/; max-age=86400`;
-                    
-                    // Redirect based on role
-                    if (data.role === 'admin') {
-                        window.location.href = '/admin';
-                    } else {
-                        window.location.href = '/app';
-                    }
-                } else {
-                    // Check if email needs verification
-                    if (data.requiresVerification) {
-                        document.getElementById('verification-message').style.display = 'block';
-                        document.getElementById('resend-verification').style.display = 'block';
-                        
-                        // Store email for resend functionality
-                        document.getElementById('resend-link').setAttribute('data-email', email);
-                    } else {
-                        // Show error message
-                        document.getElementById('error-message').style.display = 'block';
-                        document.getElementById('error-message').textContent = data.error || 'Login failed. Please try again.';
-                        
-                        // Clear the password field
-                        document.getElementById('password').value = '';
-                    }
-                }
-            } catch (error) {
-                console.error('Login error:', error);
-                document.getElementById('error-message').style.display = 'block';
-                document.getElementById('error-message').textContent = 'An error occurred. Please try again.';
-            }
-        });
-
-        // Handle resend verification email
-        document.getElementById('resend-link').addEventListener('click', async function() {
-            const email = this.getAttribute('data-email');
-            if (!email) return;
-            
-            try {
-                const response = await fetch('/api/resend-verification', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ email })
-                });
-
-                const data = await response.json();
-                
-                if (response.ok) {
-                    document.getElementById('verification-message').style.display = 'block';
-                    document.getElementById('resend-verification').style.display = 'none';
-                } else {
-                    document.getElementById('error-message').textContent = data.error || 'Failed to resend verification email.';
-                    document.getElementById('error-message').style.display = 'block';
-                }
-            } catch (error) {
-                console.error('Resend verification error:', error);
-                document.getElementById('error-message').textContent = 'An error occurred. Please try again.';
-                document.getElementById('error-message').style.display = 'block';
-            }
-        });
     </script>
 </body>
-</html> 
+</html>

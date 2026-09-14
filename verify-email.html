@@ -3,188 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CVMatch - Email Verification</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #4F46E5;
-            --primary-light: #6366F1;
-            --primary-dark: #4338CA;
-            --secondary: #10B981;
-            --dark: #1F2937;
-            --light: #F9FAFB;
-            --gray: #9CA3AF;
-            --gray-light: #E5E7EB;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Inter', sans-serif;
-            color: var(--dark);
-            background-color: var(--light);
-            line-height: 1.6;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 2rem;
-        }
-        
-        .verification-container {
-            background-color: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            padding: 2.5rem;
-            width: 100%;
-            max-width: 500px;
-            text-align: center;
-        }
-        
-        .verification-header {
-            margin-bottom: 2rem;
-        }
-        
-        .verification-header h1 {
-            font-size: 2rem;
-            color: var(--primary);
-            margin-bottom: 0.5rem;
-        }
-        
-        .verification-header p {
-            color: var(--gray);
-            font-size: 0.95rem;
-        }
-        
-        .verification-icon {
-            font-size: 4rem;
-            margin-bottom: 1.5rem;
-        }
-        
-        .success-icon {
-            color: var(--secondary);
-        }
-        
-        .error-icon {
-            color: #EF4444;
-        }
-        
-        .verification-content {
-            margin-bottom: 2rem;
-        }
-        
-        .verification-content p {
-            margin-bottom: 1rem;
-        }
-        
-        .btn {
-            display: inline-block;
-            background-color: var(--primary);
-            color: white;
-            padding: 0.8rem 1.5rem;
-            border-radius: 8px;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.3s;
-            border: none;
-            cursor: pointer;
-            font-family: 'Inter', sans-serif;
-            font-size: 1rem;
-            text-align: center;
-            margin-top: 1rem;
-        }
-        
-        .btn:hover {
-            background-color: var(--primary-dark);
-            transform: translateY(-1px);
-        }
-        
-        .loading {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            margin: 2rem 0;
-        }
-        
-        .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            border-left-color: var(--primary);
-            animation: spin 1s linear infinite;
-            margin-bottom: 1rem;
-        }
-        
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-        
-        .error-message {
-            color: #EF4444;
-            margin-top: 1rem;
-            padding: 0.75rem;
-            background-color: #FEE2E2;
-            border-radius: 6px;
-        }
-    </style>
+    <title>Verify email — CVMatch</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%230E0E0D'/%3E%3Cpath d='M7 8h7M7 12h4M12.5 15.5l2 2 3.5-4' fill='none' stroke='%23F7F7F5' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap">
+    <link rel="stylesheet" href="/css/app.css">
 </head>
 <body>
-    <div class="verification-container">
-        <div class="verification-header">
-            <h1>Email Verification</h1>
-            <p>CVMatch Account Verification</p>
-        </div>
-        
-        <div id="loading-state" class="loading">
-            <div class="spinner"></div>
-            <p>Verifying your email address...</p>
-        </div>
-        
-        <div id="success-state" style="display: none;">
-            <div class="verification-icon success-icon">✓</div>
-            <div class="verification-content">
-                <h2>Email Verified Successfully!</h2>
-                <p>Your email has been verified. You can now log in to your CVMatch account.</p>
+    <div class="auth">
+        <aside class="auth-brand">
+            <a href="/" class="brand brand--inverse">
+                <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="6" fill="currentColor"/><path d="M7 8h7M7 12h4M12.5 15.5l2 2 3.5-4" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <span>CVMatch</span>
+            </a>
+            <div class="auth-brand-copy">
+                <p class="auth-brand-title">Almost <em>there</em>.</p>
+                <p class="auth-brand-sub">One click on the link and your account is ready.</p>
             </div>
-            <a href="/login" class="btn">Go to Login</a>
-        </div>
-        
-        <div id="error-state" style="display: none;">
-            <div class="verification-icon error-icon">✕</div>
-            <div class="verification-content">
-                <h2>Verification Failed</h2>
-                <p id="error-message">There was a problem verifying your email address.</p>
+            <span class="mono auth-brand-foot">© 2026 CVMatch</span>
+        </aside>
+
+        <main class="auth-main">
+            <a href="/" class="brand auth-mobile-brand">
+                <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="6" fill="currentColor"/><path d="M7 8h7M7 12h4M12.5 15.5l2 2 3.5-4" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <span>CVMatch</span>
+            </a>
+            <div class="auth-form">
+                <div id="loading-state" class="stack">
+                    <h1 class="auth-title">Verifying your email</h1>
+                    <div class="status-line is-active"><span class="dot"></span><span>Checking your link…</span></div>
+                </div>
+
+                <div id="error-state" class="stack" hidden>
+                    <h1 class="auth-title">That link didn't work</h1>
+                    <p id="error-message" class="notice notice-error">There was a problem verifying your email address.</p>
+                    <a href="/login" class="btn btn-primary btn-block">Go to sign in</a>
+                </div>
             </div>
-            <a href="/login" class="btn">Go to Login</a>
-        </div>
+        </main>
     </div>
-    
+
     <script>
-        document.addEventListener('DOMContentLoaded', async function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const token = urlParams.get('token');
-            
+        function showError(message) {
+            document.getElementById('loading-state').hidden = true;
+            document.getElementById('error-state').hidden = false;
+            document.getElementById('error-message').textContent = message;
+        }
+
+        (async function verify() {
+            const token = new URLSearchParams(window.location.search).get('token');
             if (!token) {
-                showError('Verification token is missing. Please check your email for the correct verification link.');
+                showError('This link is missing its verification code. Open the link from your email again.');
                 return;
             }
-            
+
             try {
-                const response = await fetch(`/api/verify-email?token=${token}`);
-                
+                const response = await fetch(`/api/verify-email?token=${encodeURIComponent(token)}`);
                 if (response.ok) {
-                    // Redirect to login page with success message
                     window.location.href = '/login?verified=true';
                 } else {
                     const data = await response.json();
@@ -192,15 +68,9 @@
                 }
             } catch (error) {
                 console.error('Verification error:', error);
-                showError('An error occurred during verification. Please try again later.');
+                showError('Something went wrong while verifying. Please try again later.');
             }
-        });
-        
-        function showError(message) {
-            document.getElementById('loading-state').style.display = 'none';
-            document.getElementById('error-state').style.display = 'block';
-            document.getElementById('error-message').textContent = message;
-        }
+        })();
     </script>
 </body>
-</html> 
+</html>
