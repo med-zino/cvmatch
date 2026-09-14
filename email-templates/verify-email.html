@@ -1,81 +1,35 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verify Your Email - CVMatch</title>
-    <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            line-height: 1.6;
-            color: #333;
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .header {
-            background-color: #4F46E5;
-            color: white;
-            padding: 20px;
-            text-align: center;
-            border-radius: 5px 5px 0 0;
-        }
-        .content {
-            background-color: #f9fafb;
-            padding: 30px;
-            border: 1px solid #e5e7eb;
-            border-top: none;
-            border-radius: 0 0 5px 5px;
-        }
-        .footer {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 12px;
-            color: #6b7280;
-        }
-        .button {
-            display: inline-block;
-            background-color: #10B981;
-            color: white;
-            padding: 12px 24px;
-            text-decoration: none;
-            border-radius: 5px;
-            margin-top: 20px;
-            font-weight: bold;
-        }
-        .logo {
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        .logo span {
-            color: #10B981;
-        }
-    </style>
+    <title>Confirm your email for CVMatch</title>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <div class="logo">CV<span>Match</span></div>
-            <h1>Verify Your Email</h1>
-        </div>
-        <div class="content">
-            <p>Hello {{to_name}},</p>
-            
-            <p>Thank you for registering with CVMatch! To complete your registration and access your account, please verify your email address by clicking the button below:</p>
-            
-            <div style="text-align: center; margin: 30px 0;">
-                <a href="{{verification_link}}" class="button">Verify My Email</a>
-            </div>
-            
-        </div>
-        <div class="footer">
-            <p>© 2025 CVMatch. All rights reserved.</p>
-        </div>
-    </div>
+<!-- Inline styles only: many email clients strip <style> blocks -->
+<body style="margin: 0; padding: 0; background-color: #F7F7F5; font-family: Helvetica, Arial, sans-serif; color: #0E0E0D;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #F7F7F5;">
+        <tr>
+            <td align="center" style="padding: 40px 16px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 520px; background-color: #FFFFFF; border: 1px solid #E6E4DF; border-radius: 16px;">
+                    <tr>
+                        <td style="padding: 36px 36px 8px;">
+                            <p style="margin: 0 0 28px; font-size: 17px; font-weight: bold; letter-spacing: -0.02em;">CVMatch</p>
+                            <h1 style="margin: 0 0 16px; font-family: Georgia, 'Times New Roman', serif; font-size: 32px; font-weight: normal; line-height: 1.15;">Confirm your email</h1>
+                            <p style="margin: 0 0 16px; font-size: 15px; line-height: 1.6; color: #3B3A38;">Hello {{to_name}},</p>
+                            <p style="margin: 0 0 28px; font-size: 15px; line-height: 1.6; color: #3B3A38;">Confirm your email address to finish setting up your CVMatch account.</p>
+                            <a href="{{verification_link}}" style="display: inline-block; padding: 14px 24px; background-color: #0E0E0D; color: #F7F7F5; font-size: 15px; font-weight: bold; text-decoration: none; border-radius: 10px;">Confirm my email</a>
+                            <p style="margin: 28px 0 8px; font-size: 13px; line-height: 1.6; color: #76746F;">Or paste this link into your browser:</p>
+                            <p style="margin: 0 0 28px; font-size: 13px; line-height: 1.6; word-break: break-all;"><a href="{{verification_link}}" style="color: #0E0E0D;">{{verification_link}}</a></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 20px 36px 32px; border-top: 1px solid #EFEEEA;">
+                            <p style="margin: 0; font-size: 12px; line-height: 1.6; color: #76746F;">You're receiving this because someone signed up for CVMatch with this address. If it wasn't you, you can ignore this email.</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 </body>
-</html> 
+</html>

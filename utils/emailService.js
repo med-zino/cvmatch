@@ -18,8 +18,9 @@ const FALLBACK_TEMPLATE = `
   </div>
 `;
 
-// Sends through Gmail SMTP; skipped when EMAIL_USER / EMAIL_PASS aren't set (e.g. local dev)
-async function sendEmail({ to, subject, html }) {
+// Sends through Gmail SMTP; skipped when EMAIL_USER / EMAIL_PASS aren't set (e.g. local dev).
+// A plain-text part alongside the HTML makes spam filters less suspicious.
+async function sendEmail({ to, subject, html, text }) {
   if (!EMAIL_USER || !EMAIL_PASS) {
     console.log('Email credentials not set. Skipping email sending.');
     return { success: false, message: 'Email credentials not configured' };
@@ -30,7 +31,7 @@ async function sendEmail({ to, subject, html }) {
       service: 'gmail',
       auth: { user: EMAIL_USER, pass: EMAIL_PASS }
     });
-    const info = await transporter.sendMail({ from: `"CVMatch Team" <${EMAIL_USER}>`, to, subject, html });
+    const info = await transporter.sendMail({ from: `"CVMatch" <${EMAIL_USER}>`, to, subject, html, text });
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error('Error sending email:', error);
@@ -47,12 +48,14 @@ async function sendVerificationEmail(email, verificationLink) {
     template = FALLBACK_TEMPLATE;
   }
 
+  const name = email.split('@')[0];
   return sendEmail({
     to: email,
-    subject: 'Verify Your Email - CVMatch',
+    subject: 'Confirm your email for CVMatch',
     html: template
-      .replace(/{{to_name}}/g, email.split('@')[0])
-      .replace(/{{verification_link}}/g, verificationLink)
+      .replace(/{{to_name}}/g, name)
+      .replace(/{{verification_link}}/g, verificationLink),
+    text: `Hello ${name},\n\nConfirm your email address to finish setting up your CVMatch account:\n${verificationLink}\n\nIf you didn't create a CVMatch account, you can ignore this email.\n\nThe CVMatch team`
   });
 }
 
