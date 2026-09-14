@@ -111,7 +111,11 @@ router.post('/resend-verification', async (req, res) => {
             return res.status(400).json({ error: 'Email already verified' });
         }
 
-        await sendVerificationEmail(user.email, verificationLinkFor(req, user));
+        // sendEmail reports failures in its result rather than throwing
+        const sent = await sendVerificationEmail(user.email, verificationLinkFor(req, user));
+        if (!sent.success) {
+            return res.status(502).json({ error: "We couldn't send the verification email. Please try again later." });
+        }
         res.json({ message: 'Verification email sent successfully' });
     } catch (error) {
         console.error('Resend verification error:', error);
