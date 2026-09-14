@@ -5,7 +5,8 @@
       "src": "server.js",
       "use": "@vercel/node",
       "config": {
-        "maxDuration": 30
+        "maxDuration": 30,
+        "includeFiles": ["*.html", "public/index.html", "email-templates/*.html"]
       }
     },
     {
