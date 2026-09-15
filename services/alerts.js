@@ -1,0 +1,122 @@
+// Daily email with the top matches: new openings for the user's titles, scored against their CV
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
+const FeedJob = require('../models/FeedJob');
+const SchedulerState = require('../models/SchedulerState');
+const { JWT_SECRET } = require('../middleware/auth');
+const { scoreJobs, eachLimited } = require('./matching');
+const { addToFeed, searchTitles, saveScores, toScoringJob } = require('./feed');
+const { sendJobAlertEmail } = require('../utils/emailService');
+
+// JSearch pages per title for each alert (one RapidAPI request each), from listings of the last 3 days
+const ALERT_PAGES = Number(process.env.ALERT_PAGES) || 1;
+const TOP_JOBS = 3;
+// A run stops starting new users after this; the rest are still due and go out the next hour
+const RUN_BUDGET_MS = 200 * 1000;
+const USER_TIMEOUT_MS = 90 * 1000;
+const CONCURRENCY = 3;
+// The daily fallback stands down while the hourly schedule is running
+const HOURLY_ACTIVE_MS = 3 * 60 * 60 * 1000;
+
+// The user's local date and hour, e.g. { date: '2026-09-15', hour: 8 }
+function localTime(timeZone, now = new Date()) {
+  let parts;
+  try {
+    parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23'
+    }).formatToParts(now);
+  } catch {
+    return localTime('UTC', now);
+  }
+  const part = type => parts.find(p => p.type === type).value;
+  return { date: `${part('year')}-${part('month')}-${part('day')}`, hour: Number(part('hour')) };
+}
+
+function validTimeZone(timeZone) {
+  try {
+    new Intl.DateTimeFormat('en', { timeZone });
+    return Boolean(timeZone);
+  } catch {
+    return false;
+  }
+}
+
+// Finds, scores and emails one user's top new matches. The jobs also land in their feed,
+// and a job that went out once is never emailed again.
+async function runAlert(user, { baseUrl, signal }) {
+  if (!user.targetTitles?.length) return { sent: false, reason: 'Add the job titles you want on your Feed first.' };
+  if (!user.cv?.text) return { sent: false, reason: 'Run one search on Find matches first, so your CV is saved.' };
+
+  const entries = await searchTitles(user, { date_posted: '3days' }, signal, ALERT_PAGES);
+  await addToFeed(user._id, entries, 'feed');
+
+  const jobs = await FeedJob.find({
+    userId: user._id,
+    jobId: { $in: entries.map(entry => entry.job.job_id) },
+    alertedAt: null
+  }).lean();
+  const unscored = jobs.filter(job => typeof job.score !== 'number');
+  const scored = unscored.length
+    ? await saveScores(user._id, unscored, await scoreJobs(user.cv.text, unscored.map(toScoringJob), signal))
+    : [];
+  const top = [...jobs.filter(job => typeof job.score === 'number'), ...scored]
+    .sort((a, b) => b.score - a.score)
+    .slice(0, TOP_JOBS);
+  if (!top.length) return { sent: false, reason: 'No new openings for your titles in the last 3 days. We’ll look again tomorrow.' };
+
+  const token = jwt.sign({ userId: user._id, purpose: 'alert-unsubscribe' }, JWT_SECRET);
+  const email = await sendJobAlertEmail(user.email, {
+    jobs: top,
+    titles: user.targetTitles,
+    location: user.targetLocation,
+    feedUrl: `${baseUrl}/feed`,
+    unsubscribeUrl: `${baseUrl}/api/alerts/unsubscribe?token=${token}`
+  });
+  if (!email.success) throw new Error(email.error || email.message || 'The email could not be sent');
+
+  await FeedJob.updateMany({ _id: { $in: top.map(job => job._id) } }, { alertedAt: new Date() });
+  return { sent: true, jobs: top.length };
+}
+
+// Called every hour, and once a day as a fallback. Emails every user whose chosen hour has come
+// and who hasn't had today's email; the daily fallback ignores the hour.
+async function runDueAlerts({ source, baseUrl }) {
+  if (source === 'daily') {
+    const state = await SchedulerState.findById('alerts').lean();
+    if (state?.lastHourlyAt && Date.now() - state.lastHourlyAt.getTime() < HOURLY_ACTIVE_MS) {
+      return { source, skipped: 'The hourly schedule is running' };
+    }
+  } else {
+    await SchedulerState.updateOne({ _id: 'alerts' }, { lastHourlyAt: new Date() }, { upsert: true });
+  }
+
+  const users = await User.find({ 'alert.enabled': true }).select('email cv targetTitles targetLocation alert').lean();
+  const due = users.filter(user => {
+    const { date, hour } = localTime(user.alert.timeZone);
+    return user.alert.lastRunDate !== date && (source === 'daily' || hour >= user.alert.hour);
+  });
+
+  const started = Date.now();
+  const summary = { source, due: due.length, sent: 0, nothingToSend: 0, failed: 0, deferred: 0 };
+  await eachLimited(due, CONCURRENCY, async user => {
+    if (Date.now() - started > RUN_BUDGET_MS) {
+      summary.deferred++;
+      return;
+    }
+    const { date } = localTime(user.alert.timeZone);
+    try {
+      const result = await runAlert(user, { baseUrl, signal: AbortSignal.timeout(USER_TIMEOUT_MS) });
+      await User.updateOne({ _id: user._id }, {
+        $set: { 'alert.lastRunDate': date, ...(result.sent ? { 'alert.lastSentAt': new Date() } : {}) }
+      });
+      summary[result.sent ? 'sent' : 'nothingToSend']++;
+    } catch (error) {
+      // Left due, so the next hourly run tries again
+      summary.failed++;
+      console.error(`Daily alert for ${user._id} failed:`, error.message);
+    }
+  });
+  return summary;
+}
+
+module.exports = { runAlert, runDueAlerts, localTime, validTimeZone };

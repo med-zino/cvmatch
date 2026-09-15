@@ -683,7 +683,7 @@ svg { display: block; flex: none; }
 
 .saved-list { padding-bottom: 96px; }
 .table-card { overflow: hidden; }
-.row { display: grid; grid-template-columns: minmax(0, 1fr) 150px 170px 110px 124px; align-items: center; gap: 16px; padding: 0 24px; }
+.row { display: grid; grid-template-columns: minmax(0, 1fr) 150px 170px 110px 164px; align-items: center; gap: 16px; padding: 0 24px; }
 .row-head { height: 44px; border-bottom: 1px solid var(--line); background: #FBFBFA; }
 .row-head .label:last-child { text-align: right; }
 .job-row { border-bottom: 1px solid var(--tint); }
@@ -730,8 +730,8 @@ svg { display: block; flex: none; }
 .suggest-item:hover, .suggest-item[aria-selected="true"] { background: var(--tint); }
 .suggest-lang { flex: none; font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; color: var(--muted); }
 
-/* ---------- Welcome dialog (after a Google sign-up) ---------- */
-.welcome-dialog {
+/* ---------- Dialogs (sign-up prompt, daily email) ---------- */
+.app-dialog {
   width: min(480px, calc(100% - 32px));
   padding: 0;
   border: 1px solid var(--line);
@@ -741,13 +741,20 @@ svg { display: block; flex: none; }
   overflow: visible;
   box-shadow: 0 30px 80px -30px rgba(14, 14, 13, 0.45);
 }
-.welcome-dialog[open] { animation: pop-in 0.35s var(--ease-out) both; }
-.welcome-dialog::backdrop { background: rgba(14, 14, 13, 0.45); }
+.app-dialog[open] { animation: pop-in 0.35s var(--ease-out) both; }
+.app-dialog::backdrop { background: rgba(14, 14, 13, 0.45); }
 .welcome { display: flex; flex-direction: column; gap: 16px; padding: 28px; }
 .welcome-title { font-family: var(--serif); font-weight: 400; font-size: 36px; line-height: 1.05; letter-spacing: -0.01em; }
 .welcome-text { font-size: 14px; line-height: 1.55; color: var(--muted); }
 .welcome-error { font-size: 13px; font-weight: 500; }
-.welcome-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 4px; }
+.welcome-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; padding-top: 4px; }
+.welcome-actions .spacer { flex: 1; }
+.welcome-note { padding: 10px 12px; border-radius: var(--radius); background: var(--tint); font-size: 13px; line-height: 1.5; }
+.switch { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; cursor: pointer; }
+.switch input { position: relative; flex: none; width: 38px; height: 22px; margin: 0; border-radius: 999px; background: var(--line-2); appearance: none; cursor: pointer; transition: background-color 0.2s; }
+.switch input::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--surface); box-shadow: 0 1px 2px rgba(14, 14, 13, 0.2); transition: transform 0.2s var(--ease-out); }
+.switch input:checked { background: var(--ink); }
+.switch input:checked::after { transform: translateX(16px); }
 
 /* ---------- Feed ---------- */
 .feed-head-actions { display: flex; align-items: center; gap: 14px; }
@@ -776,6 +783,62 @@ svg { display: block; flex: none; }
 .feed-more > .empty, .feed-more > .skeleton-card { align-self: stretch; }
 .feed-notice { margin-bottom: 24px; }
 .spinner { width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin 0.7s linear infinite; }
+
+/* ---------- Daily email strip ---------- */
+.prefs + .prefs { margin-top: -12px; }
+.alert-strip > svg { color: var(--muted); }
+
+/* ---------- Saved jobs: cover letter and CV tips ---------- */
+.assist { margin: 0 24px 20px; padding: 18px; display: flex; flex-direction: column; gap: 16px; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; animation: fade-up 0.3s var(--ease-out) both; }
+.assist-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.assist-tabs { width: 260px; }
+.assist-controls { display: flex; align-items: center; gap: 8px; }
+.assist-error { font-size: 13px; font-weight: 500; }
+.assist-empty { font-size: 14px; line-height: 1.55; color: var(--muted); }
+.assist-subject { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; font-size: 14px; font-weight: 500; }
+.assist-text { min-height: 340px; font-size: 14px; line-height: 1.65; }
+.assist-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; font-size: 12px; }
+.assist-tips { display: flex; flex-direction: column; gap: 18px; }
+.assist-verdict { font-size: 15px; line-height: 1.55; }
+.assist-date { font-size: 12px; }
+.rewrites { display: flex; flex-direction: column; gap: 10px; }
+.rewrite { display: flex; flex-direction: column; gap: 6px; padding: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.rewrite-before { font-size: 13px; line-height: 1.5; color: var(--faint); text-decoration: line-through; }
+.rewrite-after { font-size: 14px; font-weight: 500; line-height: 1.5; }
+.rewrite-why { font-size: 13px; line-height: 1.5; color: var(--muted); }
+
+/* ---------- Product tour ---------- */
+.tour { position: fixed; inset: 0; z-index: 200; }
+.tour-spot {
+  position: fixed;
+  border-radius: 14px;
+  box-shadow: 0 0 0 9999px rgba(14, 14, 13, 0.55);
+  pointer-events: none;
+  transition: top 0.35s var(--ease-out), left 0.35s var(--ease-out), width 0.35s var(--ease-out), height 0.35s var(--ease-out);
+}
+.tour-card {
+  position: fixed;
+  width: min(360px, calc(100% - 32px));
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 30px 80px -30px rgba(14, 14, 13, 0.5);
+  transition: top 0.35s var(--ease-out), left 0.35s var(--ease-out);
+  animation: pop-in 0.35s var(--ease-out) both;
+}
+.tour-step { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; color: var(--muted); }
+.tour-title { font-family: var(--serif); font-weight: 400; font-size: 30px; line-height: 1.05; }
+.tour-text { font-size: 14px; line-height: 1.55; color: var(--ink-2); }
+.tour-actions { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.tour-actions .link-button { margin-right: auto; font-size: 13px; color: var(--muted); }
+.tour-actions .btn:first-child { margin-left: auto; }
+/* On a phone the card sits at the bottom, clear of the spotlight */
+@media (max-width: 600px) {
+  .tour-card { top: auto !important; left: 16px !important; right: 16px; bottom: 16px; width: auto; }
+}
 
 /* ---------- Motion ---------- */
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -806,7 +869,7 @@ svg { display: block; flex: none; }
 @media (max-width: 1080px) {
   .match-layout { grid-template-columns: minmax(0, 1fr); }
   .search-card { position: static; }
-  .row { grid-template-columns: minmax(0, 1fr) 120px 150px 124px; }
+  .row { grid-template-columns: minmax(0, 1fr) 120px 150px 164px; }
   .row .cell-saved, .row-head .cell-saved { display: none; }
   .sources-head { grid-template-columns: minmax(0, 1fr); }
   .sources-diagram { grid-template-columns: 190px minmax(60px, 1fr) 48px minmax(0, 380px); }
@@ -866,6 +929,9 @@ svg { display: block; flex: none; }
   .feed-tools .tools { padding-bottom: 12px; }
   .feed-head-actions { width: 100%; justify-content: space-between; }
   .feed-card { padding: 20px; }
+  .assist { margin: 0 16px 16px; padding: 14px; }
+  .assist-tabs, .assist-controls { width: 100%; }
+  .assist-controls .select { flex: 1; }
 }
 
 /* Three nav tabs on a phone: text only, each as wide as its label */

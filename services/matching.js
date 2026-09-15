@@ -342,4 +342,4 @@ async function scoreJobs(cvText, jobs, signal, onBatch = () => {}) {
   return matches;
 }
 
-module.exports = { searchJobs, summarizeCV, scoreJobs, DESCRIPTION_CHARS };
+module.exports = { searchJobs, summarizeCV, scoreJobs, askGemini, eachLimited, DESCRIPTION_CHARS };

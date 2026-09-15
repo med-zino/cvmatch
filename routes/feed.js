@@ -2,11 +2,10 @@ const express = require('express');
 const mongoose = require('mongoose');
 const User = require('../models/User');
 const FeedJob = require('../models/FeedJob');
-const SavedJob = require('../models/SavedJob');
 const { apiAuth } = require('../middleware/auth');
 const { requireDb } = require('../utils/db');
 const { scoreJobs } = require('../services/matching');
-const { refreshFeed, scoreFields } = require('../services/feed');
+const { refreshFeed, saveScores, toScoringJob } = require('../services/feed');
 
 const router = express.Router();
 router.use(apiAuth, requireDb);
@@ -41,21 +40,6 @@ function toItem(job) {
     };
 }
 
-// The job shape the scoring expects
-const toScoringJob = job => ({
-    job_id: job.jobId,
-    title: job.title,
-    company: job.company,
-    location: job.location,
-    employment_type: job.employmentType,
-    is_remote: job.isRemote,
-    qualifications: job.qualifications || [],
-    description: job.description || '',
-    link: job.link,
-    posted: job.posted,
-    publisher: job.publisher
-});
-
 // GET /api/feed?source=all|feed|search&cursor= — newest first, PAGE_SIZE at a time
 router.get('/', async (req, res) => {
     try {
@@ -71,7 +55,7 @@ router.get('/', async (req, res) => {
 
         const [jobs, user, groups] = await Promise.all([
             FeedJob.find(query).sort({ addedAt: -1, _id: -1 }).limit(PAGE_SIZE + 1).lean(),
-            User.findById(userId).select('targetTitles targetLocation feedFetchedAt cv.updatedAt').lean(),
+            User.findById(userId).select('targetTitles targetLocation feedFetchedAt cv.updatedAt alert').lean(),
             FeedJob.aggregate([{ $match: { userId } }, { $group: { _id: '$source', count: { $sum: 1 } } }])
         ]);
         if (!user) return res.status(401).json({ error: 'Please sign in again.' });
@@ -87,7 +71,12 @@ router.get('/', async (req, res) => {
                 titles: user.targetTitles || [],
                 location: user.targetLocation || '',
                 fetchedAt: user.feedFetchedAt || null,
-                hasCv: Boolean(user.cv?.updatedAt)
+                hasCv: Boolean(user.cv?.updatedAt),
+                alert: {
+                    enabled: Boolean(user.alert?.enabled),
+                    hour: user.alert?.hour ?? 8,
+                    timeZone: user.alert?.timeZone || 'UTC'
+                }
             }
         });
     } catch (error) {
@@ -121,7 +110,7 @@ router.post('/refresh', async (req, res) => {
     }
 });
 
-// Scores feed jobs against the saved CV. Saved copies of those jobs pick up the score too.
+// Scores feed jobs against the saved CV
 router.post('/score', async (req, res) => {
     try {
         const ids = (Array.isArray(req.body.ids) ? req.body.ids : [])
@@ -143,22 +132,7 @@ router.post('/score', async (req, res) => {
             if (!res.writableEnded) controller.abort();
         });
         const matches = await scoreJobs(user.cv.text, jobs.map(toScoringJob), controller.signal);
-
-        const byJobId = new Map(matches.map(match => [match.jobId, match]));
-        const scored = jobs
-            .filter(job => byJobId.has(job.jobId))
-            .map(job => ({ ...job, ...scoreFields(byJobId.get(job.jobId)) }));
-        if (scored.length) {
-            await Promise.all([
-                FeedJob.bulkWrite(scored.map(job => ({
-                    updateOne: { filter: { _id: job._id }, update: { $set: scoreFields(job) } }
-                }))),
-                ...scored.filter(job => job.link).map(job => SavedJob.updateMany(
-                    { userId: req.userId, link: job.link, score: null },
-                    { $set: { score: job.score, reasons: job.reasons, skillsMatch: job.skillsMatch, missingSkills: job.missingSkills } }
-                ))
-            ]);
-        }
+        const scored = await saveScores(req.userId, jobs, matches);
         res.json({ items: scored.map(toItem), failed: jobs.length - scored.length });
     } catch (error) {
         console.error('Error scoring feed jobs:', error.message);

@@ -1,4 +1,4 @@
-// Shared by the signed-in pages: session guard, navbar, icons, toast and HTML escaping
+// Shared by the signed-in pages: session guard, navbar, icons, toast, HTML escaping, job rendering and dialogs
 
 const session = {
     userId: localStorage.getItem('userId'),
@@ -21,7 +21,10 @@ const ICON_PATHS = {
     alert: '<circle cx="12" cy="12" r="10"/><path d="M12 7v6M12 16.5v.5"/>',
     file: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/>',
     feed: '<rect x="4" y="4" width="16" height="6" rx="1.5"/><rect x="4" y="14" width="16" height="6" rx="1.5"/>',
-    gauge: '<path d="M4.5 17a8.5 8.5 0 1 1 15 0"/><path d="m12 13 3.5-4"/>'
+    gauge: '<path d="M4.5 17a8.5 8.5 0 1 1 15 0"/><path d="m12 13 3.5-4"/>',
+    sparkle: '<path d="M12 3.5 13.9 9l5.6 1.9-5.6 1.9L12 18.5l-1.9-5.7L4.5 10.9 10.1 9z"/><path d="M19 3v4M17 5h4"/>',
+    copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3"/>',
+    bell: '<path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/>'
 };
 
 function icon(name, size = 16, filled = false) {
@@ -104,6 +107,8 @@ function timeAgo(value) {
     return `${days} day${days === 1 ? '' : 's'} ago`;
 }
 
+// ---------- Session and saved jobs ----------
+
 // An expired or invalid session answers 401: clear it and go back to sign in
 function checkSession(response) {
     if (response.status === 401) {
@@ -153,6 +158,20 @@ async function signOut() {
     window.location.href = '/login';
 }
 
+// ---------- Dialogs ----------
+
+// A modal built from HTML, removed from the page once it closes
+function openDialog(html, labelledBy) {
+    const dialog = document.createElement('dialog');
+    dialog.className = 'app-dialog';
+    if (labelledBy) dialog.setAttribute('aria-labelledby', labelledBy);
+    dialog.innerHTML = html;
+    document.body.appendChild(dialog);
+    dialog.addEventListener('close', () => dialog.remove());
+    dialog.showModal();
+    return dialog;
+}
+
 // After a Google sign-up, an optional prompt to set up the feed. The sign-in pages set the flag
 // when the server says the account is new; it's cleared as soon as the prompt shows.
 function askFeedPreferences() {
@@ -163,10 +182,7 @@ function askFeedPreferences() {
         return;
     }
 
-    const dialog = document.createElement('dialog');
-    dialog.className = 'welcome-dialog';
-    dialog.setAttribute('aria-labelledby', 'welcomeTitle');
-    dialog.innerHTML = `
+    const dialog = openDialog(`
         <form class="welcome" novalidate>
             <span class="label">Optional</span>
             <h2 class="welcome-title" id="welcomeTitle">Want a feed of live openings?</h2>
@@ -185,14 +201,12 @@ function askFeedPreferences() {
                 <button type="button" class="btn btn-secondary" data-skip>Not now</button>
                 <button type="submit" class="btn btn-primary">Build my feed</button>
             </div>
-        </form>`;
-    document.body.appendChild(dialog);
+        </form>`, 'welcomeTitle');
 
     const form = dialog.querySelector('form');
     const error = dialog.querySelector('.welcome-error');
     attachTitleSuggestions(form.elements.titles, { multiple: true });
     dialog.querySelector('[data-skip]').addEventListener('click', () => dialog.close());
-    dialog.addEventListener('close', () => dialog.remove());
 
     form.addEventListener('submit', async e => {
         e.preventDefault();
@@ -219,8 +233,6 @@ function askFeedPreferences() {
             error.hidden = false;
         }
     });
-
-    dialog.showModal();
 }
 
 document.querySelectorAll('[data-user-email]').forEach(el => { el.textContent = session.email; });

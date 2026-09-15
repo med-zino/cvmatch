@@ -151,7 +151,8 @@ function renderPrefs() {
                 <div class="chips">${titles.map(title => `<span class="chip">${escapeHtml(title)}</span>`).join('')}</div>
                 <span class="prefs-city">${location ? `in ${escapeHtml(location)}` : 'Anywhere — add a city for local openings'}</span>
                 <button type="button" class="link-button" data-prefs-edit>Edit</button>
-            </div>`;
+            </div>
+            ${alertStrip()}`;
         return;
     }
 
@@ -274,6 +275,109 @@ function showNoCv() {
             <a class="btn btn-secondary" href="/app">Find matches</a>
         </div>`;
     notice.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// ---------- Daily email ----------
+
+const formatHour = hour => new Date(2000, 0, 1, hour).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+function alertStrip() {
+    const { enabled, hour } = profile.alert || {};
+    return `
+        <div class="prefs alert-strip">
+            ${icon('bell')}
+            <span class="label">Daily email</span>
+            <span class="prefs-city">${enabled ? `Your top 3 new matches, every day at ${formatHour(hour)}` : 'Off — get your top 3 new matches by email each day'}</span>
+            <button type="button" class="link-button" data-alert-edit>${enabled ? 'Edit' : 'Set up'}</button>
+        </div>`;
+}
+
+function openAlertDialog() {
+    const settings = profile.alert || { hour: 8 };
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    const place = profile.location ? ` in ${escapeHtml(profile.location)}` : '';
+    const dialog = openDialog(`
+        <form class="welcome" novalidate>
+            <span class="label">Daily email</span>
+            <h2 class="welcome-title" id="alertTitle">Your top 3 matches, every day</h2>
+            <p class="welcome-text">At the time you choose, we look for new openings for ${escapeHtml(profile.titles.join(', '))}${place}, score them against your CV and email you the best three.</p>
+            <label class="switch">
+                <input type="checkbox" name="enabled" checked>
+                <span>Email me every day</span>
+            </label>
+            <label class="field">
+                <span class="field-label">Time</span>
+                <select class="select" name="hour">
+                    ${Array.from({ length: 24 }, (_, h) => `<option value="${h}"${h === settings.hour ? ' selected' : ''}>${formatHour(h)}</option>`).join('')}
+                </select>
+                <span class="field-hint">In your time zone, ${escapeHtml(timeZone)}.</span>
+            </label>
+            ${profile.hasCv ? '' : '<p class="welcome-note">Run one search on Find matches first, so your CV is saved to score against.</p>'}
+            <p class="welcome-error" role="alert" hidden></p>
+            <p class="welcome-note" role="status" data-test-result hidden></p>
+            <div class="welcome-actions">
+                <button type="button" class="btn btn-secondary" data-alert-test>Send one now</button>
+                <span class="spacer"></span>
+                <button type="button" class="btn btn-secondary" data-cancel>Cancel</button>
+                <button type="submit" class="btn btn-primary">Save</button>
+            </div>
+        </form>`, 'alertTitle');
+
+    const form = dialog.querySelector('form');
+    const error = dialog.querySelector('.welcome-error');
+    const result = dialog.querySelector('[data-test-result]');
+    const showError = message => {
+        error.textContent = message;
+        error.hidden = !message;
+    };
+    dialog.querySelector('[data-cancel]').addEventListener('click', () => dialog.close());
+
+    // Runs today's email straight away, whatever the schedule
+    dialog.querySelector('[data-alert-test]').addEventListener('click', async e => {
+        const button = e.currentTarget;
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner"></span><span>Sending…</span>';
+        showError('');
+        result.hidden = true;
+        try {
+            const response = checkSession(await fetch('/api/me/alert/test', { method: 'POST', headers: authHeaders() }));
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Could not send the email');
+            result.textContent = data.sent
+                ? `Sent to ${data.email}. It can take a minute, and the first one may land in spam.`
+                : data.message;
+            result.hidden = false;
+        } catch (err) {
+            showError(err.message);
+        } finally {
+            button.disabled = false;
+            button.textContent = 'Send one now';
+        }
+    });
+
+    form.addEventListener('submit', async e => {
+        e.preventDefault();
+        const submit = form.querySelector('[type="submit"]');
+        submit.disabled = true;
+        showError('');
+        try {
+            const response = checkSession(await fetch('/api/me/alert', {
+                method: 'PUT',
+                headers: authHeaders(),
+                body: JSON.stringify({ enabled: form.elements.enabled.checked, hour: Number(form.elements.hour.value), timeZone })
+            }));
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Could not save your daily email');
+
+            profile.alert = data.alert;
+            dialog.close();
+            renderPrefs();
+            toast(data.alert.enabled ? `Daily email on, at ${formatHour(data.alert.hour)}` : 'Daily email off');
+        } catch (err) {
+            submit.disabled = false;
+            showError(err.message);
+        }
+    });
 }
 
 // ---------- Scoring and saving ----------
@@ -404,6 +508,7 @@ notice.addEventListener('click', e => {
 });
 
 prefsBox.addEventListener('click', e => {
+    if (e.target.closest('[data-alert-edit]')) openAlertDialog();
     if (e.target.closest('[data-prefs-edit]')) {
         editingPrefs = true;
         renderPrefs();

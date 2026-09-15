@@ -58,6 +58,18 @@ const savedJobSchema = new mongoose.Schema({
         type: String,
         enum: ['saved', 'applied', 'interview', 'rejected', 'offer'],
         default: 'saved'
+    },
+    // AI help for the application, kept so it isn't rewritten on every visit
+    coverLetter: {
+        subject: String,
+        text: String,
+        language: String,
+        createdAt: Date
+    },
+    // { verdict, keywords, rewrites, gaps, order, language, createdAt }
+    cvTips: {
+        type: mongoose.Schema.Types.Mixed,
+        default: null
     }
 });
 

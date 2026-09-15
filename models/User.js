@@ -47,6 +47,18 @@ const userSchema = new mongoose.Schema({
     },
     // When the feed last fetched openings for those titles
     feedFetchedAt: Date,
+    // Daily email with the top new matches, at `hour` in the user's time zone
+    alert: {
+        enabled: { type: Boolean, default: false },
+        hour: { type: Number, min: 0, max: 23, default: 8 },
+        timeZone: { type: String, default: 'UTC' },
+        // The user's local date of the last run, so a day never gets two emails
+        lastRunDate: String,
+        lastSentAt: Date,
+        lastTestAt: Date
+    },
+    // When the user finished or skipped the product tour
+    tourSeenAt: Date,
     createdAt: {
         type: Date,
         default: Date.now

@@ -23,6 +23,7 @@ app.use((req, res, next) => {
 // Routes before static files so they aren't shadowed. Matching comes before the auth
 // router, whose database middleware it doesn't need.
 app.use('/api', require('./routes/cv'));
+app.use('/api', require('./routes/cron'));
 app.use('/api', require('./routes/auth'));
 app.use('/api/saved-jobs', require('./routes/savedJobs'));
 app.use('/api/me', require('./routes/me'));

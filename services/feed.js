@@ -1,6 +1,7 @@
 // A user's feed: openings for their target titles plus every listing from their searches
 const User = require('../models/User');
 const FeedJob = require('../models/FeedJob');
+const SavedJob = require('../models/SavedJob');
 const { searchJobs, DESCRIPTION_CHARS } = require('./matching');
 
 // JSearch pages per title on each feed refresh (10 listings and one RapidAPI request each)
@@ -14,6 +15,21 @@ const scoreFields = match => ({
   skillsMatch: match.skillsMatch,
   missingSkills: match.missingSkills,
   scoredAt: new Date()
+});
+
+// The job shape the scoring expects, from a stored feed job
+const toScoringJob = job => ({
+  job_id: job.jobId,
+  title: job.title,
+  company: job.company,
+  location: job.location,
+  employment_type: job.employmentType,
+  is_remote: job.isRemote,
+  qualifications: job.qualifications || [],
+  description: job.description || '',
+  link: job.link,
+  posted: job.posted,
+  publisher: job.publisher
 });
 
 // entries: [{ job, query }] in the order they should appear, newest first.
@@ -55,25 +71,59 @@ async function addToFeed(userId, entries, source, matches = []) {
   if (cutoff) await FeedJob.deleteMany({ userId, addedAt: { $lte: cutoff.addedAt } });
 }
 
-// Fetches openings for every target title in parallel. Titles are interleaved,
-// so the top of the feed isn't all one title. Returns how many listings came back.
-async function refreshFeed(user, signal) {
+// Searches every target title in parallel and interleaves the results, so the top isn't all one
+// title. A posting found for two titles (often under two ids, from two boards) is kept once.
+// Throws only when every search failed.
+async function searchTitles(user, filters, signal, pages) {
   const place = user.targetLocation;
   const results = await Promise.allSettled(user.targetTitles.map(title =>
-    searchJobs(place ? `${title} in ${place}` : title, {}, signal, FEED_PAGES)));
+    searchJobs(place ? `${title} in ${place}` : title, filters, signal, pages)));
   const lists = results.map(result => result.status === 'fulfilled' ? result.value : []);
   const failure = results.find(result => result.status === 'rejected');
   if (!lists.some(list => list.length) && failure) throw failure.reason;
 
   const entries = [];
-  for (let i = 0; i < Math.max(...lists.map(list => list.length)); i++) {
+  const seen = new Set();
+  for (let i = 0; i < Math.max(0, ...lists.map(list => list.length)); i++) {
     lists.forEach((list, t) => {
-      if (list[i]) entries.push({ job: list[i], query: user.targetTitles[t] });
+      const job = list[i];
+      if (!job) return;
+      const key = `${job.title}|${job.company}`.toLowerCase().replace(/\s+/g, ' ');
+      if (seen.has(job.job_id) || seen.has(key)) return;
+      seen.add(job.job_id).add(key);
+      entries.push({ job, query: user.targetTitles[t] });
     });
   }
+  return entries;
+}
+
+// Fetches openings for every target title. Returns how many listings came back.
+async function refreshFeed(user, signal) {
+  const entries = await searchTitles(user, {}, signal, FEED_PAGES);
   await addToFeed(user._id, entries, 'feed');
   await User.updateOne({ _id: user._id }, { feedFetchedAt: new Date() });
   return entries.length;
 }
 
-module.exports = { addToFeed, refreshFeed, scoreFields };
+// Stores new scores on feed jobs; saved copies of those jobs without a score pick them up too.
+// Returns the jobs that were scored, with their scores.
+async function saveScores(userId, jobs, matches) {
+  const byJobId = new Map(matches.map(match => [match.jobId, match]));
+  const scored = jobs
+    .filter(job => byJobId.has(job.jobId))
+    .map(job => ({ ...job, ...scoreFields(byJobId.get(job.jobId)) }));
+  if (scored.length) {
+    await Promise.all([
+      FeedJob.bulkWrite(scored.map(job => ({
+        updateOne: { filter: { _id: job._id }, update: { $set: scoreFields(job) } }
+      }))),
+      ...scored.filter(job => job.link).map(job => SavedJob.updateMany(
+        { userId, link: job.link, score: null },
+        { $set: { score: job.score, reasons: job.reasons, skillsMatch: job.skillsMatch, missingSkills: job.missingSkills } }
+      ))
+    ]);
+  }
+  return scored;
+}
+
+module.exports = { addToFeed, refreshFeed, searchTitles, saveScores, toScoringJob };

@@ -30,14 +30,27 @@ fetchSavedJobs()
     })
     .catch(error => console.error(error));
 
+// The tour runs once per account, or again from the Tour link (/app?tour=1)
+const tourRequested = new URLSearchParams(window.location.search).has('tour');
+if (tourRequested) history.replaceState(null, '', '/app');
+
 // The saved CV fills the form, unless the user already started adding one
 fetch('/api/me', { headers: authHeaders() })
     .then(checkSession)
     .then(response => response.ok ? response.json() : null)
     .then(profile => {
-        if (profile && profile.cv && !pdfText && !cvTextInput.value.trim()) useSavedCv(profile.cv);
+        if (!profile) return;
+        if (profile.cv && !pdfText && !cvTextInput.value.trim()) useSavedCv(profile.cv);
+        if (tourRequested || !profile.tourSeen) afterPrompt(startTour);
     })
     .catch(error => console.error(error));
+
+// The tour waits until the sign-up prompt, if it's showing, is closed
+function afterPrompt(run) {
+    const prompt = document.querySelector('dialog.app-dialog[open]');
+    if (prompt) prompt.addEventListener('close', run, { once: true });
+    else run();
+}
 
 // ---------- CV input ----------
 

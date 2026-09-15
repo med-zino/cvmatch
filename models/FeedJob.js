@@ -35,6 +35,8 @@ const feedJobSchema = new mongoose.Schema({
     skillsMatch: [String],
     missingSkills: [String],
     scoredAt: Date,
+    // When the job went out in a daily email, so it's never sent twice
+    alertedAt: Date,
     addedAt: { type: Date, default: Date.now }
 });
 

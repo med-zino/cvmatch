@@ -26,5 +26,11 @@
   ],
   "env": {
     "NODE_ENV": "production"
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/alerts?source=daily",
+      "schedule": "0 6 * * *"
+    }
+  ]
 }

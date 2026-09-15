@@ -1,4 +1,7 @@
 const SavedJob = require('../models/SavedJob');
+const FeedJob = require('../models/FeedJob');
+const User = require('../models/User');
+const { writeCoverLetter, suggestCvChanges } = require('../services/assist');
 
 // Every handler acts on req.userId, set by apiAuth from the session token,
 // so one user can never read or change another user's saved jobs.
@@ -82,4 +85,50 @@ const updateSavedJob = async (req, res) => {
     }
 };
 
-module.exports = { saveJob, getSavedJobs, deleteSavedJob, updateSavedJob };
+const LANGUAGES = ['auto', 'en', 'fr'];
+
+// Writes a cover letter or CV tips for a saved job from the saved CV and the full listing,
+// which comes from the feed (every searched job is kept there). The result is stored on the job.
+const assistSavedJob = async (req, res) => {
+    try {
+        const kind = req.body.kind === 'tips' ? 'tips' : 'letter';
+        const language = LANGUAGES.includes(req.body.language) ? req.body.language : 'auto';
+        const [savedJob, user] = await Promise.all([
+            SavedJob.findOne({ _id: req.params.jobId, userId: req.userId }),
+            User.findById(req.userId).select('cv')
+        ]);
+        if (!savedJob) {
+            return res.status(404).json({ success: false, message: 'Saved job not found' });
+        }
+        if (!user?.cv?.text) {
+            return res.status(400).json({ success: false, code: 'no_cv', message: 'Add your CV first: run one search on Find matches and it’s saved for this.' });
+        }
+
+        const listing = await FeedJob.findOne({ userId: req.userId, link: savedJob.link })
+            .select('title company location description qualifications').lean();
+        // Jobs saved before the feed existed only have what the match found
+        const job = listing?.description ? listing : {
+            title: savedJob.title,
+            company: savedJob.company,
+            qualifications: [...(savedJob.skillsMatch || []), ...(savedJob.missingSkills || [])],
+            description: (savedJob.reasons || []).join(' ')
+        };
+
+        const controller = new AbortController();
+        res.on('close', () => {
+            if (!res.writableEnded) controller.abort();
+        });
+        const written = kind === 'letter'
+            ? await writeCoverLetter(user.cv.text, job, language, controller.signal)
+            : await suggestCvChanges(user.cv.text, job, language, controller.signal);
+        savedJob[kind === 'letter' ? 'coverLetter' : 'cvTips'] = { ...written, language, createdAt: new Date() };
+        await savedJob.save();
+
+        res.json({ success: true, savedJob, fromListing: Boolean(listing?.description) });
+    } catch (error) {
+        console.error('Error writing application help:', error.message);
+        res.status(502).json({ success: false, message: error.message || 'Could not write this right now.' });
+    }
+};
+
+module.exports = { saveJob, getSavedJobs, deleteSavedJob, updateSavedJob, assistSavedJob };

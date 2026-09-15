@@ -1,0 +1,19 @@
+# Daily matches emails. Vercel's free plan only schedules once a day, so this calls the app every
+# hour; each user gets their email in the hour they chose. Needs the repository secret CRON_SECRET
+# (the same value as in Vercel), and optionally the variable APP_URL.
+name: Daily job alerts
+
+on:
+  schedule:
+    - cron: '7 * * * *'
+  workflow_dispatch:
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send the emails that are due
+        run: |
+          curl --fail-with-body --silent --show-error --max-time 300 \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ vars.APP_URL || 'https://cvmatch-xi.vercel.app' }}/api/cron/alerts?source=hourly"
