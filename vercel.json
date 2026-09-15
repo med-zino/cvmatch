@@ -20,7 +20,7 @@
       "dest": "public/$1/$2"
     },
     {
-      "src": "/(api/.*|app|feed|login|register|verify-email|saved-jobs)?",
+      "src": "/(api/.*|app|feed|login|register|verify-email|saved-jobs|privacy|terms|fr|fr/confidentialite|fr/conditions)?/?",
       "dest": "server.js"
     }
   ],

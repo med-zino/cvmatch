@@ -1,8 +1,22 @@
-// Landing page: motion, and the example matches that rotate across professions (all sample data)
+// Landing page: motion, and the example matches that rotate across professions (all sample data).
+// The English page (/) and the French one (/fr) share this script; <html lang> picks the copy.
+const FR = document.documentElement.lang === 'fr';
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const chipsHtml = (items, className = 'chip', offset = 0) =>
     items.map((item, i) => `<span class="${className}" style="--i: ${offset + i}">${item}</span>`).join('');
+
+const COPY = FR ? {
+    skillsFound: count => `${count} compétences trouvées`,
+    showExample: title => `Voir l'exemple ${title}`,
+    writing: 'Rédaction…',
+    pipeline: [['saved', 'Sauvegardé'], ['applied', 'Postulé'], ['interview', 'Entretien'], ['offer', 'Offre']]
+} : {
+    skillsFound: count => `${count} skills found`,
+    showExample: title => `Show the ${title} example`,
+    writing: 'Writing…',
+    pipeline: [['saved', 'Saved'], ['applied', 'Applied'], ['interview', 'Interview'], ['offer', 'Offer']]
+};
 
 // The sticky nav only draws its bottom rule once the page has scrolled
 const nav = document.querySelector('.site-nav');
@@ -34,7 +48,16 @@ function whileVisible(el, onEnter, onLeave) {
 
 // ---------- Hero: one example match per profession, matching the photo order in the HTML ----------
 
-const HERO_EXAMPLES = [
+const HERO_EXAMPLES = FR ? [
+    { label: 'Développeur full-stack · Paris', cv: 'alex-martin-cv.pdf', skillsFound: 18, title: 'Développeur full-stack', company: 'Northwind Labs', city: 'Paris', score: 92,
+      have: ['React', 'TypeScript', 'Node.js', 'PostgreSQL'], gaps: ['GraphQL'], status: ['interview', 'Entretien'], source: 'Welcome to the Jungle' },
+    { label: 'Responsable marketing · Paris', cv: 'camille-roux-cv.pdf', skillsFound: 21, title: 'Responsable marketing', company: 'Maison Verte', city: 'Paris', score: 88,
+      have: ['SEO', 'Stratégie de contenu', 'Google Analytics', 'Campagnes de marque'], gaps: ['Salesforce'], status: ['applied', 'Postulé'], source: 'LinkedIn' },
+    { label: 'Infirmière · Londres', cv: 'amara-okafor-cv.pdf', skillsFound: 16, title: 'Registered Nurse', company: 'Riverside Clinic', city: 'Londres', score: 91,
+      have: ['Soins aux patients', 'Triage', 'Médicaments', 'Soins des plaies'], gaps: ['Réanimation'], status: ['interview', 'Entretien'], source: 'Indeed' },
+    { label: 'UX designer · Berlin', cv: 'jonas-weber-cv.pdf', skillsFound: 19, title: 'UX Designer', company: 'Atelier Nine', city: 'Berlin', score: 84,
+      have: ['Figma', 'Recherche utilisateur', 'Prototypage', 'Design system'], gaps: ['Allemand (B2)'], status: ['offer', 'Offre'], source: 'Jooble' }
+] : [
     { label: 'Full-stack developer · Paris', cv: 'alex-martin-cv.pdf', skillsFound: 18, title: 'Full-Stack Developer', company: 'Northwind Labs', city: 'Paris', score: 92,
       have: ['React', 'TypeScript', 'Node.js', 'PostgreSQL'], gaps: ['GraphQL'], status: ['interview', 'Interview'], source: 'Welcome to the Jungle' },
     { label: 'Marketing manager · Paris', cv: 'camille-roux-cv.pdf', skillsFound: 21, title: 'Marketing Manager', company: 'Maison Verte', city: 'Paris', score: 88,
@@ -53,7 +76,7 @@ let heroIndex = 0;
 
 function renderHeroDots() {
     heroDots.innerHTML = HERO_EXAMPLES.map((example, i) =>
-        `<button type="button" class="${i === heroIndex ? 'is-active' : ''}" aria-pressed="${i === heroIndex}" aria-label="Show the ${example.title} example"></button>`
+        `<button type="button" class="${i === heroIndex ? 'is-active' : ''}" aria-pressed="${i === heroIndex}" aria-label="${COPY.showExample(example.title)}"></button>`
     ).join('');
 }
 
@@ -66,7 +89,7 @@ function showHeroExample(index) {
         const example = HERO_EXAMPLES[index];
         heroPhotos.forEach((img, i) => img.classList.toggle('is-active', i === index));
         heroField('cv').textContent = example.cv;
-        heroField('skillsFound').textContent = `${example.skillsFound} skills found`;
+        heroField('skillsFound').textContent = COPY.skillsFound(example.skillsFound);
         heroField('title').textContent = example.title;
         heroField('place').textContent = `${example.company} · ${example.city}`;
         heroField('have').innerHTML = chipsHtml(example.have);
@@ -139,7 +162,14 @@ if (marquee && !reduceMotion) {
 
 // ---------- How it works: the search field types a different role each time ----------
 
-const SEARCHES = [
+const SEARCHES = FR ? [
+    ['Développeur full-stack', 'Paris'],
+    ['Infirmier', 'Lyon'],
+    ['Responsable marketing', 'Bordeaux'],
+    ['UX designer', 'Nantes'],
+    ['Second de cuisine', 'Lille'],
+    ['Data analyst', 'Toulouse']
+] : [
     ['Full-stack developer', 'Paris'],
     ['Registered nurse', 'London'],
     ['Marketing manager', 'Lyon'],
@@ -171,7 +201,23 @@ async function runSearchDemo() {
 
 // ---------- Explained match: switch profession, and light up each part in turn ----------
 
-const EXPLAIN_EXAMPLES = {
+const EXPLAIN_EXAMPLES = FR ? {
+    nurse: {
+        title: 'Registered Nurse', place: 'Riverside Clinic · Londres', score: 91,
+        have: ['Soins aux patients', 'Triage', 'Administration des médicaments', 'Inscription NMC'], gaps: ['Expérience en réanimation'],
+        why: "Huit ans en médecine aiguë couvrent leur quotidien. Un passage en réanimation est un plus que vous n'avez pas encore."
+    },
+    marketing: {
+        title: 'Responsable marketing', place: 'Maison Verte · Paris', score: 88,
+        have: ['SEO', 'Stratégie de contenu', 'Google Analytics', 'Campagnes de marque'], gaps: ['Salesforce', 'Prospection B2B'],
+        why: "Six ans de campagnes grand public collent à leur objectif de croissance. Ils veulent plus de prospection B2B que votre CV n'en montre."
+    },
+    frontend: {
+        title: 'Développeur front-end', place: 'Atelier Nine · Paris', score: 78,
+        have: ['React', 'TypeScript', 'CSS', 'Tailwind'], gaps: ['Next.js', 'Storybook', "Audits d'accessibilité"],
+        why: "Une base React et TypeScript solide pour un poste très orienté interface. Ils veulent plus d'expérience en design system que votre CV n'en montre."
+    }
+} : {
     nurse: {
         title: 'Registered Nurse', place: 'Riverside Clinic · London', score: 91,
         have: ['Patient care', 'Triage', 'Medication administration', 'NMC registration'], gaps: ['ICU experience'],
@@ -189,11 +235,12 @@ const EXPLAIN_EXAMPLES = {
     }
 };
 
-const explainList = document.querySelector('.explain-list');
+// The autopilot section above also uses an explain list, so find this one by its parts
+const explainRows = [...document.querySelectorAll('[data-part-row]')];
+const explainList = explainRows[0].closest('.explain-list');
 const demoStack = document.querySelector('.demo-stack');
 const roleSwitch = demoStack.querySelector('.role-switch');
 const roleButtons = [...roleSwitch.querySelectorAll('[data-role]')];
-const explainRows = [...document.querySelectorAll('[data-part-row]')];
 const demoField = name => demoStack.querySelector(`[data-demo="${name}"]`);
 let litIndex = 0;
 let explainTimer = null;
@@ -266,7 +313,7 @@ if (!reduceMotion) {
 // ---------- AI help: for each profession the letter writes itself, then the CV tips appear ----------
 
 // Sample letters and tips for the same three jobs as the explained match above (its gaps get covered here)
-const AI_EXAMPLES = {
+const AI_EXAMPLES_EN = {
     nurse: {
         title: 'Registered Nurse', place: 'Riverside Clinic · London', score: 91, language: 'English',
         subject: 'Registered Nurse, Acute Medicine: Amara Okafor',
@@ -304,6 +351,24 @@ const AI_EXAMPLES = {
         gap: ['Storybook', "link the component docs you already wrote; it's the same skill."]
     }
 };
+
+// On the French page the London listing keeps its English letter, to show the language follows the listing
+const AI_EXAMPLES = FR ? {
+    nurse: { ...AI_EXAMPLES_EN.nurse, place: 'Riverside Clinic · Londres', language: 'Anglais' },
+    marketing: { ...AI_EXAMPLES_EN.marketing, title: 'Responsable marketing' },
+    frontend: {
+        title: 'Développeur front-end', place: 'Atelier Nine · Paris', score: 78, language: 'Français',
+        subject: 'Candidature : Développeur front-end, Alex Martin',
+        letter: "Bonjour l'équipe Atelier Nine,\n\nC'est votre travail sur le design system qui m'a donné envie d'écrire. Depuis trois ans, je construis chez Northwind Labs des composants React et TypeScript utilisés par quatre équipes produit.\n\nJ'ai aussi refait notre tunnel de paiement pour les utilisateurs au clavier et de lecteurs d'écran.\n\nJe serais ravi de vous présenter ces composants.\n\nBien à vous,\nAlex Martin",
+        verdict: 'Une base React solide. Montrez davantage votre expérience en design system.',
+        section: 'Expérience · Northwind Labs',
+        before: 'Travail sur des fonctionnalités front-end.',
+        after: 'Conception de plus de 40 composants React et TypeScript pour un design system utilisé par 4 équipes produit.',
+        why: 'Répond à leur besoin en design system, avec un chiffre.',
+        keywords: ['Design system', 'Storybook', 'Accessibilité', 'Next.js'],
+        gap: ['Storybook', "mettez en avant la documentation de composants que vous avez déjà écrite : c'est la même compétence."]
+    }
+} : AI_EXAMPLES_EN;
 
 const aiStack = document.querySelector('.ai-stack');
 if (aiStack) setUpAiDemo();
@@ -357,7 +422,7 @@ function setUpAiDemo() {
 
     function writing(on) {
         generate.disabled = on;
-        generate.innerHTML = on ? '<span class="spinner"></span><span>Writing…</span>' : generateIdle;
+        generate.innerHTML = on ? `<span class="spinner"></span><span>${COPY.writing}</span>` : generateIdle;
     }
 
     // Types the letter two characters at a time, keeping the newest line in view
@@ -448,28 +513,26 @@ function setUpAiDemo() {
     });
 }
 
-// ---------- Tracker: one job keeps moving through the pipeline ----------
+// ---------- Trackers: one job in each list keeps moving through the pipeline ----------
 
-const demoPill = document.querySelector('[data-status-demo]');
-const PIPELINE = [['saved', 'Saved'], ['applied', 'Applied'], ['interview', 'Interview'], ['offer', 'Offer']];
-let pipelineStep = 0;
-let trackerTimer = null;
-
-function advancePipeline() {
-    pipelineStep = (pipelineStep + 1) % PIPELINE.length;
-    const [status, label] = PIPELINE[pipelineStep];
-    demoPill.dataset.status = status;
-    demoPill.textContent = label;
-    demoPill.classList.remove('is-bump');
-    void demoPill.offsetWidth; // restart the bump animation
-    demoPill.classList.add('is-bump');
-}
-
-if (demoPill && !reduceMotion) {
-    whileVisible(demoPill, () => {
-        trackerTimer = trackerTimer || setInterval(advancePipeline, 1800);
-    }, () => {
-        clearInterval(trackerTimer);
-        trackerTimer = null;
+if (!reduceMotion) {
+    document.querySelectorAll('[data-status-demo]').forEach(pill => {
+        let step = 0;
+        let timer = null;
+        const advance = () => {
+            step = (step + 1) % COPY.pipeline.length;
+            const [status, label] = COPY.pipeline[step];
+            pill.dataset.status = status;
+            pill.textContent = label;
+            pill.classList.remove('is-bump');
+            void pill.offsetWidth; // restart the bump animation
+            pill.classList.add('is-bump');
+        };
+        whileVisible(pill, () => {
+            timer = timer || setInterval(advance, 1800);
+        }, () => {
+            clearInterval(timer);
+            timer = null;
+        });
     });
 }
