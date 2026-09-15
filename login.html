@@ -77,6 +77,8 @@
 
         // Keeps the session for the signed-in pages, then opens the app
         function startSession(data) {
+            // A new Google account gets an optional prompt to set up its feed
+            if (data.askPreferences) localStorage.setItem('askFeedPreferences', '1');
             localStorage.setItem('userLoggedIn', 'true');
             localStorage.setItem('userId', data.userId);
             localStorage.setItem('token', data.token);

@@ -153,5 +153,76 @@ async function signOut() {
     window.location.href = '/login';
 }
 
+// After a Google sign-up, an optional prompt to set up the feed. The sign-in pages set the flag
+// when the server says the account is new; it's cleared as soon as the prompt shows.
+function askFeedPreferences() {
+    try {
+        if (localStorage.getItem('askFeedPreferences') !== '1') return;
+        localStorage.removeItem('askFeedPreferences');
+    } catch {
+        return;
+    }
+
+    const dialog = document.createElement('dialog');
+    dialog.className = 'welcome-dialog';
+    dialog.setAttribute('aria-labelledby', 'welcomeTitle');
+    dialog.innerHTML = `
+        <form class="welcome" novalidate>
+            <span class="label">Optional</span>
+            <h2 class="welcome-title" id="welcomeTitle">Want a feed of live openings?</h2>
+            <p class="welcome-text">Tell us the jobs you're after and we'll gather openings for them on your Feed. You can change this any time.</p>
+            <label class="field">
+                <span class="field-label">Job titles</span>
+                <input class="input" name="titles" placeholder="e.g. Registered nurse, Infirmier">
+                <span class="field-hint">Up to 3, separated by commas. Suggestions come in English and French.</span>
+            </label>
+            <label class="field">
+                <span class="field-label">City</span>
+                <input class="input" name="location" placeholder="e.g. Paris" autocomplete="address-level2">
+            </label>
+            <p class="welcome-error" role="alert" hidden></p>
+            <div class="welcome-actions">
+                <button type="button" class="btn btn-secondary" data-skip>Not now</button>
+                <button type="submit" class="btn btn-primary">Build my feed</button>
+            </div>
+        </form>`;
+    document.body.appendChild(dialog);
+
+    const form = dialog.querySelector('form');
+    const error = dialog.querySelector('.welcome-error');
+    attachTitleSuggestions(form.elements.titles, { multiple: true });
+    dialog.querySelector('[data-skip]').addEventListener('click', () => dialog.close());
+    dialog.addEventListener('close', () => dialog.remove());
+
+    form.addEventListener('submit', async e => {
+        e.preventDefault();
+        if (!form.elements.titles.value.trim()) {
+            error.textContent = 'Add at least one job title, or choose Not now.';
+            error.hidden = false;
+            form.elements.titles.focus();
+            return;
+        }
+        const submit = form.querySelector('[type="submit"]');
+        submit.disabled = true;
+        try {
+            const response = checkSession(await fetch('/api/me/preferences', {
+                method: 'PUT',
+                headers: authHeaders(),
+                body: JSON.stringify({ titles: form.elements.titles.value, location: form.elements.location.value })
+            }));
+            if (!response.ok) throw new Error((await response.json()).error || 'Could not save your preferences');
+            // The feed fetches openings for the new titles on arrival
+            window.location.href = '/feed';
+        } catch (err) {
+            submit.disabled = false;
+            error.textContent = err.message;
+            error.hidden = false;
+        }
+    });
+
+    dialog.showModal();
+}
+
 document.querySelectorAll('[data-user-email]').forEach(el => { el.textContent = session.email; });
 document.querySelectorAll('[data-signout]').forEach(el => el.addEventListener('click', signOut));
+askFeedPreferences();

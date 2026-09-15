@@ -12,6 +12,8 @@ const cvNote = document.getElementById('cvSavedNote');
 const filtersToggle = document.getElementById('filtersToggle');
 const filtersPanel = document.getElementById('filtersPanel');
 
+attachTitleSuggestions(form.elements.role);
+
 let cvMode = 'pdf';
 let pdfText = '';
 // The CV's file name ('' for pasted text), saved along with it

@@ -25,14 +25,14 @@ function verificationLinkFor(req, user) {
 }
 
 // 24h session: httpOnly cookie for page loads, token in the body for API calls
-function sendSession(res, user, message) {
+function sendSession(res, user, message, extra = {}) {
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '24h' });
     res.cookie('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         maxAge: 24 * 60 * 60 * 1000
     });
-    res.json({ success: true, message, userId: user._id, email: user.email, token });
+    res.json({ success: true, message, userId: user._id, email: user.email, token, ...extra });
 }
 
 router.post('/register', async (req, res) => {
@@ -178,11 +178,15 @@ router.post('/google', async (req, res) => {
     if (preferences.targetTitles.length && !user.targetTitles.length) {
       Object.assign(user, preferences);
     }
+    const isNewUser = user.isNew;
     if (user.isNew || user.isModified()) {
       await user.save();
     }
 
-    sendSession(res, user, 'Google authentication successful');
+    // A new account without titles gets an optional prompt to set up its feed
+    sendSession(res, user, 'Google authentication successful', {
+      askPreferences: isNewUser && !user.targetTitles.length
+    });
   } catch (error) {
     console.error('Google Login Error:', error);
     res.status(401).json({ error: 'Invalid Google token', details: error.message });

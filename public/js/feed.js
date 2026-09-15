@@ -174,6 +174,7 @@ function renderPrefs() {
                 <button type="submit" class="btn btn-primary">${titles.length ? 'Save' : 'Build my feed'}</button>
             </div>
         </form>`;
+    attachTitleSuggestions(prefsBox.querySelector('[name="titles"]'), { multiple: true });
 }
 
 function renderMore() {

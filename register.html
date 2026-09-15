@@ -78,6 +78,7 @@
     </div>
 
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="/js/title-suggest.js"></script>
     <script>
         const GOOGLE_CLIENT_ID = '1001210903692-505to271nee2u0502j0ko2ftcdn5l9a0.apps.googleusercontent.com';
         const $ = id => document.getElementById(id);
@@ -89,6 +90,8 @@
 
         // Keeps the session for the signed-in pages, then opens the app
         function startSession(data) {
+            // A new Google account gets an optional prompt to set up its feed
+            if (data.askPreferences) localStorage.setItem('askFeedPreferences', '1');
             localStorage.setItem('userLoggedIn', 'true');
             localStorage.setItem('userId', data.userId);
             localStorage.setItem('token', data.token);
@@ -99,6 +102,7 @@
 
         // The optional feed preferences, sent with either way of signing up
         const preferences = () => ({ titles: $('titles').value, location: $('location').value });
+        attachTitleSuggestions($('titles'), { multiple: true });
 
         async function handleGoogleSignIn(response) {
             try {
