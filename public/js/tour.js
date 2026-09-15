@@ -1,21 +1,25 @@
-// A short guided tour of the main features on Find matches: once per account, or again from the Tour link.
-// Each step spotlights part of the page; Escape skips, the arrow keys move between steps.
+// A short guided tour of Find matches: the search, then the feed and daily email below it.
+// Runs once per account, or again from the Tour link. Escape skips, the arrow keys move between steps.
 (function () {
     const formSection = index => () => document.querySelectorAll('.search-card .form-section')[index];
     const STEPS = [
-        { title: 'Welcome to CVMatch', text: 'A 30-second look at what it does for you.' },
+        { title: 'Welcome to CVMatch', text: 'A quick look at what it does for you. It takes about 30 seconds.' },
         { target: formSection(0), title: 'Search any role, anywhere', text: 'Pick a role and a city. We pull live openings from job boards across the web into one list.' },
         { target: formSection(1), title: 'Add your CV once', text: 'Upload or paste it for your first search. It’s saved to your account and used for every score after that.' },
         { target: () => document.getElementById('results'), title: 'Every job, scored', text: 'Each listing comes back with a match score, the skills you have, the gaps, and why. Best match first.' },
-        { target: () => document.querySelector('.nav-tab[href="/feed"]'), title: 'Your feed', text: 'Fresh openings for the job titles you pick, plus every job you’ve searched. Score any of them when you like, and get your top 3 by email every day.' },
+        { target: () => document.querySelector('#feed .page-head'), title: 'Your feed, right below', text: 'Fresh openings for up to 3 job titles you choose, plus every job you’ve searched, in one place. Nothing is scored until you ask.' },
+        { target: () => document.getElementById('alertCard'), title: 'Your daily email', text: 'Switch it on and pick a time. Every day we find new openings, score them against your CV and email you the top 3. Never the same job twice.' },
+        // Centred instead of spotlit when the feed has no jobs yet
+        { target: () => document.querySelector('.feed-card'), title: 'Score on demand', text: 'Press Score on any job in your feed to see how well you fit, or Score all. Save the ones you like.' },
         { target: () => document.querySelector('.nav-tab[href="/saved-jobs"]'), title: 'Saved jobs', text: 'Track each application from Saved to Offer, and get a tailored cover letter and CV tips for any job.' },
-        { title: 'You’re all set', text: 'Start with a search: a role, a city and your CV.' }
+        { title: 'You’re all set', text: 'Start with a search above, then scroll down to your feed.' }
     ];
 
     let root = null;
     let spot;
     let card;
     let index = 0;
+    let resizeObserver;
 
     const setInert = on => document.querySelectorAll('.app-nav, main').forEach(el => { el.inert = on; });
 
@@ -32,9 +36,20 @@
                 <button type="button" class="btn btn-primary btn-sm" data-tour="next">${last ? 'Start searching' : index === 0 ? 'Show me' : 'Next'}</button>
             </div>`;
         const target = step.target && step.target();
-        if (target) target.scrollIntoView({ block: 'center', behavior: 'instant' });
+        if (target) bringIntoView(target);
         place();
         card.querySelector('[data-tour="next"]').focus();
+    }
+
+    // Centred on a large screen; on a phone, just under the navbar so the card at the bottom doesn't cover it
+    function bringIntoView(target) {
+        if (target.closest('.app-nav')) return;
+        const navHeight = document.querySelector('.app-nav').offsetHeight;
+        const rect = target.getBoundingClientRect();
+        const top = window.innerWidth <= 600 || rect.height > window.innerHeight * 0.5
+            ? rect.top + window.scrollY - navHeight - 20
+            : rect.top + window.scrollY - (window.innerHeight - rect.height) / 2;
+        window.scrollTo({ top: Math.max(0, top), behavior: 'instant' });
     }
 
     // The spotlight hugs the target; the card sits below it, or above when there's no room
@@ -62,6 +77,7 @@
         root.remove();
         root = null;
         setInert(false);
+        resizeObserver.disconnect();
         window.removeEventListener('resize', place);
         window.removeEventListener('scroll', place, true);
         document.removeEventListener('keydown', onKey);
@@ -72,7 +88,8 @@
     function go(step) {
         if (step >= STEPS.length) {
             close();
-            document.querySelector('input[name="role"]')?.focus();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            document.querySelector('input[name="role"]')?.focus({ preventScroll: true });
             return;
         }
         index = Math.max(0, step);
@@ -102,6 +119,9 @@
             if (action === 'back') go(index - 1);
             if (action === 'skip') close();
         });
+        // The feed loads while the tour runs, which moves things; the spotlight follows
+        resizeObserver = new ResizeObserver(() => place());
+        resizeObserver.observe(document.body);
         window.addEventListener('resize', place);
         window.addEventListener('scroll', place, true);
         document.addEventListener('keydown', onKey);

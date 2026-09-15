@@ -210,6 +210,7 @@ async function runMatch(body, search) {
     submitButton.disabled = true;
     renderProgress();
     let finished = false;
+    let succeeded = false;
 
     try {
         // Only covers waiting for the stream to start; scoring itself can run longer
@@ -240,7 +241,9 @@ async function runMatch(body, search) {
             buffer = events.pop();
             for (const event of events) {
                 if (event.startsWith('data: ')) {
-                    finished = handleEvent(JSON.parse(event.slice(6)), search, body) || finished;
+                    const data = JSON.parse(event.slice(6));
+                    if (data.status === 'complete') succeeded = true;
+                    finished = handleEvent(data, search, body) || finished;
                 }
             }
         }
@@ -248,6 +251,8 @@ async function runMatch(body, search) {
         if (!finished) {
             renderError('The connection closed before matching finished.');
         }
+        // The stream ends once the search is stored, so the feed below can show it now
+        if (succeeded) document.dispatchEvent(new CustomEvent('search:complete'));
     } catch (error) {
         console.error('Matching failed:', error);
         renderError(error.name === 'AbortError' ? 'The server took too long to respond.' : error.message);
@@ -462,6 +467,7 @@ async function saveMatch(job, button) {
         }
 
         savedLinks.add(job.link);
+        document.dispatchEvent(new CustomEvent('job:saved', { detail: { link: job.link } }));
         button.outerHTML = saveButton(true);
         setSavedCount(savedLinks.size);
         toast('Saved to your shortlist');

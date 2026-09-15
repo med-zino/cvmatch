@@ -75,6 +75,7 @@ router.get('/', async (req, res) => {
                 alert: {
                     enabled: Boolean(user.alert?.enabled),
                     hour: user.alert?.hour ?? 8,
+                    minute: user.alert?.minute ?? 0,
                     timeZone: user.alert?.timeZone || 'UTC'
                 }
             }

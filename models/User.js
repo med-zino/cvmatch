@@ -51,6 +51,8 @@ const userSchema = new mongoose.Schema({
     alert: {
         enabled: { type: Boolean, default: false },
         hour: { type: Number, min: 0, max: 23, default: 8 },
+        // On the quarter hour; the scheduler runs every 15 minutes
+        minute: { type: Number, enum: [0, 15, 30, 45], default: 0 },
         timeZone: { type: String, default: 'UTC' },
         // The user's local date of the last run, so a day never gets two emails
         lastRunDate: String,

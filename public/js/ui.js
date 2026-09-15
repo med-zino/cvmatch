@@ -224,9 +224,15 @@ function askFeedPreferences() {
                 headers: authHeaders(),
                 body: JSON.stringify({ titles: form.elements.titles.value, location: form.elements.location.value })
             }));
-            if (!response.ok) throw new Error((await response.json()).error || 'Could not save your preferences');
-            // The feed fetches openings for the new titles on arrival
-            window.location.href = '/feed';
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Could not save your preferences');
+            // On Find matches the feed below fetches openings for the new titles; elsewhere, go there
+            if (document.getElementById('feed')) {
+                dialog.close();
+                document.dispatchEvent(new CustomEvent('feed:preferences-saved', { detail: data }));
+            } else {
+                window.location.href = '/app#feed';
+            }
         } catch (err) {
             submit.disabled = false;
             error.textContent = err.message;

@@ -1,11 +1,11 @@
 # Daily matches emails. Vercel's free plan only schedules once a day, so this calls the app every
-# hour; each user gets their email in the hour they chose. Needs the repository secret CRON_SECRET
-# (the same value as in Vercel), and optionally the variable APP_URL.
+# 15 minutes; each user gets their email at the quarter hour they chose. Needs the repository secret
+# CRON_SECRET (the same value as in Vercel), and optionally the variable APP_URL.
 name: Daily job alerts
 
 on:
   schedule:
-    - cron: '7 * * * *'
+    - cron: '*/15 * * * *'
   workflow_dispatch:
 
 jobs:

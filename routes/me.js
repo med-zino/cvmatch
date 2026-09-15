@@ -21,6 +21,7 @@ const serverError = (res, action, error) => {
 const alertSettings = alert => ({
     enabled: Boolean(alert?.enabled),
     hour: alert?.hour ?? 8,
+    minute: alert?.minute ?? 0,
     timeZone: alert?.timeZone || 'UTC',
     lastSentAt: alert?.lastSentAt || null
 });
@@ -74,9 +75,13 @@ router.put('/preferences', async (req, res) => {
 router.put('/alert', async (req, res) => {
     try {
         const hour = Number(req.body.hour);
+        const minute = Number(req.body.minute ?? 0);
         const { timeZone } = req.body;
         if (!Number.isInteger(hour) || hour < 0 || hour > 23) {
             return res.status(400).json({ error: 'Choose an hour between 0 and 23.' });
+        }
+        if (![0, 15, 30, 45].includes(minute)) {
+            return res.status(400).json({ error: 'Choose a time on the quarter hour.' });
         }
         if (!validTimeZone(timeZone)) return res.status(400).json({ error: 'Unknown time zone.' });
 
@@ -90,7 +95,7 @@ router.put('/alert', async (req, res) => {
             return res.status(400).json({ error: 'Run one search on Find matches first, so your CV is saved for scoring.' });
         }
 
-        Object.assign(user.alert, { enabled, hour, timeZone });
+        Object.assign(user.alert, { enabled, hour, minute, timeZone });
         await user.save();
         res.json({ alert: alertSettings(user.alert) });
     } catch (error) {

@@ -550,7 +550,7 @@ svg { display: block; flex: none; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); }
 
 /* ---------- Find matches ---------- */
-.match-layout { display: grid; grid-template-columns: 420px minmax(0, 1fr); gap: 32px; align-items: start; padding-bottom: 96px; }
+.match-layout { display: grid; grid-template-columns: 420px minmax(0, 1fr); gap: 32px; align-items: start; padding-bottom: 72px; }
 .search-card { position: sticky; top: 88px; padding: 28px; display: flex; flex-direction: column; gap: 24px; }
 .form-section { display: flex; flex-direction: column; gap: 16px; }
 .disclosure {
@@ -784,9 +784,33 @@ svg { display: block; flex: none; }
 .feed-notice { margin-bottom: 24px; }
 .spinner { width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin 0.7s linear infinite; }
 
-/* ---------- Daily email strip ---------- */
-.prefs + .prefs { margin-top: -12px; }
-.alert-strip > svg { color: var(--muted); }
+/* ---------- Feed, below the search ---------- */
+.feed-section { border-top: 1px solid var(--line); scroll-margin-top: 64px; }
+.feed-section > .page-head { padding-top: 48px; }
+
+/* ---------- Daily email card: inverted so it stands out ---------- */
+.alert-card { margin-bottom: 24px; padding: 24px; display: flex; flex-direction: column; gap: 14px; background: var(--ink); color: var(--paper); border-radius: var(--radius-lg); animation: fade-up 0.5s var(--ease-out) both; }
+.alert-card :focus-visible { outline-color: var(--paper); }
+.alert-card-head { display: flex; align-items: flex-start; gap: 14px; }
+.alert-card-icon { width: 42px; height: 42px; flex: none; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: rgba(247, 247, 245, 0.1); transition: background-color 0.2s, color 0.2s; }
+.alert-card.is-on .alert-card-icon { background: var(--paper); color: var(--ink); }
+.alert-card-heading { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.alert-card .label { color: var(--faint); }
+.alert-card-title { font-family: var(--serif); font-weight: 400; font-size: 30px; line-height: 1.08; letter-spacing: -0.01em; }
+.alert-card-text { max-width: 720px; font-size: 14px; line-height: 1.6; color: var(--line-2); }
+.alert-card-text strong { font-weight: 500; color: var(--paper); }
+.alert-card-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+.alert-time { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.alert-card .select { width: auto; min-width: 116px; background-color: #1D1D1B; border-color: #3B3A38; color: var(--paper); background-image: var(--chevron-light); }
+.alert-card .select option { background: var(--surface); color: var(--ink); }
+.alert-zone { font-size: 12px; color: var(--faint); }
+.alert-card-controls .btn { margin-left: auto; }
+.alert-card .btn-inverse:disabled { opacity: 0.35; }
+.alert-card-status { font-size: 13px; line-height: 1.5; color: var(--line-2); }
+.switch--inverse input { background: #3B3A38; }
+.switch--inverse input:checked { background: var(--paper); }
+.switch--inverse input:checked::after { background: var(--ink); }
+.switch--inverse input:disabled { opacity: 0.35; cursor: not-allowed; }
 
 /* ---------- Saved jobs: cover letter and CV tips ---------- */
 .assist { margin: 0 24px 20px; padding: 18px; display: flex; flex-direction: column; gap: 16px; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; animation: fade-up 0.3s var(--ease-out) both; }
@@ -932,6 +956,10 @@ svg { display: block; flex: none; }
   .assist { margin: 0 16px 16px; padding: 14px; }
   .assist-tabs, .assist-controls { width: 100%; }
   .assist-controls .select { flex: 1; }
+  .feed-section > .page-head { padding-top: 36px; }
+  .alert-card { padding: 20px; }
+  .alert-card-title { font-size: 24px; }
+  .alert-card-controls .btn { width: 100%; margin-left: 0; }
 }
 
 /* Three nav tabs on a phone: text only, each as wide as its label */

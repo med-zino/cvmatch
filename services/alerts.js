@@ -18,18 +18,18 @@ const CONCURRENCY = 3;
 // The daily fallback stands down while the hourly schedule is running
 const HOURLY_ACTIVE_MS = 3 * 60 * 60 * 1000;
 
-// The user's local date and hour, e.g. { date: '2026-09-15', hour: 8 }
+// The user's local date and time of day in minutes, e.g. { date: '2026-09-15', minutes: 450 } at 07:30
 function localTime(timeZone, now = new Date()) {
   let parts;
   try {
     parts = new Intl.DateTimeFormat('en-CA', {
-      timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23'
+      timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
     }).formatToParts(now);
   } catch {
     return localTime('UTC', now);
   }
   const part = type => parts.find(p => p.type === type).value;
-  return { date: `${part('year')}-${part('month')}-${part('day')}`, hour: Number(part('hour')) };
+  return { date: `${part('year')}-${part('month')}-${part('day')}`, minutes: Number(part('hour')) * 60 + Number(part('minute')) };
 }
 
 function validTimeZone(timeZone) {
@@ -69,7 +69,7 @@ async function runAlert(user, { baseUrl, signal }) {
     jobs: top,
     titles: user.targetTitles,
     location: user.targetLocation,
-    feedUrl: `${baseUrl}/feed`,
+    feedUrl: `${baseUrl}/app#feed`,
     unsubscribeUrl: `${baseUrl}/api/alerts/unsubscribe?token=${token}`
   });
   if (!email.success) throw new Error(email.error || email.message || 'The email could not be sent');
@@ -78,8 +78,8 @@ async function runAlert(user, { baseUrl, signal }) {
   return { sent: true, jobs: top.length };
 }
 
-// Called every hour, and once a day as a fallback. Emails every user whose chosen hour has come
-// and who hasn't had today's email; the daily fallback ignores the hour.
+// Called every 15 minutes, and once a day as a fallback. Emails every user whose chosen time has
+// come and who hasn't had today's email; the daily fallback ignores the time.
 async function runDueAlerts({ source, baseUrl }) {
   if (source === 'daily') {
     const state = await SchedulerState.findById('alerts').lean();
@@ -92,8 +92,9 @@ async function runDueAlerts({ source, baseUrl }) {
 
   const users = await User.find({ 'alert.enabled': true }).select('email cv targetTitles targetLocation alert').lean();
   const due = users.filter(user => {
-    const { date, hour } = localTime(user.alert.timeZone);
-    return user.alert.lastRunDate !== date && (source === 'daily' || hour >= user.alert.hour);
+    const { date, minutes } = localTime(user.alert.timeZone);
+    const chosen = user.alert.hour * 60 + (user.alert.minute || 0);
+    return user.alert.lastRunDate !== date && (source === 'daily' || minutes >= chosen);
   });
 
   const started = Date.now();
