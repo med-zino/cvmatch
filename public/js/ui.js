@@ -19,7 +19,9 @@ const ICON_PATHS = {
     note: '<path d="M4 4h16v12l-4 4H4z"/><path d="M16 20v-4h4"/>',
     trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
     alert: '<circle cx="12" cy="12" r="10"/><path d="M12 7v6M12 16.5v.5"/>',
-    file: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/>'
+    file: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/>',
+    feed: '<rect x="4" y="4" width="16" height="6" rx="1.5"/><rect x="4" y="14" width="16" height="6" rx="1.5"/>',
+    gauge: '<path d="M4.5 17a8.5 8.5 0 1 1 15 0"/><path d="m12 13 3.5-4"/>'
 };
 
 function icon(name, size = 16, filled = false) {
@@ -37,6 +39,69 @@ function safeUrl(url) {
 
 function authHeaders() {
     return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.token}` };
+}
+
+// ---------- Shared job rendering (Find matches and Feed) ----------
+
+// The same bands the scoring prompt uses
+function scoreTier(score) {
+    return score >= 85 ? ['strong', 'Strong match']
+        : score >= 70 ? ['good', 'Good match']
+        : score >= 50 ? ['partial', 'Stretch']
+        : ['partial', 'Weak match'];
+}
+
+function scoreBlock(rawScore) {
+    const score = Math.max(0, Math.min(100, Math.round(Number(rawScore) || 0)));
+    const [tier, label] = scoreTier(score);
+    return `
+        <div class="score score--${tier}">
+            <span class="score-value">${score}<small>%</small></span>
+            <span class="score-bar"><span style="width: ${score}%"></span></span>
+            <span class="label">${label}</span>
+        </div>`;
+}
+
+// What the candidate has, the gaps, and the reasons behind a score
+function matchDetails(job) {
+    const chips = (list, className = 'chip') => list && list.length
+        ? `<div class="chips">${list.map(item => `<span class="${className}">${escapeHtml(item)}</span>`).join('')}</div>`
+        : '<span class="muted">None listed</span>';
+    return `
+        <div class="match-skills">
+            <div class="match-group"><span class="label">You have</span>${chips(job.skillsMatch)}</div>
+            <div class="match-group"><span class="label">Gaps</span>${chips(job.missingSkills, 'chip chip-gap')}</div>
+        </div>
+        ${job.reasons && job.reasons.length ? `
+            <div class="match-group">
+                <span class="label">Why this score</span>
+                <ul class="match-why">${job.reasons.map(reason => `<li>${escapeHtml(reason)}</li>`).join('')}</ul>
+            </div>` : ''}`;
+}
+
+// JSearch gives either a date or a relative phrase like "2 days ago"
+function formatPosted(posted) {
+    if (!posted || posted === 'Not specified') return '';
+    const date = new Date(posted);
+    return isNaN(date.getTime()) ? posted : `Posted ${date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`;
+}
+
+function hostname(url) {
+    try {
+        return new URL(url).hostname.replace(/^www\./, '');
+    } catch {
+        return 'listing';
+    }
+}
+
+function timeAgo(value) {
+    const minutes = Math.round((Date.now() - new Date(value).getTime()) / 60000);
+    if (minutes < 1) return 'just now';
+    if (minutes < 60) return `${minutes} min ago`;
+    const hours = Math.round(minutes / 60);
+    if (hours < 24) return `${hours} h ago`;
+    const days = Math.round(hours / 24);
+    return `${days} day${days === 1 ? '' : 's'} ago`;
 }
 
 // An expired or invalid session answers 401: clear it and go back to sign in

@@ -1,4 +1,4 @@
-// Find matches page: CV input (PDF read in the browser, or pasted text), streamed matching, results
+// Find matches page: CV input (the CV saved to the account, a PDF read in the browser, or pasted text), streamed matching, results
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
 
 const form = document.getElementById('matchForm');
@@ -8,11 +8,16 @@ const cvTextInput = document.getElementById('cvText');
 const dropzone = document.getElementById('dropzone');
 const fileInput = document.getElementById('pdfFileInput');
 const fileRow = document.getElementById('fileRow');
+const cvNote = document.getElementById('cvSavedNote');
 const filtersToggle = document.getElementById('filtersToggle');
 const filtersPanel = document.getElementById('filtersPanel');
 
 let cvMode = 'pdf';
 let pdfText = '';
+// The CV's file name ('' for pasted text), saved along with it
+let cvName = '';
+// The CV an earlier search saved to the account
+let savedCv = null;
 let savedLinks = new Set();
 let currentMatches = [];
 
@@ -20,6 +25,15 @@ fetchSavedJobs()
     .then(jobs => {
         savedLinks = new Set(jobs.map(job => job.link));
         setSavedCount(jobs.length);
+    })
+    .catch(error => console.error(error));
+
+// The saved CV fills the form, unless the user already started adding one
+fetch('/api/me', { headers: authHeaders() })
+    .then(checkSession)
+    .then(response => response.ok ? response.json() : null)
+    .then(profile => {
+        if (profile && profile.cv && !pdfText && !cvTextInput.value.trim()) useSavedCv(profile.cv);
     })
     .catch(error => console.error(error));
 
@@ -55,11 +69,56 @@ dropzone.addEventListener('drop', e => {
 fileInput.addEventListener('change', () => {
     if (fileInput.files.length) readPdf(fileInput.files[0]);
 });
-document.getElementById('removeFile').addEventListener('click', () => {
+document.getElementById('removeFile').addEventListener('click', clearFile);
+
+const shortDate = value => new Date(value).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+
+function showFile(name, meta, badge) {
+    document.getElementById('fileName').textContent = name;
+    document.getElementById('fileMeta').textContent = meta;
+    fileRow.querySelector('.file-badge').textContent = badge;
+    dropzone.hidden = true;
+    fileRow.hidden = false;
+}
+
+// Clears the chosen file; a CV saved to the account stays saved
+function clearFile() {
     pdfText = '';
+    cvName = '';
     fileInput.value = '';
     fileRow.hidden = true;
     dropzone.hidden = false;
+}
+
+function useSavedCv(cv) {
+    savedCv = cv;
+    pdfText = cv.text;
+    cvName = cv.name || '';
+    // The text tab shows it too, so it can be corrected
+    cvTextInput.value = cv.text;
+    showFile(cv.name || 'Pasted CV', `Saved CV${cv.updatedAt ? ` · ${shortDate(cv.updatedAt)}` : ''}`, /\.pdf$/i.test(cv.name) ? 'PDF' : 'TXT');
+    renderCvNote();
+}
+
+function renderCvNote() {
+    cvNote.innerHTML = savedCv
+        ? 'Saved to your account, and used to score jobs in your feed. <button type="button" class="link-button" id="deleteCv">Delete saved CV</button>'
+        : 'Your CV is saved to your account after your first search, so you only add it once.';
+}
+
+cvNote.addEventListener('click', async e => {
+    if (!e.target.closest('#deleteCv') || !confirm('Delete the CV saved to your account?')) return;
+    try {
+        const response = checkSession(await fetch('/api/me/cv', { method: 'DELETE', headers: authHeaders() }));
+        if (!response.ok) throw new Error('Could not delete your CV');
+        savedCv = null;
+        clearFile();
+        cvTextInput.value = '';
+        renderCvNote();
+        toast('Saved CV deleted');
+    } catch (error) {
+        toast(error.message);
+    }
 });
 
 // Extracts the PDF's text layer (scanned CVs have none)
@@ -69,12 +128,8 @@ async function readPdf(file) {
         return;
     }
 
+    showFile(file.name, 'Reading…', 'PDF');
     const fileMeta = document.getElementById('fileMeta');
-    document.getElementById('fileName').textContent = file.name;
-    fileMeta.textContent = 'Reading…';
-    dropzone.hidden = true;
-    fileRow.hidden = false;
-
     try {
         const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
         const pages = [];
@@ -83,6 +138,7 @@ async function readPdf(file) {
             pages.push(content.items.map(item => item.str).join(' '));
         }
         pdfText = pages.join('\n\n');
+        cvName = file.name;
         // The text tab shows what was read, so it can be corrected
         cvTextInput.value = pdfText;
         fileMeta.textContent = pdfText.trim()
@@ -91,6 +147,7 @@ async function readPdf(file) {
     } catch (error) {
         console.error('Error reading PDF:', error);
         pdfText = '';
+        cvName = '';
         fileMeta.textContent = 'Could not read this PDF';
     }
 }
@@ -131,7 +188,7 @@ form.addEventListener('submit', e => {
         if (form.elements[name].value) filters[name] = form.elements[name].value;
     });
 
-    runMatch({ query: `${role} in ${city}`, cvText, filters }, { role, city });
+    runMatch({ query: `${role} in ${city}`, cvText, cvName: cvMode === 'pdf' ? cvName : '', filters }, { role, city });
 });
 
 async function runMatch(body, search) {
@@ -168,7 +225,7 @@ async function runMatch(body, search) {
             buffer = events.pop();
             for (const event of events) {
                 if (event.startsWith('data: ')) {
-                    finished = handleEvent(JSON.parse(event.slice(6)), search) || finished;
+                    finished = handleEvent(JSON.parse(event.slice(6)), search, body) || finished;
                 }
             }
         }
@@ -185,7 +242,7 @@ async function runMatch(body, search) {
 }
 
 // Returns true once the run has ended (results or an error)
-function handleEvent(event, search) {
+function handleEvent(event, search, body) {
     switch (event.status) {
         case 'cv_analyzed': {
             // The CV is read while the search runs; the summary can be missing if it failed
@@ -204,6 +261,9 @@ function handleEvent(event, search) {
         }
         case 'complete':
             renderResults(event.result, search);
+            // The server saved this CV to the account
+            savedCv = { text: body.cvText, name: body.cvName, updatedAt: new Date().toISOString() };
+            renderCvNote();
             return true;
         case 'error':
             if ((event.error || '').includes('No job listings found')) {
@@ -302,16 +362,7 @@ function renderResults(result, search) {
 }
 
 function matchCard(job, index) {
-    const score = Math.max(0, Math.min(100, Math.round(Number(job.score) || 0)));
-    // Same bands the scoring prompt uses
-    const [tier, tierLabel] = score >= 85 ? ['strong', 'Strong match']
-        : score >= 70 ? ['good', 'Good match']
-        : score >= 50 ? ['partial', 'Stretch']
-        : ['partial', 'Weak match'];
     const meta = [job.company, formatPosted(job.posted)].filter(Boolean);
-    const chips = (list, className = 'chip') => list && list.length
-        ? `<div class="chips">${list.map(item => `<span class="${className}">${escapeHtml(item)}</span>`).join('')}</div>`
-        : '<span class="muted">None listed</span>';
 
     return `
         <li class="card match-card" style="--i: ${index}">
@@ -321,22 +372,10 @@ function matchCard(job, index) {
                     <h3 class="match-title">${escapeHtml(job.title)}</h3>
                     <p class="match-meta">${meta.map(item => `<span>${escapeHtml(item)}</span>`).join('<span aria-hidden="true">·</span>')}</p>
                 </div>
-                <div class="score score--${tier}">
-                    <span class="score-value">${score}<small>%</small></span>
-                    <span class="score-bar"><span style="width: ${score}%"></span></span>
-                    <span class="label">${tierLabel}</span>
-                </div>
+                ${scoreBlock(job.score)}
             </div>
             <div class="match-body">
-                <div class="match-skills">
-                    <div class="match-group"><span class="label">You have</span>${chips(job.skillsMatch)}</div>
-                    <div class="match-group"><span class="label">Gaps</span>${chips(job.missingSkills, 'chip chip-gap')}</div>
-                </div>
-                ${job.reasons && job.reasons.length ? `
-                    <div class="match-group">
-                        <span class="label">Why this score</span>
-                        <ul class="match-why">${job.reasons.map(reason => `<li>${escapeHtml(reason)}</li>`).join('')}</ul>
-                    </div>` : ''}
+                ${matchDetails(job)}
                 ${job.link ? `
                     <div class="match-foot">
                         <span class="mono match-source">via ${escapeHtml(hostname(job.link))}</span>
@@ -414,20 +453,5 @@ async function saveMatch(job, button) {
     } catch (error) {
         button.disabled = false;
         toast(error.message);
-    }
-}
-
-// JSearch gives either a date or a relative phrase like "2 days ago"
-function formatPosted(posted) {
-    if (!posted || posted === 'Not specified') return '';
-    const date = new Date(posted);
-    return isNaN(date.getTime()) ? posted : `Posted ${date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`;
-}
-
-function hostname(url) {
-    try {
-        return new URL(url).hostname.replace(/^www\./, '');
-    } catch {
-        return 'listing';
     }
 }

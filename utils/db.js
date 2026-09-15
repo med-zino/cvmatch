@@ -36,4 +36,15 @@ async function connectToDatabase() {
   return cached.conn;
 }
 
-module.exports = { connectToDatabase };
+// For routes that use the database: the first request after a cold start waits for the connection
+async function requireDb(req, res, next) {
+  try {
+    await connectToDatabase();
+    next();
+  } catch (err) {
+    console.error('Database connection error:', err.message);
+    res.status(500).json({ error: 'Database connection error' });
+  }
+}
+
+module.exports = { connectToDatabase, requireDb };

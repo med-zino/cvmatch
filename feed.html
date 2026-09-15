@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Saved jobs — CVMatch</title>
+    <title>Feed — CVMatch</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%230E0E0D'/%3E%3Cpath d='M7 8h7M7 12h4M12.5 15.5l2 2 3.5-4' fill='none' stroke='%23F7F7F5' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,11 +21,11 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
                 <span>Find matches</span>
             </a>
-            <a class="nav-tab" href="/feed">
+            <a class="nav-tab" href="/feed" aria-current="page">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="6" rx="1.5"/><rect x="4" y="14" width="16" height="6" rx="1.5"/></svg>
                 <span>Feed</span>
             </a>
-            <a class="nav-tab" href="/saved-jobs" aria-current="page">
+            <a class="nav-tab" href="/saved-jobs">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg>
                 <span>Saved jobs</span>
                 <span class="nav-count" data-saved-count hidden></span>
@@ -43,37 +43,33 @@
     <main class="container">
         <div class="page-head">
             <div>
-                <h1 class="page-title">Saved jobs</h1>
-                <p class="page-sub" id="savedSubtitle">Loading your shortlist…</p>
+                <h1 class="page-title">Your feed</h1>
+                <p class="page-sub" id="feedSubtitle">Loading your feed…</p>
             </div>
-            <a class="btn btn-secondary" href="/app">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
-                <span>Back to matching</span>
-            </a>
+            <div class="feed-head-actions">
+                <span class="mono feed-updated" id="feedUpdated"></span>
+                <button type="button" class="btn btn-secondary" id="refreshFeed" hidden>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.9-3.9L4 8.5M4 4v4.5h4.5M4 13a8 8 0 0 0 14.9 3.9l1.1-1.4M20 20v-4.5h-4.5"/></svg>
+                    <span>Refresh</span>
+                </button>
+            </div>
         </div>
 
-        <div class="saved-tools" id="savedTools" hidden>
-            <div class="status-tabs" id="statusTabs" role="tablist" aria-label="Filter by status"></div>
+        <div id="prefs"></div>
+
+        <div class="feed-tools" id="feedTools" hidden>
+            <div class="status-tabs" id="sourceTabs" role="tablist" aria-label="Filter the feed"></div>
             <div class="tools">
-                <label class="search">
-                    <span class="visually-hidden">Search saved jobs</span>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-                    <input class="input input-sm" id="searchJobs" type="search" placeholder="Search title or company">
-                </label>
-                <select class="select select-sm" id="sortBy" aria-label="Sort saved jobs">
-                    <option value="newest">Newest first</option>
-                    <option value="score">Best match</option>
-                    <option value="company">Company A–Z</option>
-                </select>
+                <button type="button" class="btn btn-primary btn-sm" id="scoreAll" hidden></button>
             </div>
         </div>
 
-        <div class="saved-list" id="savedList">
-            <div class="empty empty--compact"><p class="empty-text">Loading…</p></div>
-        </div>
+        <div id="feedNotice"></div>
+        <ol class="feed-list" id="feedList"></ol>
+        <div class="feed-more" id="feedMore"></div>
     </main>
 
     <script src="/js/ui.js"></script>
-    <script src="/js/saved.js"></script>
+    <script src="/js/feed.js"></script>
 </body>
 </html>

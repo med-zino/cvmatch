@@ -11,19 +11,20 @@ const serverError = (res, action, error) => {
 const saveJob = async (req, res) => {
     try {
         const { title, company, link, score, posted, skillsMatch, missingSkills, reasons } = req.body;
-        if (!title || !company || !link || score === undefined) {
+        if (!title || !link) {
             return res.status(400).json({
                 success: false,
-                message: 'Missing required fields: title, company, link, and score are required'
+                message: 'Missing required fields: title and link are required'
             });
         }
 
+        // Feed jobs can be saved before they're scored
         const savedJob = await SavedJob.create({
             userId: req.userId,
             title,
-            company,
+            company: company || '',
             link,
-            score,
+            score: score ?? null,
             posted: posted || 'Not specified',
             skillsMatch: skillsMatch || [],
             missingSkills: missingSkills || [],

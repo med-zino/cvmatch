@@ -3,7 +3,8 @@ const STATUSES = ['saved', 'applied', 'interview', 'offer', 'rejected'];
 const STATUS_LABELS = { saved: 'Saved', applied: 'Applied', interview: 'Interview', offer: 'Offer', rejected: 'Rejected' };
 const SORTERS = {
     newest: (a, b) => new Date(b.savedAt) - new Date(a.savedAt),
-    score: (a, b) => b.score - a.score,
+    // Jobs saved from the feed before scoring have no score and go last
+    score: (a, b) => (b.score ?? -1) - (a.score ?? -1),
     company: (a, b) => a.company.localeCompare(b.company)
 };
 
@@ -90,7 +91,8 @@ function renderList() {
 }
 
 function jobRow(job, index) {
-    const tier = job.score >= 85 ? 'strong' : job.score >= 70 ? 'good' : 'partial';
+    const scored = typeof job.score === 'number';
+    const tier = scored ? scoreTier(job.score)[0] : 'partial';
     const noteOpen = openNoteId === job._id;
     const title = escapeHtml(job.title);
 
@@ -98,7 +100,9 @@ function jobRow(job, index) {
         <div class="job-row" data-id="${job._id}" style="--i: ${index}">
             <div class="row">
                 <div class="row-main"><span class="row-title">${title}</span><span class="row-sub">${escapeHtml(job.company)}</span></div>
-                <div class="mini-score score--${tier}"><span class="mono">${job.score}</span><span class="score-bar"><span style="width: ${job.score}%"></span></span></div>
+                <div class="mini-score score--${tier}">${scored
+                    ? `<span class="mono">${job.score}</span><span class="score-bar"><span style="width: ${job.score}%"></span></span>`
+                    : '<span class="mono muted">—</span><span class="row-sub">Not scored</span>'}</div>
                 <div>
                     <select class="status-select" data-action="status" data-status="${job.status}" aria-label="Status for ${title}">
                         ${STATUSES.map(status => `<option value="${status}"${status === job.status ? ' selected' : ''}>${STATUS_LABELS[status]}</option>`).join('')}

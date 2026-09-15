@@ -14,19 +14,20 @@ const savedJobSchema = new mongoose.Schema({
     },
     company: {
         type: String,
-        required: true,
-        trim: true
+        trim: true,
+        default: ''
     },
     link: {
         type: String,
         required: true,
         trim: true
     },
+    // Empty for feed jobs saved before they were scored
     score: {
         type: Number,
-        required: true,
         min: 0,
-        max: 100
+        max: 100,
+        default: null
     },
     posted: {
         type: String,

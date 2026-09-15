@@ -25,6 +25,8 @@ app.use((req, res, next) => {
 app.use('/api', require('./routes/cv'));
 app.use('/api', require('./routes/auth'));
 app.use('/api/saved-jobs', require('./routes/savedJobs'));
+app.use('/api/me', require('./routes/me'));
+app.use('/api/feed', require('./routes/feed'));
 app.use('/', require('./routes/pages'));
 app.use(express.static('public'));
 

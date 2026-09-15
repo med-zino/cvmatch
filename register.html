@@ -51,6 +51,21 @@
                             <span class="field-label">Confirm password</span>
                             <input class="input" type="password" id="confirm-password" autocomplete="new-password" required>
                         </label>
+                        <div class="optional-fields">
+                            <div class="optional-head">
+                                <span class="label">Optional</span>
+                                <p>Tell us what you're after and your feed fills with live openings.</p>
+                            </div>
+                            <label class="field">
+                                <span class="field-label">Job titles</span>
+                                <input class="input" type="text" id="titles" autocomplete="organization-title" placeholder="e.g. Registered nurse, Midwife">
+                                <span class="field-hint">Up to 3, separated by commas.</span>
+                            </label>
+                            <label class="field">
+                                <span class="field-label">City</span>
+                                <input class="input" type="text" id="location" autocomplete="address-level2" placeholder="e.g. London">
+                            </label>
+                        </div>
                         <div id="error-message" class="notice notice-error" role="alert" hidden></div>
                         <div id="success-message" class="notice notice-success" hidden>Account created. Check your inbox for the verification link (and your spam folder if it isn't there) — taking you to sign in…</div>
                         <button type="submit" class="btn btn-primary btn-block">Create account</button>
@@ -82,12 +97,15 @@
             window.location.href = '/app';
         }
 
+        // The optional feed preferences, sent with either way of signing up
+        const preferences = () => ({ titles: $('titles').value, location: $('location').value });
+
         async function handleGoogleSignIn(response) {
             try {
                 const res = await fetch('/api/google', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ idToken: response.credential })
+                    body: JSON.stringify({ idToken: response.credential, ...preferences() })
                 });
                 const data = await res.json();
                 if (data.success) {
@@ -116,7 +134,7 @@
                 const res = await fetch('/api/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
+                    body: JSON.stringify({ email, password, ...preferences() })
                 });
                 const data = await res.json();
 

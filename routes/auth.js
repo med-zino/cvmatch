@@ -5,24 +5,17 @@ const crypto = require('crypto');
 const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 const { sendVerificationEmail } = require('../utils/emailService');
-const { connectToDatabase } = require('../utils/db');
+const { requireDb } = require('../utils/db');
 const { JWT_SECRET } = require('../middleware/auth');
+const { cleanPreferences } = require('../utils/preferences');
 
 const router = express.Router();
 
 const GOOGLE_CLIENT_ID = '1001210903692-505to271nee2u0502j0ko2ftcdn5l9a0.apps.googleusercontent.com';
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
-// Ensure DB connection for all routes in this router (important on Vercel cold starts)
-router.use(async (req, res, next) => {
-  try {
-    await connectToDatabase();
-    next();
-  } catch (err) {
-    console.error('Database connection error in auth router:', err);
-    res.status(500).json({ error: 'Database connection error' });
-  }
-});
+// Every route here uses the database (important on Vercel cold starts)
+router.use(requireDb);
 
 // Verification links last a week; they point back at APP_URL, or else the domain that served the request
 function verificationLinkFor(req, user) {
@@ -50,10 +43,12 @@ router.post('/register', async (req, res) => {
             return res.status(400).json({ error: 'User already exists' });
         }
 
+        // Optional job titles and city from the form start the user's feed
         const user = new User({
             email,
             password: await bcrypt.hash(password, 10),
-            verified: false
+            verified: false,
+            ...cleanPreferences(req.body)
         });
         await user.save();
 
@@ -176,6 +171,14 @@ router.post('/google', async (req, res) => {
           verified: true
         });
       }
+    }
+
+    // Titles typed on the sign-up page before choosing Google fill an empty feed profile
+    const preferences = cleanPreferences(req.body);
+    if (preferences.targetTitles.length && !user.targetTitles.length) {
+      Object.assign(user, preferences);
+    }
+    if (user.isNew || user.isModified()) {
       await user.save();
     }
 
