@@ -158,6 +158,148 @@ async function signOut() {
     window.location.href = '/login';
 }
 
+// ---------- AI help: cover letter and CV tips (search results, feed and saved jobs) ----------
+
+const ASSIST_LANGUAGES = [['auto', 'Listing’s language'], ['en', 'English'], ['fr', 'Français']];
+// Per panel: which tab is showing, its language, and whether it's being written
+const assistStates = new Map();
+
+function assistState(key) {
+    if (!assistStates.has(key)) assistStates.set(key, { tab: 'letter', language: 'auto', loading: false, error: '' });
+    return assistStates.get(key);
+}
+
+function dayMonth(value) {
+    return new Date(value).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+}
+
+// The button that opens a job's AI panel
+function assistToggle(open) {
+    return `<button type="button" class="btn btn-secondary" data-assist-toggle aria-expanded="${open}">${icon('sparkle')}<span>AI help</span></button>`;
+}
+
+// job carries whatever was already written for it: { coverLetter, cvTips }
+function assistPanel(key, job) {
+    const state = assistState(key);
+    const letter = job.coverLetter && job.coverLetter.text ? job.coverLetter : null;
+    const tips = job.cvTips && job.cvTips.verdict ? job.cvTips : null;
+    const result = state.tab === 'letter' ? letter : tips;
+
+    const body = state.loading && !result
+        ? `<div class="skeleton-card" aria-hidden="true">
+                <div class="skeleton" style="width: 40%; height: 14px;"></div>
+                <div class="skeleton" style="width: 95%;"></div>
+                <div class="skeleton" style="width: 88%;"></div>
+                <div class="skeleton" style="width: 70%;"></div>
+            </div>`
+        : result
+            ? (state.tab === 'letter' ? letterView(result) : tipsView(result))
+            : `<p class="assist-empty">${state.tab === 'letter'
+                ? 'A cover letter for this job, written from your saved CV and the listing. It only uses what your CV says.'
+                : 'Specific edits that make your CV fit this listing, without claiming anything you haven’t done.'}</p>`;
+
+    return `
+        <div class="assist" data-assist-key="${escapeHtml(key)}">
+            <div class="assist-head">
+                <div class="segmented assist-tabs" role="tablist" aria-label="Help with this application">
+                    <button type="button" role="tab" data-assist="tab" data-tab="letter" aria-selected="${state.tab === 'letter'}">Cover letter</button>
+                    <button type="button" role="tab" data-assist="tab" data-tab="tips" aria-selected="${state.tab === 'tips'}">CV tips</button>
+                </div>
+                <div class="assist-controls">
+                    <select class="select select-sm" data-assist-language aria-label="Language">
+                        ${ASSIST_LANGUAGES.map(([value, label]) => `<option value="${value}"${value === state.language ? ' selected' : ''}>${label}</option>`).join('')}
+                    </select>
+                    <button type="button" class="btn btn-primary btn-sm" data-assist="generate"${state.loading ? ' disabled' : ''}>
+                        ${state.loading ? '<span class="spinner"></span><span>Writing…</span>' : `${icon('sparkle', 15)}<span>${result ? 'Regenerate' : 'Generate'}</span>`}
+                    </button>
+                </div>
+            </div>
+            ${state.error ? `<p class="assist-error" role="alert">${escapeHtml(state.error)}</p>` : ''}
+            <div class="assist-body">${body}</div>
+        </div>`;
+}
+
+function letterView(letter) {
+    return `
+        <div class="assist-subject"><span class="label">Subject</span><span>${escapeHtml(letter.subject)}</span></div>
+        <textarea class="textarea assist-text" aria-label="Cover letter">${escapeHtml(letter.text)}</textarea>
+        <div class="assist-foot">
+            <span class="mono muted">Written ${dayMonth(letter.createdAt)} · edit it here, then copy</span>
+            <button type="button" class="btn btn-secondary btn-sm" data-assist="copy">${icon('copy', 15)}<span>Copy</span></button>
+        </div>`;
+}
+
+function tipsView(tips) {
+    const group = (label, content) => content ? `<div class="match-group"><span class="label">${label}</span>${content}</div>` : '';
+    const keywords = tips.keywords || [];
+    const rewrites = tips.rewrites || [];
+    const gaps = tips.gaps || [];
+    const order = tips.order || [];
+    return `
+        <div class="assist-tips">
+            <p class="assist-verdict">${escapeHtml(tips.verdict)}</p>
+            ${group('Use these words, where they’re true', keywords.length && `<div class="chips">${keywords.map(word => `<span class="chip">${escapeHtml(word)}</span>`).join('')}</div>`)}
+            ${group('Rewrite', rewrites.length && `<ol class="rewrites">${rewrites.map(edit => `
+                <li class="rewrite">
+                    <span class="label">${escapeHtml(edit.section)}</span>
+                    ${edit.before ? `<p class="rewrite-before">${escapeHtml(edit.before)}</p>` : ''}
+                    <p class="rewrite-after">${escapeHtml(edit.after)}</p>
+                    <p class="rewrite-why">${escapeHtml(edit.why)}</p>
+                </li>`).join('')}</ol>`)}
+            ${group('Gaps to address', gaps.length && `<ul class="match-why">${gaps.map(gap => `<li><strong>${escapeHtml(gap.requirement)}:</strong> ${escapeHtml(gap.advice)}</li>`).join('')}</ul>`)}
+            ${group('Structure', order.length && `<ul class="match-why">${order.map(tip => `<li>${escapeHtml(tip)}</li>`).join('')}</ul>`)}
+            <span class="mono muted assist-date">Written ${dayMonth(tips.createdAt)}</span>
+        </div>`;
+}
+
+// Wires every AI panel inside `container`. job(key) is the object whose coverLetter and cvTips the
+// panel shows, request(key) says where to ask ({ url, body }), and render(key) redraws that panel.
+function wireAssist(container, { job, request, render }) {
+    container.addEventListener('click', async e => {
+        const button = e.target.closest('[data-assist]');
+        if (!button) return;
+        const key = button.closest('[data-assist-key]').dataset.assistKey;
+        const state = assistState(key);
+
+        if (button.dataset.assist === 'tab') {
+            state.tab = button.dataset.tab;
+            render(key);
+        }
+        if (button.dataset.assist === 'copy') {
+            // Copies the letter as edited in the box
+            const text = button.closest('.assist').querySelector('.assist-text').value;
+            navigator.clipboard.writeText(text).then(() => toast('Copied'), () => toast('Could not copy; select the text instead'));
+        }
+        if (button.dataset.assist === 'generate') {
+            state.loading = true;
+            state.error = '';
+            render(key);
+            try {
+                const { url, body = {} } = request(key);
+                const response = checkSession(await fetch(url, {
+                    method: 'POST',
+                    headers: authHeaders(),
+                    body: JSON.stringify({ ...body, kind: state.tab, language: state.language })
+                }));
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.message || data.error || 'Could not write this right now');
+                const written = data.savedJob || data;
+                Object.assign(job(key), { coverLetter: written.coverLetter, cvTips: written.cvTips });
+                if (data.fromListing === false) toast('The full listing wasn’t available, so this uses the job title and skills');
+            } catch (error) {
+                state.error = error.message;
+            } finally {
+                state.loading = false;
+                render(key);
+            }
+        }
+    });
+    container.addEventListener('change', e => {
+        const select = e.target.closest('[data-assist-language]');
+        if (select) assistState(select.closest('[data-assist-key]').dataset.assistKey).language = select.value;
+    });
+}
+
 // ---------- Dialogs ----------
 
 // A modal built from HTML, removed from the page once it closes

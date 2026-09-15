@@ -18,6 +18,9 @@ const SCORING_CONCURRENCY = 4;
 const DESCRIPTION_CHARS = 6000;
 // JSearch pages usually take 5-20s, but one can hang much longer
 const JSEARCH_TIMEOUT = 45000;
+// When a page is slow, a second try starts after this and the first answer wins (see fetchJobPage)
+const HEDGE_AFTER_MS = Number(process.env.JSEARCH_HEDGE_MS) || 8000;
+const PAGE_ATTEMPTS = Number(process.env.JSEARCH_ATTEMPTS) || 2;
 const PAGE_GRACE = 8000;
 // The same search within 30 minutes reuses its listings: RapidAPI's free plan is 200 requests a month
 const SEARCH_CACHE_MS = 30 * 60 * 1000;
@@ -140,21 +143,96 @@ ${cvText}
 
 // ---------- Job search ----------
 
-async function fetchJobPage(params, page, signal) {
+// One or more RapidAPI keys: RAPIDAPI_KEYS (comma-separated) or RAPIDAPI_KEY. Pages are spread across
+// them, and a key that runs out of quota rests for a while so requests go to the others.
+const KEY_REST_MS = 10 * 60 * 1000;
+const restingKeys = new Map();
+const rapidApiKeys = () => (process.env.RAPIDAPI_KEYS || process.env.RAPIDAPI_KEY || '')
+  .split(',').map(key => key.trim()).filter(Boolean);
+
+function pickKey(offset) {
+  const keys = rapidApiKeys();
+  const ready = keys.filter(key => !(restingKeys.get(key) > Date.now()));
+  const pool = ready.length ? ready : keys;
+  return pool[offset % pool.length];
+}
+
+async function requestJobPage(params, page, key, signal) {
   const url = new URL('https://jsearch.p.rapidapi.com/search');
   Object.entries({ ...params, page, num_pages: 1 }).forEach(([name, value]) => url.searchParams.set(name, value));
 
   const response = await fetch(url, {
-    headers: { 'x-rapidapi-key': process.env.RAPIDAPI_KEY, 'x-rapidapi-host': 'jsearch.p.rapidapi.com' },
+    headers: { 'x-rapidapi-key': key, 'x-rapidapi-host': 'jsearch.p.rapidapi.com' },
     signal: AbortSignal.any([signal, AbortSignal.timeout(JSEARCH_TIMEOUT)])
   });
   if (!response.ok) {
+    // Over quota or not subscribed: the other keys take over for a while
+    if (response.status === 429 || response.status === 403) restingKeys.set(key, Date.now() + KEY_REST_MS);
     throw new Error(response.status === 429 ? 'The job search service is over its request limit. Try again later.' : `Job search failed (${response.status})`);
   }
   return (await response.json()).data || [];
 }
 
-async function searchJobs(query, filters, signal, pages = JOB_PAGES) {
+// One page, raced. The same JSearch request can take 5s or 40s, so when a try is slow a second one
+// starts after HEDGE_AFTER_MS (with the next key, if there are several) and the first answer wins;
+// the other is cancelled. A failed try hands over at once. At most PAGE_ATTEMPTS tries per page.
+function fetchJobPage(params, page, signal) {
+  return new Promise((resolve, reject) => {
+    const tries = [];
+    let settled = false;
+    let failures = 0;
+    let hedge;
+    const settle = (finish, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(hedge);
+      tries.forEach(controller => controller.abort());
+      finish(value);
+    };
+    const launch = () => {
+      if (settled || tries.length >= PAGE_ATTEMPTS) return;
+      const controller = new AbortController();
+      const key = pickKey(page - 1 + tries.length);
+      tries.push(controller);
+      clearTimeout(hedge);
+      hedge = setTimeout(launch, HEDGE_AFTER_MS);
+      requestJobPage(params, page, key, AbortSignal.any([signal, controller.signal])).then(
+        jobs => settle(resolve, jobs),
+        error => {
+          if (settled) return;
+          failures++;
+          if (signal.aborted) settle(reject, error);
+          else if (tries.length < PAGE_ATTEMPTS) launch();
+          else if (failures === tries.length) settle(reject, error);
+        }
+      );
+    };
+    if (signal.aborted) return reject(signal.reason);
+    signal.addEventListener('abort', () => settle(reject, signal.reason), { once: true });
+    launch();
+  });
+}
+
+// A JSearch listing in the app's job shape. Another job API would only need its own version of
+// this to feed the same pipeline.
+const fromJSearch = job => ({
+  job_id: job.job_id || '',
+  title: job.job_title || '',
+  company: job.employer_name || '',
+  location: [job.job_city, job.job_country].filter(Boolean).join(', '),
+  posted: job.job_posted_at_datetime_utc || job.job_posted_at || '',
+  link: job.job_apply_link || '',
+  publisher: job.job_publisher || '',
+  employment_type: job.job_employment_type || '',
+  is_remote: Boolean(job.job_is_remote),
+  qualifications: job.job_highlights?.Qualifications || [],
+  description: job.job_description || ''
+});
+
+// Fetches the pages in parallel and hands each page's new listings to onJobs as it arrives, so they
+// can be scored while slower pages load. Once one page has listings, the others get PAGE_GRACE to
+// catch up, then the stragglers are cancelled. Resolves with every listing kept.
+async function searchJobs(query, filters, signal, pages = JOB_PAGES, onJobs = () => {}) {
   const params = { query, country: countryFor(query), date_posted: filters.date_posted || 'all' };
   if (filters.work_from_home === 'true' || filters.work_from_home === 'false') params.work_from_home = filters.work_from_home;
   if (filters.job_requirements) params.job_requirements = filters.job_requirements;
@@ -162,53 +240,48 @@ async function searchJobs(query, filters, signal, pages = JOB_PAGES) {
 
   const cacheKey = JSON.stringify({ ...params, pages });
   const cached = searchCache.get(cacheKey);
-  if (cached && Date.now() - cached.at < SEARCH_CACHE_MS) return cached.jobs;
+  if (cached && Date.now() - cached.at < SEARCH_CACHE_MS) {
+    onJobs(cached.jobs);
+    return cached.jobs;
+  }
 
-  // Pages come back independently and some hang far longer than the rest: once one page has
-  // listings, the others get PAGE_GRACE to catch up, then the stragglers are cancelled
   const stragglers = new AbortController();
   const pageSignal = AbortSignal.any([signal, stragglers.signal]);
-  const results = [];
+  const seen = new Set();
+  const jobs = [];
+  let closed = false;
   let failure;
+  // Boards often repost the same job; the first listing of it is kept
+  const accept = listings => {
+    if (closed) return;
+    const fresh = listings
+      .filter(job => {
+        const key = normalize(`${job.job_title}|${job.employer_name}|${job.job_city}`);
+        if ((job.job_id && seen.has(job.job_id)) || seen.has(key)) return false;
+        seen.add(job.job_id).add(key);
+        return true;
+      })
+      .map(fromJSearch);
+    jobs.push(...fresh);
+    if (fresh.length) onJobs(fresh);
+  };
+
   const requests = Array.from({ length: pages }, (_, i) => fetchJobPage(params, i + 1, pageSignal).then(
-    jobs => { results[i] = jobs; },
+    accept,
     error => { failure = failure || error; }
   ));
   await new Promise(resolve => {
-    requests.forEach((request, i) => request.then(() => { if (results[i]?.length) resolve(); }));
+    requests.forEach(request => request.then(() => { if (jobs.length) resolve(); }));
     Promise.all(requests).then(resolve);
   });
   await Promise.race([Promise.all(requests), new Promise(resolve => setTimeout(resolve, PAGE_GRACE))]);
+  closed = true;
   stragglers.abort();
 
-  const listings = results.flatMap(jobs => jobs || []);
-  if (!listings.length && failure) {
+  if (!jobs.length && failure) {
     if (signal.aborted) throw failure;
     throw failure.name === 'TimeoutError' ? new Error('The job search took too long to answer. Try again.') : failure;
   }
-
-  // Boards often repost the same job; keep its first listing
-  const seen = new Set();
-  const jobs = listings
-    .filter(job => {
-      const key = normalize(`${job.job_title}|${job.employer_name}|${job.job_city}`);
-      if ((job.job_id && seen.has(job.job_id)) || seen.has(key)) return false;
-      seen.add(job.job_id).add(key);
-      return true;
-    })
-    .map(job => ({
-      job_id: job.job_id || '',
-      title: job.job_title || '',
-      company: job.employer_name || '',
-      location: [job.job_city, job.job_country].filter(Boolean).join(', '),
-      posted: job.job_posted_at_datetime_utc || job.job_posted_at || '',
-      link: job.job_apply_link || '',
-      publisher: job.job_publisher || '',
-      employment_type: job.job_employment_type || '',
-      is_remote: Boolean(job.job_is_remote),
-      qualifications: job.job_highlights?.Qualifications || [],
-      description: job.job_description || ''
-    }));
 
   if (jobs.length) {
     if (searchCache.size >= 100) searchCache.delete(searchCache.keys().next().value);
@@ -315,7 +388,7 @@ async function eachLimited(items, limit, fn) {
   }));
 }
 
-// Scores jobs in parallel batches; onBatch(matches, processed) runs as each batch finishes.
+// Scores jobs in parallel batches; onBatch(matches, processed, batchSize) runs as each batch finishes.
 // A failed batch is left out; if every batch fails, the last error is thrown.
 async function scoreJobs(cvText, jobs, signal, onBatch = () => {}) {
   const batches = [];
@@ -335,7 +408,7 @@ async function scoreJobs(cvText, jobs, signal, onBatch = () => {}) {
       console.error('Scoring batch failed:', error.message);
     }
     processed += batch.length;
-    onBatch(scored, processed);
+    onBatch(scored, processed, batch.length);
   });
 
   if (!matches.length && lastError) throw lastError;

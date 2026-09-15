@@ -37,6 +37,17 @@ const feedJobSchema = new mongoose.Schema({
     scoredAt: Date,
     // When the job went out in a daily email, so it's never sent twice
     alertedAt: Date,
+    // AI help written for this job from the results or the feed (copied along when it's saved)
+    coverLetter: {
+        subject: String,
+        text: String,
+        language: String,
+        createdAt: Date
+    },
+    cvTips: {
+        type: mongoose.Schema.Types.Mixed,
+        default: null
+    },
     addedAt: { type: Date, default: Date.now }
 });
 

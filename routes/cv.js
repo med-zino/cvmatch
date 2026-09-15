@@ -7,9 +7,9 @@ const { addToFeed } = require('../services/feed');
 
 const router = express.Router();
 
-// Streams progress as server-sent events. The CV summary and the job search run side by side;
-// scoring starts as soon as the listings arrive, in parallel batches. The CV is saved to the
-// account for next time, and every listing lands in the feed as history.
+// Streams progress as server-sent events. The CV summary and the job search run side by side, and
+// each page of listings is scored as soon as it arrives, so the first results show while slower
+// pages are still loading. The CV is saved for next time, and every listing lands in the feed.
 router.post('/find-matches', apiAuth, async (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -31,14 +31,14 @@ router.post('/find-matches', apiAuth, async (req, res) => {
   const background = [];
   const inBackground = (label, promise) => background.push(promise.catch(error => console.error(`${label} failed:`, error.message)));
 
-  try {
-    if (!process.env.GEMINI_API_KEY || !process.env.RAPIDAPI_KEY) {
+  async function findMatches() {
+    if (!process.env.GEMINI_API_KEY || !(process.env.RAPIDAPI_KEYS || process.env.RAPIDAPI_KEY)) {
       send({ status: 'error', error: 'Job matching is not configured', message: 'The server is missing GEMINI_API_KEY or RAPIDAPI_KEY.' });
-      return res.end();
+      return;
     }
     if (!cvText.trim() || !query.trim()) {
       send({ status: 'error', error: 'A CV and a search are required' });
-      return res.end();
+      return;
     }
 
     inBackground('Saving the CV', connectToDatabase().then(() => User.updateOne(
@@ -58,18 +58,30 @@ router.post('/find-matches', apiAuth, async (req, res) => {
         return cvAnalysis;
       });
 
-    const jobs = await searchJobs(query, filters, signal);
+    const jobMatches = [];
+    const scoring = [];
+    let found = 0;
+    let processed = 0;
+    let lastError;
+    const jobs = await searchJobs(query, filters, signal, undefined, fresh => {
+      found += fresh.length;
+      send({ status: 'jobs_found', message: `Found ${found} jobs`, totalJobs: found });
+      scoring.push(scoreJobs(cvText, fresh, signal, (matches, _, batchSize) => {
+        jobMatches.push(...matches);
+        processed += batchSize;
+        send({ status: 'chunk_complete', matches, progress: { processed, total: found } });
+      }).catch(error => {
+        lastError = error;
+      }));
+    });
     if (!jobs.length) {
       send({ status: 'error', error: 'No job listings found' });
-      return res.end();
+      return;
     }
-    send({ status: 'jobs_found', message: `Found ${jobs.length} jobs`, totalJobs: jobs.length });
 
-    const jobMatches = await scoreJobs(cvText, jobs, signal, (matches, processed) => {
-      send({ status: 'chunk_complete', matches, progress: { processed, total: jobs.length } });
-    });
+    await Promise.all(scoring);
     if (!jobMatches.length) {
-      throw new Error('No matches came back for this search.');
+      throw lastError || new Error('No matches came back for this search.');
     }
 
     inBackground('Adding the search to the feed', connectToDatabase().then(() =>
@@ -88,6 +100,10 @@ router.post('/find-matches', apiAuth, async (req, res) => {
         }
       }
     });
+  }
+
+  try {
+    await findMatches();
   } catch (error) {
     if (!signal.aborted) {
       console.error('Error in job matching process:', error.message);

@@ -830,6 +830,11 @@ svg { display: block; flex: none; }
 .rewrite-before { font-size: 13px; line-height: 1.5; color: var(--faint); text-decoration: line-through; }
 .rewrite-after { font-size: 14px; font-weight: 500; line-height: 1.5; }
 .rewrite-why { font-size: 13px; line-height: 1.5; color: var(--muted); }
+.match-card .assist, .feed-card .assist { margin: 0; }
+
+/* Results fill in as they're scored; this bar shows how much is left */
+.results-progress { height: 3px; border-radius: 999px; background: var(--tint); overflow: hidden; }
+.results-progress > span { display: block; width: 0; height: 100%; background: var(--ink); transition: width 0.4s ease; }
 
 /* ---------- Product tour ---------- */
 .tour { position: fixed; inset: 0; z-index: 200; }
@@ -960,6 +965,9 @@ svg { display: block; flex: none; }
   .alert-card { padding: 20px; }
   .alert-card-title { font-size: 24px; }
   .alert-card-controls .btn { width: 100%; margin-left: 0; }
+  .match-foot { flex-wrap: wrap; }
+  .match-actions { width: 100%; flex-wrap: wrap; }
+  .match-actions > .btn { flex: 1; }
 }
 
 /* Three nav tabs on a phone: text only, each as wide as its label */

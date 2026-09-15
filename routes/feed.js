@@ -6,6 +6,7 @@ const { apiAuth } = require('../middleware/auth');
 const { requireDb } = require('../utils/db');
 const { scoreJobs } = require('../services/matching');
 const { refreshFeed, saveScores, toScoringJob } = require('../services/feed');
+const { writeAssist, ASSIST_LANGUAGES } = require('../services/assist');
 
 const router = express.Router();
 router.use(apiAuth, requireDb);
@@ -36,7 +37,9 @@ function toItem(job) {
         score: typeof job.score === 'number' ? job.score : null,
         reasons: job.reasons || [],
         skillsMatch: job.skillsMatch || [],
-        missingSkills: job.missingSkills || []
+        missingSkills: job.missingSkills || [],
+        coverLetter: job.coverLetter?.text ? job.coverLetter : null,
+        cvTips: job.cvTips || null
     };
 }
 
@@ -138,6 +141,36 @@ router.post('/score', async (req, res) => {
     } catch (error) {
         console.error('Error scoring feed jobs:', error.message);
         res.status(502).json({ error: error.message || 'Could not score these jobs right now.' });
+    }
+});
+
+// A cover letter or CV tips for a job in the feed or in the search results (every searched job is
+// kept in the feed): found by its feed id, or from the results by its JSearch id
+router.post('/assist', async (req, res) => {
+    try {
+        const kind = req.body.kind === 'tips' ? 'tips' : 'letter';
+        const language = ASSIST_LANGUAGES.includes(req.body.language) ? req.body.language : 'auto';
+        const which = mongoose.isValidObjectId(req.body.id) ? { _id: req.body.id } : { jobId: String(req.body.jobId || '') };
+        const [job, user] = await Promise.all([
+            FeedJob.findOne({ ...which, userId: req.userId }),
+            User.findById(req.userId).select('cv')
+        ]);
+        if (!user) return res.status(401).json({ error: 'Please sign in again.' });
+        if (!job) return res.status(404).json({ error: 'This job isn’t in your feed yet. Try again in a moment.' });
+        if (!user.cv?.text) {
+            return res.status(400).json({ code: 'no_cv', error: 'Add your CV first: run one search and it’s saved for this.' });
+        }
+
+        const controller = new AbortController();
+        res.on('close', () => {
+            if (!res.writableEnded) controller.abort();
+        });
+        job[kind === 'letter' ? 'coverLetter' : 'cvTips'] = await writeAssist(kind, user.cv.text, job, language, controller.signal);
+        await job.save();
+        res.json({ coverLetter: job.coverLetter?.text ? job.coverLetter : null, cvTips: job.cvTips, fromListing: Boolean(job.description) });
+    } catch (error) {
+        console.error('Error writing application help:', error.message);
+        res.status(502).json({ error: error.message || 'Could not write this right now.' });
     }
 });
 

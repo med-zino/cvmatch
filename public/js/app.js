@@ -1,4 +1,5 @@
-// Find matches page: CV input (the CV saved to the account, a PDF read in the browser, or pasted text), streamed matching, results
+// Find matches: CV input (the CV saved to the account, a PDF read in the browser, or pasted text),
+// streamed matching with results that fill in as they're scored, and AI help for each result
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
 
 const form = document.getElementById('matchForm');
@@ -21,7 +22,10 @@ let cvName = '';
 // The CV an earlier search saved to the account
 let savedCv = null;
 let savedLinks = new Set();
+// The results so far, best first; the CV summary shown above them; the result whose AI panel is open
 let currentMatches = [];
+let liveProfile = null;
+let openAssistJob = null;
 
 fetchSavedJobs()
     .then(jobs => {
@@ -208,6 +212,9 @@ form.addEventListener('submit', e => {
 
 async function runMatch(body, search) {
     submitButton.disabled = true;
+    currentMatches = [];
+    liveProfile = null;
+    openAssistJob = null;
     renderProgress();
     let finished = false;
     let succeeded = false;
@@ -266,21 +273,28 @@ function handleEvent(event, search, body) {
     switch (event.status) {
         case 'cv_analyzed': {
             // The CV is read while the search runs; the summary can be missing if it failed
-            const skills = (event.cvAnalysis && event.cvAnalysis.skills) || [];
+            liveProfile = event.cvAnalysis;
+            const skills = (liveProfile && liveProfile.skills) || [];
             setStep('cv', 'done', skills.length ? `${skills.length} skills found` : 'Done');
+            renderCvStrip();
             return false;
         }
         case 'jobs_found':
             setStep('search', 'done', `${event.totalJobs} found`);
-            setStep('score', 'active', '0%', 0);
+            setStep('score', 'active', '', 0);
             return false;
         case 'chunk_complete': {
-            const pct = Math.round((event.progress.processed / event.progress.total) * 100);
-            setStep('score', 'active', `${pct}%`, pct);
+            const { processed, total } = event.progress;
+            const pct = Math.round((processed / total) * 100);
+            setStep('score', 'active', `${processed} of ${total}`, pct);
+            // Results show as soon as the first ones are scored; the rest slot into place
+            if (event.matches.length) addMatches(event.matches);
+            const bar = document.getElementById('resultsProgress');
+            if (bar) bar.firstElementChild.style.width = `${pct}%`;
             return false;
         }
         case 'complete':
-            renderResults(event.result, search);
+            finishResults(event.result, search);
             // The server saved this CV to the account
             savedCv = { text: body.cvText, name: body.cvName, updatedAt: new Date().toISOString() };
             renderCvNote();
@@ -327,7 +341,7 @@ function renderProgress() {
         <div class="card progress-card">
             <div class="progress-head">
                 <h2 class="progress-title">Matching your CV…</h2>
-                <p class="progress-sub">This usually takes under a minute.</p>
+                <p class="progress-sub">The first results show as soon as they're scored.</p>
             </div>
             <ol>
                 ${step('cv', 'Reading your CV', true)}
@@ -346,48 +360,92 @@ function renderProgress() {
         </div>`;
 }
 
-function renderResults(result, search) {
-    const matches = result.jobMatches || [];
-    if (!matches.length) {
-        renderError('No matches came back for this search.');
-        return;
-    }
-
-    currentMatches = matches.sort((a, b) => b.score - a.score);
-    const profile = result.cvAnalysis || {};
-    const skills = profile.skills || [];
-    const shownSkills = skills.slice(0, 8);
-    // Listings in a batch that failed to score are left out rather than shown with a fake score
-    const failed = (result.meta && result.meta.failedJobs) || 0;
-
+// The results view, shown with the first scored jobs and filled in as the rest arrive
+function showResultsShell() {
     results.innerHTML = `
         <div class="results-head">
             <div class="results-heading">
                 <span class="label">Results</span>
-                <h2 class="results-title">${matches.length} job${matches.length === 1 ? '' : 's'} ranked for ${escapeHtml(search.role)} in ${escapeHtml(search.city)}</h2>
+                <h2 class="results-title" id="resultsTitle"></h2>
             </div>
-            <span class="mono muted results-sort">Best match first${failed ? ` · ${failed} couldn't be scored` : ''}</span>
+            <span class="mono muted results-sort" id="resultsSort">Best match first · still scoring</span>
         </div>
-        ${skills.length ? `
-            <div class="cv-strip">
-                <span class="label">Read from your CV${profile.headline ? ` · ${escapeHtml(profile.headline)}` : ''}</span>
-                <div class="chips">
-                    ${shownSkills.map(skill => `<span class="chip">${escapeHtml(skill)}</span>`).join('')}
-                    ${skills.length > shownSkills.length ? `<span class="chip chip-more">+${skills.length - shownSkills.length} more</span>` : ''}
-                </div>
-            </div>` : ''}
-        <ol class="match-list">${currentMatches.map(matchCard).join('')}</ol>`;
-
+        <div class="results-progress" id="resultsProgress" aria-hidden="true"><span></span></div>
+        <div id="cvStrip"></div>
+        <ol class="match-list" id="matchList"></ol>`;
+    renderCvStrip();
     results.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-function matchCard(job, index) {
+const fromHtml = html => {
+    const template = document.createElement('template');
+    template.innerHTML = html.trim();
+    return template.content.firstElementChild;
+};
+
+// Each new result goes straight to its place in the ranking; the ones already shown stay put
+function addMatches(matches) {
+    if (!document.getElementById('matchList')) showResultsShell();
+    const list = document.getElementById('matchList');
+    matches.forEach(match => {
+        currentMatches.push(match);
+        currentMatches.sort((a, b) => b.score - a.score);
+        list.insertBefore(fromHtml(matchCard(match)), list.children[currentMatches.indexOf(match)] || null);
+    });
+    renumber();
+    const count = currentMatches.length;
+    document.getElementById('resultsTitle').textContent = `${count} job${count === 1 ? '' : 's'} ranked so far…`;
+}
+
+function renumber() {
+    document.querySelectorAll('#matchList .match-rank').forEach((rank, i) => {
+        rank.textContent = String(i + 1).padStart(2, '0');
+    });
+}
+
+function finishResults(result, search) {
+    // Anything the stream didn't deliver (it should have) is added now
+    const known = new Set(currentMatches.map(match => match.jobId));
+    const missed = (result.jobMatches || []).filter(match => !known.has(match.jobId));
+    if (missed.length) addMatches(missed);
+    if (!currentMatches.length) {
+        renderError('No matches came back for this search.');
+        return;
+    }
+
+    liveProfile = result.cvAnalysis || liveProfile;
+    renderCvStrip();
+    const count = currentMatches.length;
+    // Listings in a batch that failed to score are left out rather than shown with a fake score
+    const failed = (result.meta && result.meta.failedJobs) || 0;
+    document.getElementById('resultsTitle').textContent = `${count} job${count === 1 ? '' : 's'} ranked for ${search.role} in ${search.city}`;
+    document.getElementById('resultsSort').textContent = `Best match first${failed ? ` · ${failed} couldn't be scored` : ''}`;
+    document.getElementById('resultsProgress')?.remove();
+}
+
+function renderCvStrip() {
+    const strip = document.getElementById('cvStrip');
+    if (!strip) return;
+    const skills = (liveProfile && liveProfile.skills) || [];
+    const shown = skills.slice(0, 8);
+    strip.innerHTML = skills.length ? `
+        <div class="cv-strip">
+            <span class="label">Read from your CV${liveProfile.headline ? ` · ${escapeHtml(liveProfile.headline)}` : ''}</span>
+            <div class="chips">
+                ${shown.map(skill => `<span class="chip">${escapeHtml(skill)}</span>`).join('')}
+                ${skills.length > shown.length ? `<span class="chip chip-more">+${skills.length - shown.length} more</span>` : ''}
+            </div>
+        </div>` : '';
+}
+
+function matchCard(job) {
     const meta = [job.company, formatPosted(job.posted)].filter(Boolean);
+    const open = openAssistJob === job.jobId;
 
     return `
-        <li class="card match-card" style="--i: ${index}">
+        <li class="card match-card" data-job="${escapeHtml(job.jobId)}">
             <div class="match-top">
-                <span class="match-rank mono">${String(index + 1).padStart(2, '0')}</span>
+                <span class="match-rank mono"></span>
                 <div class="match-heading">
                     <h3 class="match-title">${escapeHtml(job.title)}</h3>
                     <p class="match-meta">${meta.map(item => `<span>${escapeHtml(item)}</span>`).join('<span aria-hidden="true">·</span>')}</p>
@@ -396,22 +454,37 @@ function matchCard(job, index) {
             </div>
             <div class="match-body">
                 ${matchDetails(job)}
-                ${job.link ? `
-                    <div class="match-foot">
-                        <span class="mono match-source">via ${escapeHtml(hostname(job.link))}</span>
-                        <div class="match-actions">
-                            ${saveButton(savedLinks.has(job.link), index)}
-                            <a class="btn btn-primary" href="${escapeHtml(safeUrl(job.link))}" target="_blank" rel="noopener">Apply ${icon('arrowUpRight')}</a>
-                        </div>
-                    </div>` : ''}
+                <div class="match-foot">
+                    <span class="mono match-source">${job.link ? `via ${escapeHtml(hostname(job.link))}` : ''}</span>
+                    <div class="match-actions">
+                        ${assistToggle(open)}
+                        ${job.link ? `
+                            ${saveButton(savedLinks.has(job.link), job.jobId)}
+                            <a class="btn btn-primary" href="${escapeHtml(safeUrl(job.link))}" target="_blank" rel="noopener">Apply ${icon('arrowUpRight')}</a>` : ''}
+                    </div>
+                </div>
+                ${open ? assistPanel(job.jobId, job) : ''}
             </div>
         </li>`;
 }
 
-function saveButton(saved, index) {
+function saveButton(saved, jobId) {
     return saved
         ? `<button type="button" class="btn btn-secondary is-saved" disabled>${icon('bookmark', 16, true)}<span>Saved</span></button>`
-        : `<button type="button" class="btn btn-secondary" data-save="${index}">${icon('bookmark')}<span>Save</span></button>`;
+        : `<button type="button" class="btn btn-secondary" data-save="${escapeHtml(jobId)}">${icon('bookmark')}<span>Save</span></button>`;
+}
+
+const findMatch = jobId => currentMatches.find(match => match.jobId === jobId);
+
+// Redraws one result in place, keeping its rank and without the entrance animation
+function redrawMatch(jobId) {
+    const match = findMatch(jobId);
+    const card = [...document.querySelectorAll('#matchList > li')].find(li => li.dataset.job === jobId);
+    if (!match || !card) return;
+    const fresh = fromHtml(matchCard(match));
+    fresh.style.animation = 'none';
+    card.replaceWith(fresh);
+    renumber();
 }
 
 function renderError(message) {
@@ -440,8 +513,25 @@ function renderNoJobs() {
 
 results.addEventListener('click', e => {
     const save = e.target.closest('[data-save]');
-    if (save) saveMatch(currentMatches[save.dataset.save], save);
+    if (save) saveMatch(findMatch(save.dataset.save), save);
+
+    const toggle = e.target.closest('[data-assist-toggle]');
+    if (toggle) {
+        const jobId = toggle.closest('[data-job]').dataset.job;
+        const previous = openAssistJob;
+        openAssistJob = previous === jobId ? null : jobId;
+        if (previous && previous !== jobId) redrawMatch(previous);
+        redrawMatch(jobId);
+    }
+
     if (e.target.closest('[data-retry]')) form.requestSubmit();
+});
+
+// AI help on a result: every searched job is kept in the feed, where it's found by its id
+wireAssist(results, {
+    job: findMatch,
+    request: jobId => ({ url: '/api/feed/assist', body: { jobId } }),
+    render: redrawMatch
 });
 
 async function saveMatch(job, button) {

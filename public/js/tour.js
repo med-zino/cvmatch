@@ -6,12 +6,12 @@
         { title: 'Welcome to CVMatch', text: 'A quick look at what it does for you. It takes about 30 seconds.' },
         { target: formSection(0), title: 'Search any role, anywhere', text: 'Pick a role and a city. We pull live openings from job boards across the web into one list.' },
         { target: formSection(1), title: 'Add your CV once', text: 'Upload or paste it for your first search. It’s saved to your account and used for every score after that.' },
-        { target: () => document.getElementById('results'), title: 'Every job, scored', text: 'Each listing comes back with a match score, the skills you have, the gaps, and why. Best match first.' },
+        { target: () => document.getElementById('results'), title: 'Every job, scored', text: 'Results fill in as they’re scored, best match first: the skills you have, the gaps and why. AI help writes a cover letter or tailors your CV for any of them.' },
         { target: () => document.querySelector('#feed .page-head'), title: 'Your feed, right below', text: 'Fresh openings for up to 3 job titles you choose, plus every job you’ve searched, in one place. Nothing is scored until you ask.' },
         { target: () => document.getElementById('alertCard'), title: 'Your daily email', text: 'Switch it on and pick a time. Every day we find new openings, score them against your CV and email you the top 3. Never the same job twice.' },
         // Centred instead of spotlit when the feed has no jobs yet
         { target: () => document.querySelector('.feed-card'), title: 'Score on demand', text: 'Press Score on any job in your feed to see how well you fit, or Score all. Save the ones you like.' },
-        { target: () => document.querySelector('.nav-tab[href="/saved-jobs"]'), title: 'Saved jobs', text: 'Track each application from Saved to Offer, and get a tailored cover letter and CV tips for any job.' },
+        { target: () => document.querySelector('.nav-tab[href="/saved-jobs"]'), title: 'Saved jobs', text: 'Track each application from Saved to Offer, with your notes and the cover letter you wrote for it.' },
         { title: 'You’re all set', text: 'Start with a search above, then scroll down to your feed.' }
     ];
 

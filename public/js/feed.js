@@ -28,6 +28,8 @@
     let building = false;
     let scoringAll = false;
     let editingPrefs = false;
+    // The card whose AI panel is open
+    let openAssistId = null;
     // The daily email card's status line, when it has something to report
     let alertMessage = '';
     let profile = { titles: [], location: '', fetchedAt: null, hasCv: false, alert: { enabled: false, hour: 8, minute: 0 } };
@@ -271,13 +273,27 @@
                 ${scored ? `<div class="match-body">${matchDetails(item)}</div>` : item.snippet ? `<p class="feed-snippet">${escapeHtml(item.snippet)}</p>` : ''}
                 <div class="match-foot">
                     <span class="mono feed-origin">${escapeHtml(origin)}${item.link ? ` · via ${escapeHtml(hostname(item.link))}` : ''}</span>
-                    ${item.link ? `
-                        <div class="match-actions">
+                    <div class="match-actions">
+                        ${assistToggle(openAssistId === item.id)}
+                        ${item.link ? `
                             ${saveButton(savedLinks.has(item.link))}
-                            <a class="btn btn-primary" href="${escapeHtml(safeUrl(item.link))}" target="_blank" rel="noopener">Apply ${icon('arrowUpRight')}</a>
-                        </div>` : ''}
+                            <a class="btn btn-primary" href="${escapeHtml(safeUrl(item.link))}" target="_blank" rel="noopener">Apply ${icon('arrowUpRight')}</a>` : ''}
+                    </div>
                 </div>
+                ${openAssistId === item.id ? assistPanel(item.id, item) : ''}
             </li>`;
+    }
+
+    // Redraws one card in place, without the entrance animation
+    function redrawCard(id) {
+        const item = items.find(entry => entry.id === id);
+        const card = list.querySelector(`[data-id="${id}"]`);
+        if (!item || !card) return;
+        const template = document.createElement('template');
+        template.innerHTML = feedCard(item).trim();
+        const fresh = template.content.firstElementChild;
+        fresh.style.animation = 'none';
+        card.replaceWith(fresh);
     }
 
     function saveButton(saved) {
@@ -482,6 +498,20 @@
         }
         const save = e.target.closest('[data-save]');
         if (save) saveItem(item, save);
+
+        if (e.target.closest('[data-assist-toggle]')) {
+            const previous = openAssistId;
+            openAssistId = previous === item.id ? null : item.id;
+            if (previous && previous !== item.id) redrawCard(previous);
+            redrawCard(item.id);
+        }
+    });
+
+    // AI help on a feed job, stored with it (and copied along if it's saved)
+    wireAssist(list, {
+        job: id => items.find(entry => entry.id === id),
+        request: id => ({ url: '/api/feed/assist', body: { id } }),
+        render: redrawCard
     });
 
     scoreAllButton.addEventListener('click', async () => {

@@ -1,7 +1,7 @@
 const SavedJob = require('../models/SavedJob');
 const FeedJob = require('../models/FeedJob');
 const User = require('../models/User');
-const { writeCoverLetter, suggestCvChanges } = require('../services/assist');
+const { writeAssist, ASSIST_LANGUAGES } = require('../services/assist');
 
 // Every handler acts on req.userId, set by apiAuth from the session token,
 // so one user can never read or change another user's saved jobs.
@@ -21,6 +21,9 @@ const saveJob = async (req, res) => {
             });
         }
 
+        // A cover letter or CV tips already written for this job in the results or the feed come along
+        const listing = await FeedJob.findOne({ userId: req.userId, link }).select('coverLetter cvTips').lean();
+
         // Feed jobs can be saved before they're scored
         const savedJob = await SavedJob.create({
             userId: req.userId,
@@ -31,7 +34,9 @@ const saveJob = async (req, res) => {
             posted: posted || 'Not specified',
             skillsMatch: skillsMatch || [],
             missingSkills: missingSkills || [],
-            reasons: reasons || []
+            reasons: reasons || [],
+            ...(listing?.coverLetter?.text ? { coverLetter: listing.coverLetter } : {}),
+            cvTips: listing?.cvTips || null
         });
         res.status(201).json({ success: true, message: 'Job saved successfully', savedJob });
     } catch (error) {
@@ -85,14 +90,12 @@ const updateSavedJob = async (req, res) => {
     }
 };
 
-const LANGUAGES = ['auto', 'en', 'fr'];
-
 // Writes a cover letter or CV tips for a saved job from the saved CV and the full listing,
 // which comes from the feed (every searched job is kept there). The result is stored on the job.
 const assistSavedJob = async (req, res) => {
     try {
         const kind = req.body.kind === 'tips' ? 'tips' : 'letter';
-        const language = LANGUAGES.includes(req.body.language) ? req.body.language : 'auto';
+        const language = ASSIST_LANGUAGES.includes(req.body.language) ? req.body.language : 'auto';
         const [savedJob, user] = await Promise.all([
             SavedJob.findOne({ _id: req.params.jobId, userId: req.userId }),
             User.findById(req.userId).select('cv')
@@ -118,10 +121,7 @@ const assistSavedJob = async (req, res) => {
         res.on('close', () => {
             if (!res.writableEnded) controller.abort();
         });
-        const written = kind === 'letter'
-            ? await writeCoverLetter(user.cv.text, job, language, controller.signal)
-            : await suggestCvChanges(user.cv.text, job, language, controller.signal);
-        savedJob[kind === 'letter' ? 'coverLetter' : 'cvTips'] = { ...written, language, createdAt: new Date() };
+        savedJob[kind === 'letter' ? 'coverLetter' : 'cvTips'] = await writeAssist(kind, user.cv.text, job, language, controller.signal);
         await savedJob.save();
 
         res.json({ success: true, savedJob, fromListing: Boolean(listing?.description) });

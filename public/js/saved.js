@@ -1,5 +1,5 @@
 // Saved jobs page: status tabs, search and sort, inline status changes, notes, removal,
-// and AI help with each application (a cover letter and CV tips)
+// and AI help with each application (a cover letter and CV tips, shared with the results and feed)
 const STATUSES = ['saved', 'applied', 'interview', 'offer', 'rejected'];
 const STATUS_LABELS = { saved: 'Saved', applied: 'Applied', interview: 'Interview', offer: 'Offer', rejected: 'Rejected' };
 const SORTERS = {
@@ -8,7 +8,6 @@ const SORTERS = {
     score: (a, b) => (b.score ?? -1) - (a.score ?? -1),
     company: (a, b) => a.company.localeCompare(b.company)
 };
-const LANGUAGES = [['auto', 'Listing’s language'], ['en', 'English'], ['fr', 'Français']];
 
 const list = document.getElementById('savedList');
 const tabs = document.getElementById('statusTabs');
@@ -19,8 +18,6 @@ let jobs = [];
 let activeStatus = 'all';
 let openNoteId = null;
 let openAssistId = null;
-// Per job: which AI tab is showing, its language, and whether it's being written
-const assistState = new Map();
 let firstRender = true;
 
 const shortDate = value => new Date(value).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
@@ -133,112 +130,8 @@ function jobRow(job, index) {
                     </div>
                 </div>` : job.notes ? `
                 <div class="note"><span class="label">Note</span><span>${escapeHtml(job.notes)}</span></div>` : ''}
-            ${assistOpen ? assistPanel(job) : ''}
+            ${assistOpen ? assistPanel(job._id, job) : ''}
         </div>`;
-}
-
-// ---------- Cover letter and CV tips ----------
-
-function assistFor(id) {
-    if (!assistState.has(id)) assistState.set(id, { tab: 'letter', language: 'auto', loading: false, error: '' });
-    return assistState.get(id);
-}
-
-function assistPanel(job) {
-    const state = assistFor(job._id);
-    const letter = job.coverLetter && job.coverLetter.text ? job.coverLetter : null;
-    const tips = job.cvTips && job.cvTips.verdict ? job.cvTips : null;
-    const result = state.tab === 'letter' ? letter : tips;
-
-    const body = state.loading && !result
-        ? `<div class="skeleton-card" aria-hidden="true">
-                <div class="skeleton" style="width: 40%; height: 14px;"></div>
-                <div class="skeleton" style="width: 95%;"></div>
-                <div class="skeleton" style="width: 88%;"></div>
-                <div class="skeleton" style="width: 70%;"></div>
-            </div>`
-        : result
-            ? (state.tab === 'letter' ? letterView(result) : tipsView(result))
-            : `<p class="assist-empty">${state.tab === 'letter'
-                ? 'A cover letter for this job, written from your saved CV and the listing. It only uses what your CV says.'
-                : 'Specific edits that make your CV fit this listing, without claiming anything you haven’t done.'}</p>`;
-
-    return `
-        <div class="assist">
-            <div class="assist-head">
-                <div class="segmented assist-tabs" role="tablist" aria-label="Help with this application">
-                    <button type="button" role="tab" data-action="assist-tab" data-tab="letter" aria-selected="${state.tab === 'letter'}">Cover letter</button>
-                    <button type="button" role="tab" data-action="assist-tab" data-tab="tips" aria-selected="${state.tab === 'tips'}">CV tips</button>
-                </div>
-                <div class="assist-controls">
-                    <select class="select select-sm" data-action="assist-language" aria-label="Language">
-                        ${LANGUAGES.map(([value, label]) => `<option value="${value}"${value === state.language ? ' selected' : ''}>${label}</option>`).join('')}
-                    </select>
-                    <button type="button" class="btn btn-primary btn-sm" data-action="assist-generate"${state.loading ? ' disabled' : ''}>
-                        ${state.loading ? '<span class="spinner"></span><span>Writing…</span>' : `${icon('sparkle', 15)}<span>${result ? 'Regenerate' : 'Generate'}</span>`}
-                    </button>
-                </div>
-            </div>
-            ${state.error ? `<p class="assist-error" role="alert">${escapeHtml(state.error)}</p>` : ''}
-            <div class="assist-body">${body}</div>
-        </div>`;
-}
-
-function letterView(letter) {
-    return `
-        <div class="assist-subject"><span class="label">Subject</span><span>${escapeHtml(letter.subject)}</span></div>
-        <textarea class="textarea assist-text" aria-label="Cover letter">${escapeHtml(letter.text)}</textarea>
-        <div class="assist-foot">
-            <span class="mono muted">Written ${shortDate(letter.createdAt)} · edit it here, then copy</span>
-            <button type="button" class="btn btn-secondary btn-sm" data-action="assist-copy">${icon('copy', 15)}<span>Copy</span></button>
-        </div>`;
-}
-
-function tipsView(tips) {
-    const group = (label, content) => content ? `<div class="match-group"><span class="label">${label}</span>${content}</div>` : '';
-    const keywords = tips.keywords || [];
-    const rewrites = tips.rewrites || [];
-    const gaps = tips.gaps || [];
-    const order = tips.order || [];
-    return `
-        <div class="assist-tips">
-            <p class="assist-verdict">${escapeHtml(tips.verdict)}</p>
-            ${group('Use these words, where they’re true', keywords.length && `<div class="chips">${keywords.map(word => `<span class="chip">${escapeHtml(word)}</span>`).join('')}</div>`)}
-            ${group('Rewrite', rewrites.length && `<ol class="rewrites">${rewrites.map(edit => `
-                <li class="rewrite">
-                    <span class="label">${escapeHtml(edit.section)}</span>
-                    ${edit.before ? `<p class="rewrite-before">${escapeHtml(edit.before)}</p>` : ''}
-                    <p class="rewrite-after">${escapeHtml(edit.after)}</p>
-                    <p class="rewrite-why">${escapeHtml(edit.why)}</p>
-                </li>`).join('')}</ol>`)}
-            ${group('Gaps to address', gaps.length && `<ul class="match-why">${gaps.map(gap => `<li><strong>${escapeHtml(gap.requirement)}:</strong> ${escapeHtml(gap.advice)}</li>`).join('')}</ul>`)}
-            ${group('Structure', order.length && `<ul class="match-why">${order.map(tip => `<li>${escapeHtml(tip)}</li>`).join('')}</ul>`)}
-            <span class="mono muted assist-date">Written ${shortDate(tips.createdAt)}</span>
-        </div>`;
-}
-
-async function generateAssist(id) {
-    const state = assistFor(id);
-    state.loading = true;
-    state.error = '';
-    renderList();
-    try {
-        const response = checkSession(await fetch(`/api/saved-jobs/${id}/assist`, {
-            method: 'POST',
-            headers: authHeaders(),
-            body: JSON.stringify({ kind: state.tab, language: state.language })
-        }));
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.message || 'Could not write this right now');
-
-        Object.assign(jobs.find(job => job._id === id), { coverLetter: data.savedJob.coverLetter, cvTips: data.savedJob.cvTips });
-        if (!data.fromListing) toast('The full listing wasn’t available, so this uses the job title and skills');
-    } catch (error) {
-        state.error = error.message;
-    } finally {
-        state.loading = false;
-        renderList();
-    }
 }
 
 // ---------- Events ----------
@@ -254,14 +147,9 @@ searchInput.addEventListener('input', renderList);
 sortSelect.addEventListener('change', renderList);
 
 list.addEventListener('change', async e => {
-    const id = e.target.closest('[data-id]')?.dataset.id;
-    if (e.target.dataset.action === 'assist-language') {
-        assistFor(id).language = e.target.value;
-        return;
-    }
     if (e.target.dataset.action !== 'status') return;
     const status = e.target.value;
-    if (await updateJob(id, { status })) {
+    if (await updateJob(e.target.closest('[data-id]').dataset.id, { status })) {
         render();
         toast(`Moved to ${STATUS_LABELS[status]}`);
     }
@@ -297,20 +185,14 @@ list.addEventListener('click', async e => {
             openAssistId = openAssistId === id ? null : id;
             renderList();
             break;
-        case 'assist-tab':
-            assistFor(id).tab = button.dataset.tab;
-            renderList();
-            break;
-        case 'assist-generate':
-            generateAssist(id);
-            break;
-        case 'assist-copy': {
-            // Copies the letter as edited in the box
-            const text = button.closest('.assist').querySelector('.assist-text').value;
-            navigator.clipboard.writeText(text).then(() => toast('Copied'), () => toast('Could not copy; select the text instead'));
-            break;
-        }
     }
+});
+
+// The AI panel's tabs, language, Generate and Copy
+wireAssist(list, {
+    job: id => jobs.find(job => job._id === id),
+    request: id => ({ url: `/api/saved-jobs/${id}/assist` }),
+    render: renderList
 });
 
 // Persists a status or note change; on failure the list is re-rendered from the last known state

@@ -78,4 +78,14 @@ Job listing:
 ${listing(job)}`, TIPS_SCHEMA, signal);
 }
 
-module.exports = { writeCoverLetter, suggestCvChanges };
+const ASSIST_LANGUAGES = Object.keys(LANGUAGE_RULES);
+
+// The letter ('letter') or the tips ('tips') for a job, stamped with the language and date, ready to store
+async function writeAssist(kind, cvText, job, language, signal) {
+  const written = kind === 'tips'
+    ? await suggestCvChanges(cvText, job, language, signal)
+    : await writeCoverLetter(cvText, job, language, signal);
+  return { ...written, language, createdAt: new Date() };
+}
+
+module.exports = { writeAssist, ASSIST_LANGUAGES };
