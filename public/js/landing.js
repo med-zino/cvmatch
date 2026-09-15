@@ -263,6 +263,191 @@ if (!reduceMotion) {
     });
 }
 
+// ---------- AI help: for each profession the letter writes itself, then the CV tips appear ----------
+
+// Sample letters and tips for the same three jobs as the explained match above (its gaps get covered here)
+const AI_EXAMPLES = {
+    nurse: {
+        title: 'Registered Nurse', place: 'Riverside Clinic · London', score: 91, language: 'English',
+        subject: 'Registered Nurse, Acute Medicine: Amara Okafor',
+        letter: "Dear Riverside team,\n\nYour acute medical unit is where I've spent the last eight years: triaging admissions from A&E, giving IV medication and screening every patient for sepsis.\n\nAt Northgate I led a falls-prevention audit that cut ward falls by 20%, and I mentor our newly qualified nurses.\n\nI'd love to bring that to Riverside.\n\nKind regards,\nAmara Okafor",
+        verdict: "A strong fit on acute care. Put your sepsis and IV work where they'll see it first.",
+        section: 'Summary',
+        before: 'Experienced nurse with strong clinical skills.',
+        after: 'NMC-registered adult nurse with 8 years on acute wards: triage, IV therapy and sepsis screening.',
+        why: 'Leads with the three things their listing asks for first.',
+        keywords: ['Acute medicine', 'Sepsis screening', 'IV therapy', 'NMC PIN'],
+        gap: ['ICU experience', "don't claim it. Mention the high-dependency patients you've cared for, and that you're keen to rotate."]
+    },
+    marketing: {
+        title: 'Marketing Manager', place: 'Maison Verte · Paris', score: 88, language: 'Français',
+        subject: 'Candidature : Responsable marketing, Camille Roux',
+        letter: "Bonjour,\n\nLe lancement de votre nouvelle gamme m'a donné envie d'écrire : c'est exactement le type de projet que je mène depuis six ans, des campagnes de marque au contenu.\n\nChez Sola, ma refonte SEO a doublé le trafic organique en un an.\n\nJ'aimerais beaucoup en parler avec vous.\n\nBien à vous,\nCamille Roux",
+        verdict: 'Très bon profil de marque. Montrez davantage de résultats chiffrés.',
+        section: 'Résumé',
+        before: 'Responsable marketing polyvalente.',
+        after: 'Responsable marketing, 6 ans de campagnes de marque et de SEO (trafic organique ×2 en un an).',
+        why: "Reprend les mots de l'annonce et ajoute un chiffre.",
+        keywords: ['Stratégie de contenu', 'SEO', 'Google Analytics 4', 'Lancement produit'],
+        gap: ['Salesforce', "citez le CRM que vous utilisez déjà ; les bases s'apprennent vite."]
+    },
+    frontend: {
+        title: 'Frontend Engineer', place: 'Atelier Nine · Paris', score: 78, language: 'English',
+        subject: 'Frontend Engineer: Alex Martin',
+        letter: "Hi Atelier Nine team,\n\nYour design-system work is what caught my eye. For three years I've built React and TypeScript components used by four product teams at Northwind Labs.\n\nI also rebuilt our checkout for keyboard and screen-reader users.\n\nI'd be glad to walk you through the components.\n\nBest,\nAlex Martin",
+        verdict: 'A solid React base. Show more of the design-system depth they ask for.',
+        section: 'Experience · Northwind Labs',
+        before: 'Worked on frontend features.',
+        after: 'Built 40+ React and TypeScript components for a design system used by 4 product teams.',
+        why: 'Answers their design-system brief with a number.',
+        keywords: ['Design systems', 'Storybook', 'Accessibility', 'Next.js'],
+        gap: ['Storybook', "link the component docs you already wrote; it's the same skill."]
+    }
+};
+
+const aiStack = document.querySelector('.ai-stack');
+if (aiStack) setUpAiDemo();
+
+function setUpAiDemo() {
+    const demo = aiStack.querySelector('.ai-demo');
+    const roleButtons = [...aiStack.querySelectorAll('[data-ai-role]')];
+    const tabs = [...demo.querySelectorAll('[data-ai-tab]')];
+    const panels = [...demo.querySelectorAll('[data-ai-panel]')];
+    const points = document.querySelector('.ai-points');
+    const rows = [...points.querySelectorAll('[data-ai-row]')];
+    const generate = demo.querySelector('[data-ai-generate]');
+    const generateIdle = generate.innerHTML;
+    const letterBox = demo.querySelector('.ai-letter');
+    const caret = letterBox.querySelector('.caret');
+    const field = name => demo.querySelector(`[data-ai="${name}"]`);
+    let role = 'nurse';
+    // Bumped to cancel whatever is playing
+    let run = 0;
+    // Rotates through the professions until the visitor picks one
+    let auto = true;
+    let visible = false;
+    const still = token => token === run && visible;
+
+    function lightRow(name) {
+        points.classList.add('is-focusing');
+        rows.forEach(row => row.classList.toggle('is-lit', row.dataset.aiRow === name));
+    }
+
+    function fill(name) {
+        const example = AI_EXAMPLES[name];
+        role = name;
+        roleButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.aiRole === name)));
+        ['title', 'place', 'score', 'language', 'subject', 'verdict', 'section', 'before', 'after', 'why', 'letter'].forEach(key => {
+            field(key).textContent = example[key];
+        });
+        field('keywords').innerHTML = chipsHtml(example.keywords);
+        field('gapName').textContent = `${example.gap[0]}:`;
+        field('gap').textContent = example.gap[1];
+    }
+
+    function showTab(name) {
+        tabs.forEach(tab => tab.setAttribute('aria-selected', String(tab.dataset.aiTab === name)));
+        panels.forEach(panel => {
+            const shown = panel.dataset.aiPanel === name;
+            panel.classList.toggle('is-shown', shown);
+            panel.setAttribute('aria-hidden', String(!shown));
+        });
+        lightRow(name);
+    }
+
+    function writing(on) {
+        generate.disabled = on;
+        generate.innerHTML = on ? '<span class="spinner"></span><span>Writing…</span>' : generateIdle;
+    }
+
+    // Types the letter two characters at a time, keeping the newest line in view
+    async function typeLetter(token) {
+        const text = AI_EXAMPLES[role].letter;
+        const out = field('letter');
+        caret.hidden = false;
+        for (let i = 2; i <= text.length + 1; i += 2) {
+            if (!still(token)) return false;
+            out.textContent = text.slice(0, i);
+            letterBox.scrollTop = letterBox.scrollHeight;
+            await sleep(24);
+        }
+        caret.hidden = true;
+        return true;
+    }
+
+    // One profession: write the letter, pause, then show the CV tips
+    async function play(token) {
+        showTab('letter');
+        field('letter').textContent = '';
+        letterBox.scrollTop = 0;
+        writing(true);
+        await sleep(700);
+        if (!still(token) || !(await typeLetter(token))) return false;
+        writing(false);
+        await sleep(1800);
+        if (!still(token)) return false;
+        writing(true);
+        await sleep(600);
+        if (!still(token)) return false;
+        writing(false);
+        showTab('tips');
+        await sleep(2400);
+        if (!still(token)) return false;
+        lightRow('words');
+        await sleep(2200);
+        return still(token);
+    }
+
+    async function loop() {
+        const token = ++run;
+        while (still(token)) {
+            if (!(await play(token)) || !auto) return;
+            const next = roleButtons[(roleButtons.findIndex(button => button.dataset.aiRole === role) + 1) % roleButtons.length];
+            demo.classList.add('is-swapping');
+            await sleep(300);
+            if (!still(token)) return;
+            fill(next.dataset.aiRole);
+            demo.classList.remove('is-swapping');
+        }
+    }
+
+    // Stops whatever is playing and leaves the finished letter in place
+    function settle() {
+        run++;
+        caret.hidden = true;
+        writing(false);
+        demo.classList.remove('is-swapping');
+        field('letter').textContent = AI_EXAMPLES[role].letter;
+    }
+
+    roleButtons.forEach(button => button.addEventListener('click', () => {
+        // A picked profession plays once and stays on its tips
+        auto = false;
+        settle();
+        fill(button.dataset.aiRole);
+        if (reduceMotion || !visible) showTab('letter');
+        else loop();
+    }));
+    tabs.forEach(tab => tab.addEventListener('click', () => {
+        auto = false;
+        settle();
+        showTab(tab.dataset.aiTab);
+    }));
+    generate.addEventListener('click', () => {
+        settle();
+        if (!reduceMotion && visible) loop();
+    });
+
+    if (reduceMotion) return;
+    whileVisible(demo, () => {
+        visible = true;
+        loop();
+    }, () => {
+        visible = false;
+        settle();
+    });
+}
+
 // ---------- Tracker: one job keeps moving through the pipeline ----------
 
 const demoPill = document.querySelector('[data-status-demo]');

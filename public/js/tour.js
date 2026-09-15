@@ -2,15 +2,23 @@
 // Runs once per account, or again from the Tour link. Escape skips, the arrow keys move between steps.
 (function () {
     const formSection = index => () => document.querySelectorAll('.search-card .form-section')[index];
+    // A glimpse of the AI panel, so the step reads even before any job is on screen
+    const AI_GLIMPSE = `
+        <div class="tour-visual" aria-hidden="true">
+            <div class="tour-visual-tabs"><span class="is-on">Cover letter</span><span>CV tips</span></div>
+            <div class="tour-visual-lines"><i style="--w: 94%; --j: 0"></i><i style="--w: 100%; --j: 1"></i><i style="--w: 66%; --j: 2"></i></div>
+            <p class="tour-visual-edit"><s>Worked on frontend features.</s><span>Built 40+ React components for a design system used by 4 teams.</span></p>
+        </div>`;
     const STEPS = [
         { title: 'Welcome to CVMatch', text: 'A quick look at what it does for you. It takes about 30 seconds.' },
         { target: formSection(0), title: 'Search any role, anywhere', text: 'Pick a role and a city. We pull live openings from job boards across the web into one list.' },
         { target: formSection(1), title: 'Add your CV once', text: 'Upload or paste it for your first search. It’s saved to your account and used for every score after that.' },
-        { target: () => document.getElementById('results'), title: 'Every job, scored', text: 'Results fill in as they’re scored, best match first: the skills you have, the gaps and why. AI help writes a cover letter or tailors your CV for any of them.' },
+        { target: () => document.getElementById('results'), title: 'Every job, scored', text: 'Results fill in as they’re scored, best match first: the skills you have, the gaps and why.' },
         { target: () => document.querySelector('#feed .page-head'), title: 'Your feed, right below', text: 'Fresh openings for up to 3 job titles you choose, plus every job you’ve searched, in one place. Nothing is scored until you ask.' },
         { target: () => document.getElementById('alertCard'), title: 'Your daily email', text: 'Switch it on and pick a time. Every day we find new openings, score them against your CV and email you the top 3. Never the same job twice.' },
         // Centred instead of spotlit when the feed has no jobs yet
         { target: () => document.querySelector('.feed-card'), title: 'Score on demand', text: 'Press Score on any job in your feed to see how well you fit, or Score all. Save the ones you like.' },
+        { target: () => document.querySelector('#matchList [data-assist-toggle]') || document.querySelector('.feed-card [data-assist-toggle]'), title: 'Tailor each application', visual: AI_GLIMPSE, text: 'Press AI help on any job for a cover letter written from your CV and the listing, and CV tips: rewrites in the listing’s words, keywords to add, and honest ways to cover a gap.' },
         { target: () => document.querySelector('.nav-tab[href="/saved-jobs"]'), title: 'Saved jobs', text: 'Track each application from Saved to Offer, with your notes and the cover letter you wrote for it.' },
         { title: 'You’re all set', text: 'Start with a search above, then scroll down to your feed.' }
     ];
@@ -30,6 +38,7 @@
             <span class="tour-step">${index + 1} / ${STEPS.length}</span>
             <h2 class="tour-title" id="tourTitle">${step.title}</h2>
             <p class="tour-text">${step.text}</p>
+            ${step.visual || ''}
             <div class="tour-actions">
                 ${last ? '' : '<button type="button" class="link-button" data-tour="skip">Skip tour</button>'}
                 ${index > 0 && !last ? '<button type="button" class="btn btn-secondary btn-sm" data-tour="back">Back</button>' : ''}

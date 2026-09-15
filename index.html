@@ -340,6 +340,84 @@
             </div>
         </section>
 
+        <!-- AI help, between understanding a match and tracking the application (letters and tips are sample data) -->
+        <section class="section section-ink" aria-labelledby="ai-title">
+            <div class="container split">
+                <div class="split-copy" data-reveal>
+                    <div class="section-head">
+                        <span class="label">AI help on every job</span>
+                        <h2 class="section-title" id="ai-title">A cover letter and a sharper CV, for each job.</h2>
+                    </div>
+                    <p class="section-text">Press AI help on any job, in your results, your feed or your shortlist. It reads the full listing and your CV, writes the letter, and shows you how to reword your CV for that job.</p>
+                    <dl class="explain-list ai-points">
+                        <div class="explain-row" data-ai-row="letter"><dt class="label">Cover letter</dt><dd>Four short paragraphs that answer the listing's must-haves with real lines from your CV. Edit it, copy it, send it.</dd></div>
+                        <div class="explain-row" data-ai-row="tips"><dt class="label">CV tips</dt><dd>Rewrites that borrow the listing's own wording, the keywords to add where they're true, and honest ways to cover a gap.</dd></div>
+                        <div class="explain-row" data-ai-row="words"><dt class="label">Your words</dt><dd>Nothing invented: it only uses what your CV says, in English, French or the listing's own language.</dd></div>
+                    </dl>
+                </div>
+                <div class="ai-stack" data-reveal style="--i: 1">
+                    <div class="role-switch" role="group" aria-label="Example role">
+                        <button type="button" data-ai-role="nurse" aria-pressed="true">Registered nurse</button>
+                        <button type="button" data-ai-role="marketing" aria-pressed="false">Marketing manager</button>
+                        <button type="button" data-ai-role="frontend" aria-pressed="false">Frontend engineer</button>
+                    </div>
+                    <div class="ai-demo">
+                        <div class="ai-demo-job">
+                            <div class="row-main"><span class="row-title" data-ai="title">Registered Nurse</span><span class="row-sub" data-ai="place">Riverside Clinic · London</span></div>
+                            <span class="mono ai-demo-score"><span data-ai="score">91</span>%</span>
+                        </div>
+                        <div class="assist-head">
+                            <div class="segmented ai-tabs" role="tablist" aria-label="Example AI help">
+                                <button type="button" role="tab" data-ai-tab="letter" aria-selected="true">Cover letter</button>
+                                <button type="button" role="tab" data-ai-tab="tips" aria-selected="false">CV tips</button>
+                            </div>
+                            <div class="assist-controls">
+                                <span class="mono ai-lang"><span class="ai-lang-prefix">Listing's language · </span><span data-ai="language">English</span></span>
+                                <button type="button" class="btn btn-primary btn-sm" data-ai-generate>
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5 13.9 9l5.6 1.9-5.6 1.9L12 18.5l-1.9-5.7L4.5 10.9 10.1 9z"/><path d="M19 3v4M17 5h4"/></svg>
+                                    <span>Regenerate</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="ai-panels">
+                            <div class="ai-panel is-shown" data-ai-panel="letter">
+                                <div class="assist-subject"><span class="label">Subject</span><span data-ai="subject">Registered Nurse, Acute Medicine: Amara Okafor</span></div>
+                                <p class="ai-letter"><span data-ai="letter">Dear Riverside team,
+
+Your acute medical unit is where I've spent the last eight years: triaging admissions from A&amp;E, giving IV medication and screening every patient for sepsis.
+
+At Northgate I led a falls-prevention audit that cut ward falls by 20%, and I mentor our newly qualified nurses.
+
+I'd love to bring that to Riverside.
+
+Kind regards,
+Amara Okafor</span><i class="caret" hidden></i></p>
+                            </div>
+                            <div class="ai-panel" data-ai-panel="tips" aria-hidden="true">
+                                <div class="assist-tips ai-tips">
+                                    <p class="assist-verdict" style="--k: 0" data-ai="verdict">A strong fit on acute care. Put your sepsis and IV work where they'll see it first.</p>
+                                    <div class="match-group" style="--k: 1">
+                                        <span class="label">Rewrite</span>
+                                        <div class="rewrite">
+                                            <span class="label" data-ai="section">Summary</span>
+                                            <p class="rewrite-before" data-ai="before">Experienced nurse with strong clinical skills.</p>
+                                            <p class="rewrite-after" data-ai="after">NMC-registered adult nurse with 8 years on acute wards: triage, IV therapy and sepsis screening.</p>
+                                            <p class="rewrite-why" data-ai="why">Leads with the three things their listing asks for first.</p>
+                                        </div>
+                                    </div>
+                                    <div class="match-group" style="--k: 2">
+                                        <span class="label">Use these words, where they're true</span>
+                                        <div class="chips" data-ai="keywords"><span class="chip">Acute medicine</span><span class="chip">Sepsis screening</span><span class="chip">IV therapy</span><span class="chip">NMC PIN</span></div>
+                                    </div>
+                                    <p class="ai-gap" style="--k: 3"><strong data-ai="gapName">ICU experience:</strong> <span data-ai="gap">don't claim it. Mention the high-dependency patients you've cared for, and that you're keen to rotate.</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <section class="section">
             <div class="container split">
                 <div class="card tracker-demo" data-reveal aria-hidden="true">

@@ -440,6 +440,43 @@ svg { display: block; flex: none; }
 .status-pill { transition: background-color 0.35s, border-color 0.35s, color 0.35s; }
 .status-pill.is-bump { animation: pop-in 0.45s var(--ease-out); }
 
+/* AI help: the one dark band before the CTA, between the explained match and the tracker */
+.section-ink { background: var(--ink); color: var(--paper); }
+.section-ink :focus-visible { outline-color: var(--paper); }
+.section-ink .label { color: var(--faint); }
+.section-ink .section-text { color: var(--line-2); }
+.section-ink .explain-list { border-bottom-color: #2E2D2B; }
+.section-ink .explain-row { border-top-color: #2E2D2B; }
+.section-ink .explain-row dt { color: var(--paper); }
+.section-ink .explain-row dd { color: var(--line-2); }
+.section-ink .explain-list.is-focusing .explain-row:not(.is-lit) dt,
+.section-ink .explain-list.is-focusing .explain-row:not(.is-lit) dd { color: #6E6C68; }
+.section-ink .explain-row.is-lit dd { color: var(--paper); }
+.section-ink .role-switch button { background: transparent; border-color: #3B3A38; color: var(--line-2); }
+.section-ink .role-switch button:hover { border-color: var(--paper); }
+.section-ink .role-switch button[aria-pressed="true"] { background: var(--paper); border-color: var(--paper); color: var(--ink); }
+.ai-stack { display: flex; flex-direction: column; gap: 14px; }
+.ai-demo { display: flex; flex-direction: column; gap: 16px; padding: 24px; background: var(--surface); color: var(--ink); border-radius: 20px; box-shadow: 0 40px 80px -40px rgba(0, 0, 0, 0.7); }
+.ai-demo :focus-visible { outline-color: var(--ink); }
+.ai-demo .label { color: var(--muted); }
+.ai-demo-job { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--tint); }
+.ai-demo-score { font-size: 24px; font-weight: 500; }
+.ai-tabs { width: 240px; }
+.ai-lang { display: inline-flex; align-items: center; min-width: 0; height: 34px; padding: 0 12px; overflow: hidden; border: 1px solid var(--line-2); border-radius: var(--radius); font-size: 12px; color: var(--ink-2); white-space: nowrap; text-overflow: ellipsis; }
+.ai-panels { display: grid; }
+.ai-panel { grid-area: 1 / 1; transition: opacity 0.4s ease, transform 0.4s var(--ease-out), visibility 0.4s; }
+.ai-panel:not(.is-shown) { opacity: 0; transform: translateY(8px); visibility: hidden; }
+/* Fixed height, scrolled to the newest line as it types, so the page doesn't jump */
+.ai-letter { height: 300px; margin: 0; padding: 16px 18px; overflow: hidden; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; font-size: 14px; line-height: 1.65; color: var(--ink-2); white-space: pre-line; }
+.ai-tips > * { transition: opacity 0.5s var(--ease-out), transform 0.5s var(--ease-out); transition-delay: calc(var(--k, 0) * 160ms + 100ms); }
+.ai-panel:not(.is-shown) .ai-tips > * { opacity: 0; transform: translateY(10px); transition-delay: 0s; }
+/* The old wording gets struck through a beat after it appears */
+.ai-demo .rewrite-before { color: var(--ink-2); text-decoration-color: transparent; transition: color 0.5s ease, text-decoration-color 0.5s ease; transition-delay: 0.9s; }
+.ai-panel.is-shown .rewrite-before { color: var(--faint); text-decoration-color: currentColor; }
+.ai-gap { font-size: 14px; line-height: 1.55; color: var(--ink-2); }
+.ai-demo [data-ai] { transition: opacity 0.3s ease; }
+.ai-demo.is-swapping [data-ai] { opacity: 0; }
+
 /* ---------- Landing motion ---------- */
 /* Hero entrance (CSS only, so it plays even before scripts load) */
 .hero-title .w > * { animation: rise 0.9s var(--ease-out) both; animation-delay: calc(var(--i, 0) * 60ms + 80ms); }
@@ -864,6 +901,17 @@ svg { display: block; flex: none; }
 .tour-actions { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 .tour-actions .link-button { margin-right: auto; font-size: 13px; color: var(--muted); }
 .tour-actions .btn:first-child { margin-left: auto; }
+/* A glimpse of the AI panel inside the tour card */
+.tour-visual { display: flex; flex-direction: column; gap: 10px; padding: 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; }
+.tour-visual-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px; padding: 3px; background: var(--tint); border-radius: 8px; font-size: 12px; font-weight: 500; }
+.tour-visual-tabs span { padding: 5px 0; text-align: center; border-radius: 6px; color: var(--muted); }
+.tour-visual-tabs .is-on { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(14, 14, 13, 0.08); }
+.tour-visual-lines { display: flex; flex-direction: column; gap: 7px; }
+.tour-visual-lines i { display: block; width: var(--w); height: 6px; border-radius: 999px; background: var(--line-2); transform-origin: left; animation: tour-line 0.9s var(--ease-out) both; animation-delay: calc(var(--j, 0) * 150ms + 150ms); }
+@keyframes tour-line { from { transform: scaleX(0); } }
+.tour-visual-edit { display: flex; flex-direction: column; gap: 2px; font-size: 12px; line-height: 1.45; }
+.tour-visual-edit s { color: var(--faint); }
+.tour-visual-edit span { font-weight: 500; }
 /* On a phone the card sits at the bottom, clear of the spotlight */
 @media (max-width: 600px) {
   .tour-card { top: auto !important; left: 16px !important; right: 16px; bottom: 16px; width: auto; }
@@ -968,6 +1016,13 @@ svg { display: block; flex: none; }
   .match-foot { flex-wrap: wrap; }
   .match-actions { width: 100%; flex-wrap: wrap; }
   .match-actions > .btn { flex: 1; }
+  .ai-demo { padding: 18px; }
+  .ai-tabs { width: 100%; }
+  .ai-demo .assist-controls .btn { flex: none; margin-left: auto; }
+  /* The language label takes what's left of the row and keeps just the language, so the button stays inside */
+  .ai-lang { display: block; flex: 1; line-height: 32px; }
+  .ai-lang-prefix { display: none; }
+  .ai-letter { height: 360px; }
 }
 
 /* Three nav tabs on a phone: text only, each as wide as its label */
