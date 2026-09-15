@@ -90,7 +90,7 @@ function renderList() {
 }
 
 function jobRow(job, index) {
-    const tier = job.score >= 80 ? 'strong' : job.score >= 60 ? 'good' : 'partial';
+    const tier = job.score >= 85 ? 'strong' : job.score >= 70 ? 'good' : 'partial';
     const noteOpen = openNoteId === job._id;
     const title = escapeHtml(job.title);
 
@@ -174,11 +174,11 @@ list.addEventListener('click', async e => {
 // Persists a status or note change; on failure the list is re-rendered from the last known state
 async function updateJob(id, changes) {
     try {
-        const response = await fetch(`/api/saved-jobs/${id}`, {
+        const response = checkSession(await fetch(`/api/saved-jobs/${id}`, {
             method: 'PUT',
             headers: authHeaders(),
-            body: JSON.stringify({ userId: session.userId, ...changes })
-        });
+            body: JSON.stringify(changes)
+        }));
         if (!response.ok) throw new Error();
     } catch (error) {
         toast('Could not update this job');
@@ -194,11 +194,7 @@ async function removeJob(id) {
     const job = jobs.find(j => j._id === id);
     if (!confirm(`Remove "${job.title}" from your saved jobs?`)) return;
 
-    const response = await fetch(`/api/saved-jobs/${id}`, {
-        method: 'DELETE',
-        headers: authHeaders(),
-        body: JSON.stringify({ userId: session.userId })
-    });
+    const response = checkSession(await fetch(`/api/saved-jobs/${id}`, { method: 'DELETE', headers: authHeaders() }));
     if (!response.ok) {
         toast('Could not remove this job');
         return;

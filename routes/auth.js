@@ -6,10 +6,10 @@ const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 const { sendVerificationEmail } = require('../utils/emailService');
 const { connectToDatabase } = require('../utils/db');
+const { JWT_SECRET } = require('../middleware/auth');
 
 const router = express.Router();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const GOOGLE_CLIENT_ID = '1001210903692-505to271nee2u0502j0ko2ftcdn5l9a0.apps.googleusercontent.com';
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
@@ -24,9 +24,9 @@ router.use(async (req, res, next) => {
   }
 });
 
-// Verification links don't expire; they point back at APP_URL, or else the domain that served the request
+// Verification links last a week; they point back at APP_URL, or else the domain that served the request
 function verificationLinkFor(req, user) {
-    const token = jwt.sign({ userId: user._id, purpose: 'email-verification' }, JWT_SECRET);
+    const token = jwt.sign({ userId: user._id, purpose: 'email-verification' }, JWT_SECRET, { expiresIn: '7d' });
     const baseUrl = process.env.APP_URL || `${req.get('x-forwarded-proto') || req.protocol}://${req.get('host')}`;
     return `${baseUrl}/verify-email?token=${token}`;
 }

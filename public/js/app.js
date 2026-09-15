@@ -131,7 +131,7 @@ form.addEventListener('submit', e => {
         if (form.elements[name].value) filters[name] = form.elements[name].value;
     });
 
-    runMatch({ query: `${role} in ${city}`, cvText, userId: session.userId, filters }, { role, city });
+    runMatch({ query: `${role} in ${city}`, cvText, filters }, { role, city });
 });
 
 async function runMatch(body, search) {
@@ -143,12 +143,12 @@ async function runMatch(body, search) {
         // Only covers waiting for the stream to start; scoring itself can run longer
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000);
-        const response = await fetch('/api/find-matches', {
+        const response = checkSession(await fetch('/api/find-matches', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
+            headers: { ...authHeaders(), 'Accept': 'text/event-stream' },
             body: JSON.stringify(body),
             signal: controller.signal
-        });
+        }));
         clearTimeout(timeoutId);
 
         if (!response.ok) {
@@ -187,10 +187,12 @@ async function runMatch(body, search) {
 // Returns true once the run has ended (results or an error)
 function handleEvent(event, search) {
     switch (event.status) {
-        case 'cv_analyzed':
-            setStep('cv', 'done', `${(event.cvAnalysis.skills || []).length} skills found`);
-            setStep('search', 'active');
+        case 'cv_analyzed': {
+            // The CV is read while the search runs; the summary can be missing if it failed
+            const skills = (event.cvAnalysis && event.cvAnalysis.skills) || [];
+            setStep('cv', 'done', skills.length ? `${skills.length} skills found` : 'Done');
             return false;
+        }
         case 'jobs_found':
             setStep('search', 'done', `${event.totalJobs} found`);
             setStep('score', 'active', '0%', 0);
@@ -249,7 +251,7 @@ function renderProgress() {
             </div>
             <ol>
                 ${step('cv', 'Reading your CV', true)}
-                ${step('search', 'Searching live listings')}
+                ${step('search', 'Searching live listings', true)}
                 ${step('score', 'Scoring each job against your profile')}
             </ol>
             <div class="skeleton-card" aria-hidden="true">
@@ -265,18 +267,18 @@ function renderProgress() {
 }
 
 function renderResults(result, search) {
-    const allMatches = result.jobMatches || [];
-    // The server returns a placeholder "error" match when scoring fails
-    const matches = allMatches.filter(match => match.jobId !== 'error');
+    const matches = result.jobMatches || [];
     if (!matches.length) {
-        const failed = allMatches.find(match => match.jobId === 'error');
-        renderError(failed ? failed.reasons[0] : 'No matches came back for this search.');
+        renderError('No matches came back for this search.');
         return;
     }
 
     currentMatches = matches.sort((a, b) => b.score - a.score);
-    const skills = (result.cvAnalysis && result.cvAnalysis.skills) || [];
+    const profile = result.cvAnalysis || {};
+    const skills = profile.skills || [];
     const shownSkills = skills.slice(0, 8);
+    // Listings in a batch that failed to score are left out rather than shown with a fake score
+    const failed = (result.meta && result.meta.failedJobs) || 0;
 
     results.innerHTML = `
         <div class="results-head">
@@ -284,11 +286,11 @@ function renderResults(result, search) {
                 <span class="label">Results</span>
                 <h2 class="results-title">${matches.length} job${matches.length === 1 ? '' : 's'} ranked for ${escapeHtml(search.role)} in ${escapeHtml(search.city)}</h2>
             </div>
-            <span class="mono muted results-sort">Best match first</span>
+            <span class="mono muted results-sort">Best match first${failed ? ` · ${failed} couldn't be scored` : ''}</span>
         </div>
         ${skills.length ? `
             <div class="cv-strip">
-                <span class="label">Read from your CV</span>
+                <span class="label">Read from your CV${profile.headline ? ` · ${escapeHtml(profile.headline)}` : ''}</span>
                 <div class="chips">
                     ${shownSkills.map(skill => `<span class="chip">${escapeHtml(skill)}</span>`).join('')}
                     ${skills.length > shownSkills.length ? `<span class="chip chip-more">+${skills.length - shownSkills.length} more</span>` : ''}
@@ -301,7 +303,11 @@ function renderResults(result, search) {
 
 function matchCard(job, index) {
     const score = Math.max(0, Math.min(100, Math.round(Number(job.score) || 0)));
-    const [tier, tierLabel] = score >= 80 ? ['strong', 'Strong match'] : score >= 60 ? ['good', 'Good match'] : ['partial', 'Partial match'];
+    // Same bands the scoring prompt uses
+    const [tier, tierLabel] = score >= 85 ? ['strong', 'Strong match']
+        : score >= 70 ? ['good', 'Good match']
+        : score >= 50 ? ['partial', 'Stretch']
+        : ['partial', 'Weak match'];
     const meta = [job.company, formatPosted(job.posted)].filter(Boolean);
     const chips = (list, className = 'chip') => list && list.length
         ? `<div class="chips">${list.map(item => `<span class="${className}">${escapeHtml(item)}</span>`).join('')}</div>`
@@ -328,7 +334,7 @@ function matchCard(job, index) {
                 </div>
                 ${job.reasons && job.reasons.length ? `
                     <div class="match-group">
-                        <span class="label">Why it fits</span>
+                        <span class="label">Why this score</span>
                         <ul class="match-why">${job.reasons.map(reason => `<li>${escapeHtml(reason)}</li>`).join('')}</ul>
                     </div>` : ''}
                 ${job.link ? `
@@ -382,11 +388,10 @@ results.addEventListener('click', e => {
 async function saveMatch(job, button) {
     button.disabled = true;
     try {
-        const response = await fetch('/api/saved-jobs', {
+        const response = checkSession(await fetch('/api/saved-jobs', {
             method: 'POST',
             headers: authHeaders(),
             body: JSON.stringify({
-                userId: session.userId,
                 title: job.title,
                 company: job.company,
                 link: job.link,
@@ -396,7 +401,7 @@ async function saveMatch(job, button) {
                 missingSkills: job.missingSkills || [],
                 reasons: job.reasons || []
             })
-        });
+        }));
         // 409 means it was already on the list
         if (!response.ok && response.status !== 409) {
             throw new Error((await response.json()).message || 'Could not save this job');

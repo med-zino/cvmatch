@@ -39,8 +39,17 @@ function authHeaders() {
     return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.token}` };
 }
 
+// An expired or invalid session answers 401: clear it and go back to sign in
+function checkSession(response) {
+    if (response.status === 401) {
+        signOut();
+        throw new Error('Your session expired. Please sign in again.');
+    }
+    return response;
+}
+
 async function fetchSavedJobs() {
-    const response = await fetch(`/api/saved-jobs/${session.userId}`, { headers: authHeaders() });
+    const response = checkSession(await fetch('/api/saved-jobs', { headers: authHeaders() }));
     if (!response.ok) {
         throw new Error('Could not load your saved jobs');
     }

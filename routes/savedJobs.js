@@ -1,12 +1,16 @@
 const express = require('express');
 const router = express.Router();
+const { apiAuth } = require('../middleware/auth');
 const { saveJob, getSavedJobs, deleteSavedJob, updateSavedJob } = require('../controllers/savedJobController');
 
-// POST /api/saved-jobs - Save a job for a user
+// All routes act on the signed-in user from the session token
+router.use(apiAuth);
+
+// POST /api/saved-jobs - Save a job
 router.post('/', saveJob);
 
-// GET /api/saved-jobs/:userId - Get all saved jobs for a user
-router.get('/:userId', getSavedJobs);
+// GET /api/saved-jobs - List the user's saved jobs
+router.get('/', getSavedJobs);
 
 // DELETE /api/saved-jobs/:jobId - Delete a saved job
 router.delete('/:jobId', deleteSavedJob);
