@@ -20,7 +20,6 @@ const DESCRIPTION_CHARS = 6000;
 const JSEARCH_TIMEOUT = 45000;
 // When a page is slow, a second try starts after this and the first answer wins (see fetchJobPage)
 const HEDGE_AFTER_MS = Number(process.env.JSEARCH_HEDGE_MS) || 8000;
-const PAGE_ATTEMPTS = Number(process.env.JSEARCH_ATTEMPTS) || 2;
 const PAGE_GRACE = 8000;
 // The same search within 30 minutes reuses its listings: RapidAPI's free plan is 200 requests a month
 const SEARCH_CACHE_MS = 30 * 60 * 1000;
@@ -143,18 +142,75 @@ ${cvText}
 
 // ---------- Job search ----------
 
-// One or more RapidAPI keys: RAPIDAPI_KEYS (comma-separated) or RAPIDAPI_KEY. Pages are spread across
-// them, and a key that runs out of quota rests for a while so requests go to the others.
-const KEY_REST_MS = 10 * 60 * 1000;
-const restingKeys = new Map();
+// One or more RapidAPI keys: RAPIDAPI_KEYS (comma-separated) or RAPIDAPI_KEY. RapidAPI reports each
+// key's quota on every response, so requests go to the key with the most left (usage stays even),
+// and a key that runs out rests until its quota resets while the others carry on.
 const rapidApiKeys = () => (process.env.RAPIDAPI_KEYS || process.env.RAPIDAPI_KEY || '')
   .split(',').map(key => key.trim()).filter(Boolean);
+// How long a key rests when RapidAPI doesn't say: out of quota with no reset time, or refused
+const KEY_REST_MS = 60 * 60 * 1000;
+// "Too many requests" while quota remains is a per-second limit: a short pause is enough
+const BURST_REST_MS = 60 * 1000;
+const MAX_REST_MS = 32 * 24 * 60 * 60 * 1000;
+// Kept per server instance; a fresh instance relearns from the first response of each key
+const keyStates = new Map();
+const keyState = key => {
+  if (!keyStates.has(key)) keyStates.set(key, { remaining: Infinity, restUntil: 0 });
+  return keyStates.get(key);
+};
+const maskKey = key => `…${key.slice(-4)}`;
 
-function pickKey(offset) {
+function rest(key, ms, reason) {
+  const state = keyState(key);
+  const wasResting = state.restUntil > Date.now();
+  state.restUntil = Date.now() + Math.min(ms, MAX_REST_MS);
+  // Pages load in parallel, so the same news can arrive several times at once; it's logged once
+  if (!wasResting) console.warn(`RapidAPI key ${maskKey(key)} ${reason}; resting until ${new Date(state.restUntil).toISOString()}`);
+}
+
+// Reads the quota headers RapidAPI sends with every response, successful or not
+function noteQuota(key, response) {
+  const header = name => (response.headers.has(name) ? Number(response.headers.get(name)) : null);
+  const remaining = header('x-ratelimit-requests-remaining');
+  const resetSeconds = header('x-ratelimit-requests-reset');
+  if (remaining !== null) keyState(key).remaining = remaining;
+
+  if (response.status === 403) rest(key, KEY_REST_MS, 'was refused (not subscribed to JSearch?)');
+  else if (response.status === 429 && remaining > 0) rest(key, BURST_REST_MS, 'hit the per-second limit');
+  else if (response.status === 429 || remaining === 0) rest(key, resetSeconds > 0 ? resetSeconds * 1000 : KEY_REST_MS, 'is out of quota');
+}
+
+// The key for the next try at a page: one not tried yet for it, not resting, with the most requests
+// left; resting keys come last, as a last resort. Ties start each page on a different key.
+// A racing twin with a single key reuses it.
+function pickKey(tried, page) {
+  const now = Date.now();
   const keys = rapidApiKeys();
-  const ready = keys.filter(key => !(restingKeys.get(key) > Date.now()));
-  const pool = ready.length ? ready : keys;
-  return pool[offset % pool.length];
+  const untried = keys.filter(key => !tried.has(key));
+  const turn = key => (keys.indexOf(key) - (page - 1) + keys.length * page) % keys.length;
+  return (untried.length ? untried : keys).sort((a, b) => {
+    const first = keyState(a);
+    const second = keyState(b);
+    const restingA = first.restUntil > now;
+    const restingB = second.restUntil > now;
+    if (restingA !== restingB) return restingA ? 1 : -1;
+    if (restingA) return first.restUntil - second.restUntil;
+    if (first.remaining !== second.remaining) return second.remaining - first.remaining;
+    return turn(a) - turn(b);
+  })[0];
+}
+
+// Each key's standing as this server instance knows it, masked, for logs and checks
+function keyHealth() {
+  const now = Date.now();
+  return rapidApiKeys().map(key => {
+    const { remaining, restUntil } = keyState(key);
+    return {
+      key: maskKey(key),
+      remaining: Number.isFinite(remaining) ? remaining : null,
+      restingUntil: restUntil > now ? new Date(restUntil).toISOString() : null
+    };
+  });
 }
 
 async function requestJobPage(params, page, key, signal) {
@@ -165,22 +221,24 @@ async function requestJobPage(params, page, key, signal) {
     headers: { 'x-rapidapi-key': key, 'x-rapidapi-host': 'jsearch.p.rapidapi.com' },
     signal: AbortSignal.any([signal, AbortSignal.timeout(JSEARCH_TIMEOUT)])
   });
+  noteQuota(key, response);
   if (!response.ok) {
-    // Over quota or not subscribed: the other keys take over for a while
-    if (response.status === 429 || response.status === 403) restingKeys.set(key, Date.now() + KEY_REST_MS);
     throw new Error(response.status === 429 ? 'The job search service is over its request limit. Try again later.' : `Job search failed (${response.status})`);
   }
   return (await response.json()).data || [];
 }
 
-// One page, raced. The same JSearch request can take 5s or 40s, so when a try is slow a second one
-// starts after HEDGE_AFTER_MS (with the next key, if there are several) and the first answer wins;
-// the other is cancelled. A failed try hands over at once. At most PAGE_ATTEMPTS tries per page.
+// One page. A failed try (out of quota, refused, server error, timeout) hands over to another key at
+// once, so a page only fails once every key has. And since the same JSearch request can take 5s or
+// 40s, a slow try gets one racing twin after HEDGE_AFTER_MS; the first answer wins, the other is cancelled.
 function fetchJobPage(params, page, signal) {
   return new Promise((resolve, reject) => {
+    const maxTries = rapidApiKeys().length + 1;
+    const tried = new Set();
     const tries = [];
     let settled = false;
     let failures = 0;
+    let hedged = false;
     let hedge;
     const settle = (finish, value) => {
       if (settled) return;
@@ -189,27 +247,31 @@ function fetchJobPage(params, page, signal) {
       tries.forEach(controller => controller.abort());
       finish(value);
     };
-    const launch = () => {
-      if (settled || tries.length >= PAGE_ATTEMPTS) return;
+    const launch = asHedge => {
+      if (settled || tries.length >= maxTries || (asHedge && hedged)) return;
+      if (asHedge) hedged = true;
+      const key = pickKey(tried, page);
+      tried.add(key);
       const controller = new AbortController();
-      const key = pickKey(page - 1 + tries.length);
       tries.push(controller);
       clearTimeout(hedge);
-      hedge = setTimeout(launch, HEDGE_AFTER_MS);
+      if (!hedged) hedge = setTimeout(() => launch(true), HEDGE_AFTER_MS);
       requestJobPage(params, page, key, AbortSignal.any([signal, controller.signal])).then(
         jobs => settle(resolve, jobs),
         error => {
           if (settled) return;
           failures++;
+          // Hand over to a key this page hasn't tried; with a single key, it gets one retry
+          const canHandOver = tries.length < maxTries && (rapidApiKeys().some(key => !tried.has(key)) || tries.length < 2);
           if (signal.aborted) settle(reject, error);
-          else if (tries.length < PAGE_ATTEMPTS) launch();
+          else if (canHandOver) launch(false);
           else if (failures === tries.length) settle(reject, error);
         }
       );
     };
     if (signal.aborted) return reject(signal.reason);
     signal.addEventListener('abort', () => settle(reject, signal.reason), { once: true });
-    launch();
+    launch(false);
   });
 }
 
@@ -415,4 +477,4 @@ async function scoreJobs(cvText, jobs, signal, onBatch = () => {}) {
   return matches;
 }
 
-module.exports = { searchJobs, summarizeCV, scoreJobs, askGemini, eachLimited, DESCRIPTION_CHARS };
+module.exports = { searchJobs, summarizeCV, scoreJobs, askGemini, eachLimited, keyHealth, DESCRIPTION_CHARS };
