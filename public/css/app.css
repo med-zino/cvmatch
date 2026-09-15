@@ -1,4 +1,4 @@
-/* CVMatch — black & white design system shared by every page */
+/* Pounce — black & white design system shared by every page */
 :root {
   --ink: #0E0E0D;
   --ink-2: #3B3A38;
@@ -68,6 +68,9 @@ svg { display: block; flex: none; }
 .brand--inverse { color: var(--paper); }
 .brand--inverse .brand-mark { color: var(--paper); }
 .brand--inverse .brand-mark path { stroke: var(--ink); }
+/* The mark's target dot follows the same colours as its arc */
+.brand-mark circle { fill: var(--paper); }
+.brand--inverse .brand-mark circle { fill: var(--ink); }
 
 /* ---------- Buttons ---------- */
 .btn {
@@ -297,6 +300,7 @@ svg { display: block; flex: none; }
 @keyframes hub-pulse { 0% { opacity: 0.45; transform: scale(0.92); } 100% { opacity: 0; transform: scale(1.35); } }
 .source-hub .brand-mark { width: 26px; height: 26px; color: var(--paper); }
 .source-hub .brand-mark path { stroke: var(--ink); }
+.source-hub .brand-mark circle { fill: var(--ink); }
 .merged-list { margin-left: 24px; padding: 20px; display: flex; flex-direction: column; box-shadow: 0 32px 64px -40px rgba(14, 14, 13, 0.35); }
 .merged-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 14px; border-bottom: 1px solid var(--tint); }
 .merged-query { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px; border: 1px solid var(--line-2); border-radius: 999px; font-size: 13px; }

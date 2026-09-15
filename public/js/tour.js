@@ -10,7 +10,7 @@
             <p class="tour-visual-edit"><s>Worked on frontend features.</s><span>Built 40+ React components for a design system used by 4 teams.</span></p>
         </div>`;
     const STEPS = [
-        { title: 'Welcome to CVMatch', text: 'A quick look at what it does for you. It takes about 30 seconds.' },
+        { title: 'Welcome to Pounce', text: 'A quick look at what it does for you. It takes about 30 seconds.' },
         { target: formSection(0), title: 'Search any role, anywhere', text: 'Pick a role and a city. We pull live openings from job boards across the web into one list.' },
         { target: formSection(1), title: 'Add your CV once', text: 'Upload or paste it for your first search. It’s saved to your account and used for every score after that.' },
         { target: () => document.getElementById('results'), title: 'Every job, scored', text: 'Results fill in as they’re scored, best match first: the skills you have, the gaps and why.' },

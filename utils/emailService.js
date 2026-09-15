@@ -7,14 +7,14 @@ const { EMAIL_USER, EMAIL_PASS } = process.env;
 // Used if the template file can't be read (e.g. missing from the serverless bundle)
 const FALLBACK_TEMPLATE = `
   <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
-    <h1 style="color: #4F46E5; text-align: center;">CV<span style="color: #10B981;">Match</span></h1>
+    <h1 style="color: #0E0E0D; text-align: center;">Pounce</h1>
     <p>Hello {{to_name}},</p>
-    <p>Thank you for registering with CVMatch! Please verify your email address by clicking the button below:</p>
+    <p>Thank you for registering with Pounce! Please verify your email address by clicking the button below:</p>
     <p style="margin: 30px 0; text-align: center;">
-      <a href="{{verification_link}}" style="background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Verify My Email</a>
+      <a href="{{verification_link}}" style="background-color: #0E0E0D; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Verify My Email</a>
     </p>
-    <p>If you did not create an account with CVMatch, please ignore this email.</p>
-    <p>Best regards,<br>The CVMatch Team</p>
+    <p>If you did not create an account with Pounce, please ignore this email.</p>
+    <p>Best regards,<br>The Pounce Team</p>
   </div>
 `;
 
@@ -31,7 +31,7 @@ async function sendEmail({ to, subject, html, text, headers, list }) {
       service: 'gmail',
       auth: { user: EMAIL_USER, pass: EMAIL_PASS }
     });
-    const info = await transporter.sendMail({ from: `"CVMatch" <${EMAIL_USER}>`, to, subject, html, text, headers, list });
+    const info = await transporter.sendMail({ from: `"Pounce" <${EMAIL_USER}>`, to, subject, html, text, headers, list });
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error('Error sending email:', error);
@@ -51,11 +51,11 @@ async function sendVerificationEmail(email, verificationLink) {
   const name = email.split('@')[0];
   return sendEmail({
     to: email,
-    subject: 'Confirm your email for CVMatch',
+    subject: 'Confirm your email for Pounce',
     html: template
       .replace(/{{to_name}}/g, name)
       .replace(/{{verification_link}}/g, verificationLink),
-    text: `Hello ${name},\n\nConfirm your email address to finish setting up your CVMatch account:\n${verificationLink}\n\nIf you didn't create a CVMatch account, you can ignore this email.\n\nThe CVMatch team`
+    text: `Hello ${name},\n\nConfirm your email address to finish setting up your Pounce account:\n${verificationLink}\n\nIf you didn't create a Pounce account, you can ignore this email.\n\nThe Pounce team`
   });
 }
 
@@ -102,7 +102,7 @@ async function sendJobAlertEmail(to, { jobs, titles, location, feedUrl, unsubscr
     <tr><td align="center" style="padding: 40px 16px;">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 560px; background-color: #FFFFFF; border: 1px solid #E6E4DF; border-radius: 16px;">
         <tr><td style="padding: 32px 32px 20px;">
-          <p style="margin: 0 0 24px; font-size: 17px; font-weight: bold; letter-spacing: -0.02em;">CVMatch</p>
+          <p style="margin: 0 0 24px; font-size: 17px; font-weight: bold; letter-spacing: -0.02em;">Pounce</p>
           <h1 style="margin: 0 0 10px; font-family: Georgia, 'Times New Roman', serif; font-size: 30px; font-weight: normal; line-height: 1.1;">${heading}</h1>
           <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #76746F;">New openings for ${escape(search)}, scored against your CV.</p>
         </td></tr>
@@ -111,7 +111,7 @@ async function sendJobAlertEmail(to, { jobs, titles, location, feedUrl, unsubscr
           <a href="${escape(feedUrl)}" style="color: #0E0E0D; font-size: 14px; font-weight: bold;">See every opening in your feed &rarr;</a>
         </td></tr>
         <tr><td style="padding: 18px 32px 26px; border-top: 1px solid #EFEEEA;">
-          <p style="margin: 0; font-size: 12px; line-height: 1.6; color: #76746F;">You get this email because you turned on daily matches in CVMatch. <a href="${escape(unsubscribeUrl)}" style="color: #76746F;">Turn off daily emails</a>.</p>
+          <p style="margin: 0; font-size: 12px; line-height: 1.6; color: #76746F;">You get this email because you turned on daily matches in Pounce. <a href="${escape(unsubscribeUrl)}" style="color: #76746F;">Turn off daily emails</a>.</p>
         </td></tr>
       </table>
     </td></tr>

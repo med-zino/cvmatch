@@ -35,7 +35,7 @@ const page = (title, text) => `<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${title} — CVMatch</title>
+    <title>${title} — Pounce</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Instrument+Serif&display=swap">
     <link rel="stylesheet" href="/css/app.css">
 </head>
