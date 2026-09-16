@@ -175,7 +175,10 @@ function noteQuota(key, response) {
   const resetSeconds = header('x-ratelimit-requests-reset');
   if (remaining !== null) keyState(key).remaining = remaining;
 
-  if (response.status === 403) rest(key, KEY_REST_MS, 'was refused (not subscribed to JSearch?)');
+  // 403 and 404 both mean the account behind this key cannot call JSearch: RapidAPI answers 404
+  // for an endpoint a key isn't subscribed to. Neither reply carries quota headers, so a key left
+  // unrested would still look like the emptiest one and be tried first on every page.
+  if (response.status === 403 || response.status === 404) rest(key, KEY_REST_MS, 'cannot use JSearch (is that account subscribed?)');
   else if (response.status === 429 && remaining > 0) rest(key, BURST_REST_MS, 'hit the per-second limit');
   else if (response.status === 429 || remaining === 0) rest(key, resetSeconds > 0 ? resetSeconds * 1000 : KEY_REST_MS, 'is out of quota');
 }
