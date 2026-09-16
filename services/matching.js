@@ -20,7 +20,9 @@ const DESCRIPTION_CHARS = 6000;
 const JSEARCH_TIMEOUT = 45000;
 // When a page is slow, a second try starts after this and the first answer wins (see fetchJobPage)
 const HEDGE_AFTER_MS = Number(process.env.JSEARCH_HEDGE_MS) || 8000;
-const PAGE_GRACE = 8000;
+// The cursor makes extra pages sequential, so they get a shared budget: once this much time has
+// passed since the search began, whatever pages are in hand are enough.
+const SEARCH_BUDGET_MS = Number(process.env.JSEARCH_BUDGET_MS) || 60000;
 // The same search within 30 minutes reuses its listings: RapidAPI's free plan is 200 requests a month
 const SEARCH_CACHE_MS = 30 * 60 * 1000;
 const searchCache = new Map();
@@ -175,10 +177,11 @@ function noteQuota(key, response) {
   const resetSeconds = header('x-ratelimit-requests-reset');
   if (remaining !== null) keyState(key).remaining = remaining;
 
-  // 403 and 404 both mean the account behind this key cannot call JSearch: RapidAPI answers 404
-  // for an endpoint a key isn't subscribed to. Neither reply carries quota headers, so a key left
-  // unrested would still look like the emptiest one and be tried first on every page.
-  if (response.status === 403 || response.status === 404) rest(key, KEY_REST_MS, 'cannot use JSearch (is that account subscribed?)');
+  if (response.status === 403) rest(key, KEY_REST_MS, 'was refused (not subscribed to JSearch?)');
+  // A 404 is JSearch's own endpoint refusing the path, not a problem with the key: every key sees
+  // it at once. The key pauses briefly so pages stop hammering a dead endpoint, but it is back in
+  // use a minute later, instead of being sidelined for an hour after the service recovers.
+  else if (response.status === 404) rest(key, BURST_REST_MS, 'got 404 from JSearch (the endpoint is refusing the path, not the key)');
   else if (response.status === 429 && remaining > 0) rest(key, BURST_REST_MS, 'hit the per-second limit');
   else if (response.status === 429 || remaining === 0) rest(key, resetSeconds > 0 ? resetSeconds * 1000 : KEY_REST_MS, 'is out of quota');
 }
@@ -216,9 +219,11 @@ function keyHealth() {
   });
 }
 
-async function requestJobPage(params, page, key, signal) {
-  const url = new URL('https://jsearch.p.rapidapi.com/search');
-  Object.entries({ ...params, page, num_pages: 1 }).forEach(([name, value]) => url.searchParams.set(name, value));
+// search-v2 answers with { data: { jobs, cursor } } and hands back the cursor for the next ten
+// listings. The older /search, paged by number, was withdrawn and now answers 404 for every key.
+async function requestJobPage(params, cursor, key, signal) {
+  const url = new URL('https://jsearch.p.rapidapi.com/search-v2');
+  Object.entries(cursor ? { ...params, cursor } : params).forEach(([name, value]) => url.searchParams.set(name, value));
 
   const response = await fetch(url, {
     headers: { 'x-rapidapi-key': key, 'x-rapidapi-host': 'jsearch.p.rapidapi.com' },
@@ -226,15 +231,20 @@ async function requestJobPage(params, page, key, signal) {
   });
   noteQuota(key, response);
   if (!response.ok) {
-    throw new Error(response.status === 429 ? 'The job search service is over its request limit. Try again later.' : `Job search failed (${response.status})`);
+    throw new Error(response.status === 429 ? 'The job search service is over its request limit. Try again later.'
+      : response.status === 404 ? 'The job search service is not answering right now. Try again in a few minutes.'
+      : `Job search failed (${response.status})`);
   }
-  return (await response.json()).data || [];
+  const { data } = await response.json();
+  // A plain array is the shape the withdrawn endpoint used, and the one a stand-in API would copy
+  return Array.isArray(data) ? { listings: data, cursor: null } : { listings: data?.jobs || [], cursor: data?.cursor || null };
 }
 
-// One page. A failed try (out of quota, refused, server error, timeout) hands over to another key at
-// once, so a page only fails once every key has. And since the same JSearch request can take 5s or
-// 40s, a slow try gets one racing twin after HEDGE_AFTER_MS; the first answer wins, the other is cancelled.
-function fetchJobPage(params, page, signal) {
+// One page: the listings for a cursor. A failed try (out of quota, refused, server error, timeout)
+// hands over to another key at once, so a page only fails once every key has. And since the same
+// JSearch request can take 5s or 40s, a slow try gets one racing twin after HEDGE_AFTER_MS; the
+// first answer wins, the other is cancelled.
+function fetchJobPage(params, cursor, slot, signal) {
   return new Promise((resolve, reject) => {
     const maxTries = rapidApiKeys().length + 1;
     const tried = new Set();
@@ -253,14 +263,14 @@ function fetchJobPage(params, page, signal) {
     const launch = asHedge => {
       if (settled || tries.length >= maxTries || (asHedge && hedged)) return;
       if (asHedge) hedged = true;
-      const key = pickKey(tried, page);
+      const key = pickKey(tried, slot);
       tried.add(key);
       const controller = new AbortController();
       tries.push(controller);
       clearTimeout(hedge);
       if (!hedged) hedge = setTimeout(() => launch(true), HEDGE_AFTER_MS);
-      requestJobPage(params, page, key, AbortSignal.any([signal, controller.signal])).then(
-        jobs => settle(resolve, jobs),
+      requestJobPage(params, cursor, key, AbortSignal.any([signal, controller.signal])).then(
+        result => settle(resolve, result),
         error => {
           if (settled) return;
           failures++;
@@ -294,9 +304,9 @@ const fromJSearch = job => ({
   description: job.job_description || ''
 });
 
-// Fetches the pages in parallel and hands each page's new listings to onJobs as it arrives, so they
-// can be scored while slower pages load. Once one page has listings, the others get PAGE_GRACE to
-// catch up, then the stragglers are cancelled. Resolves with every listing kept.
+// Walks the pages by cursor, handing each page of new listings to onJobs as it arrives so they can
+// be scored while the next page loads. Stops early at SEARCH_BUDGET_MS, when the cursor runs out,
+// or when a page comes back empty. Resolves with every listing kept.
 async function searchJobs(query, filters, signal, pages = JOB_PAGES, onJobs = () => {}) {
   const params = { query, country: countryFor(query), date_posted: filters.date_posted || 'all' };
   if (filters.work_from_home === 'true' || filters.work_from_home === 'false') params.work_from_home = filters.work_from_home;
@@ -310,15 +320,11 @@ async function searchJobs(query, filters, signal, pages = JOB_PAGES, onJobs = ()
     return cached.jobs;
   }
 
-  const stragglers = new AbortController();
-  const pageSignal = AbortSignal.any([signal, stragglers.signal]);
   const seen = new Set();
   const jobs = [];
-  let closed = false;
   let failure;
   // Boards often repost the same job; the first listing of it is kept
   const accept = listings => {
-    if (closed) return;
     const fresh = listings
       .filter(job => {
         const key = normalize(`${job.job_title}|${job.employer_name}|${job.job_city}`);
@@ -331,17 +337,22 @@ async function searchJobs(query, filters, signal, pages = JOB_PAGES, onJobs = ()
     if (fresh.length) onJobs(fresh);
   };
 
-  const requests = Array.from({ length: pages }, (_, i) => fetchJobPage(params, i + 1, pageSignal).then(
-    accept,
-    error => { failure = failure || error; }
-  ));
-  await new Promise(resolve => {
-    requests.forEach(request => request.then(() => { if (jobs.length) resolve(); }));
-    Promise.all(requests).then(resolve);
-  });
-  await Promise.race([Promise.all(requests), new Promise(resolve => setTimeout(resolve, PAGE_GRACE))]);
-  closed = true;
-  stragglers.abort();
+  // Each answer carries the cursor for the next ten listings, so the pages can only come one after
+  // another. Every page goes to onJobs as it lands, to be scored while the next one loads.
+  const started = Date.now();
+  let cursor = null;
+  for (let page = 1; page <= pages; page++) {
+    try {
+      const result = await fetchJobPage(params, cursor, page, signal);
+      accept(result.listings);
+      cursor = result.cursor;
+      if (!cursor || !result.listings.length) break;
+    } catch (error) {
+      failure = failure || error;
+      break;
+    }
+    if (Date.now() - started > SEARCH_BUDGET_MS) break;
+  }
 
   if (!jobs.length && failure) {
     if (signal.aborted) throw failure;
