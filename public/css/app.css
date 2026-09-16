@@ -956,6 +956,19 @@ svg { display: block; flex: none; }
 .switch--inverse input:checked::after { background: var(--ink); }
 .switch--inverse input:disabled { opacity: 0.35; cursor: not-allowed; }
 
+/* What the daily email still needs before its switch does anything */
+.alert-setup { margin-top: 18px; padding: 16px 18px; background: rgba(247, 247, 245, 0.05); border: 1px solid #2E2D2B; border-radius: 12px; }
+.alert-setup-title { font-size: 13px; font-weight: 500; color: var(--paper); }
+.alert-steps { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+.alert-step { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--line-2); }
+.alert-step-mark { width: 22px; height: 22px; flex: none; display: flex; align-items: center; justify-content: center; border: 1px solid #3B3A38; border-radius: 50%; font-family: var(--mono); font-size: 12px; }
+.alert-step.is-done .alert-step-mark { background: var(--paper); border-color: var(--paper); color: var(--ink); }
+.alert-step.is-done .alert-step-text { color: var(--faint); }
+.alert-step-text { flex: 1; min-width: 0; }
+.alert-step-state { font-family: var(--mono); font-size: 12px; color: var(--faint); }
+.alert-step-go { flex: none; height: 30px; padding: 0 12px; border: 1px solid var(--paper); border-radius: 999px; background: transparent; color: var(--paper); font-size: 13px; font-weight: 500; transition: background-color 0.2s, color 0.2s; }
+.alert-step-go:hover { background: var(--paper); color: var(--ink); }
+
 /* ---------- Saved jobs: cover letter and CV tips ---------- */
 .assist { margin: 0 24px 20px; padding: 18px; display: flex; flex-direction: column; gap: 16px; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; animation: fade-up 0.3s var(--ease-out) both; }
 .assist-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
@@ -1120,6 +1133,10 @@ svg { display: block; flex: none; }
   .alert-card { padding: 20px; }
   .alert-card-title { font-size: 24px; }
   .alert-card-controls .btn { width: 100%; margin-left: 0; }
+  /* The number and the wording stay on the first line; the button drops under them */
+  .alert-step { flex-wrap: wrap; row-gap: 8px; }
+  .alert-step-text { flex: 1 1 60%; }
+  .alert-step-go, .alert-step-state { order: 3; margin-left: 34px; }
   .match-foot { flex-wrap: wrap; }
   .match-actions { width: 100%; flex-wrap: wrap; }
   .match-actions > .btn { flex: 1; }

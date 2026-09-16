@@ -325,30 +325,53 @@
     // The feature's own card: what it does, the switch, the time and a test send, saved as they change
     function renderAlert() {
         const { enabled, hour, minute = 0 } = profile.alert;
-        const ready = profile.titles.length && profile.hasCv;
-        const blocker = !profile.titles.length ? 'Add the job titles you want above to switch it on.'
-            : !profile.hasCv ? 'Run one search first, so we have your CV to score against.' : '';
+        const hasTitles = Boolean(profile.titles.length);
+        const ready = hasTitles && profile.hasCv;
         const place = profile.location ? ` in ${escapeHtml(profile.location)}` : '';
-        const what = profile.titles.length
+        const what = hasTitles
             ? `new openings for <strong>${escapeHtml(profile.titles.join(', '))}</strong>${place}`
             : 'new openings for the job titles you choose';
+        const missing = [!hasTitles && 'the job titles to look for', !profile.hasCv && 'your CV'].filter(Boolean);
         const status = alertMessage || (enabled
             ? `On: your next email goes out at ${formatTime(hour, minute)}.`
-            : blocker || `Off. Switch it on and the first email goes out at ${formatTime(hour, minute)}.`);
+            : ready
+                ? `Off. Switch it on and the first email goes out at ${formatTime(hour, minute)}.`
+                : `The switch turns on once we have ${missing.join(' and ')}.`);
+
+        // Both are needed before the switch can do anything: titles to search for, a CV to score against
+        const step = (done, number, text, target, action) => `
+                    <li class="alert-step${done ? ' is-done' : ''}">
+                        <span class="alert-step-mark" aria-hidden="true">${done ? '&#10003;' : number}</span>
+                        <span class="alert-step-text">${text}</span>
+                        ${done
+                            ? '<span class="alert-step-state">Done</span>'
+                            : `<button type="button" class="alert-step-go" data-alert-goto="${target}">${action}</button>`}
+                    </li>`;
+        const setup = ready ? '' : `
+                <div class="alert-setup" id="alertSetup">
+                    <p class="alert-setup-title">Two things first, then the switch turns on</p>
+                    <ol class="alert-steps">
+                        ${step(hasTitles, 1, 'The job titles to look for', 'titles', 'Add titles')}
+                        ${step(profile.hasCv, 2, 'Your CV, to score the openings against', 'cv', 'Add my CV')}
+                    </ol>
+                </div>`;
 
         alertBox.innerHTML = `
             <div class="alert-card${enabled ? ' is-on' : ''}">
                 <div class="alert-card-head">
                     <span class="alert-card-icon">${icon('bell', 20)}</span>
                     <div class="alert-card-heading">
-                        <span class="label">Daily email · ${enabled ? 'On' : 'Off'}</span>
+                        <span class="label">Daily email &middot; ${enabled ? 'On' : 'Off'}</span>
                         <h3 class="alert-card-title">Your top 3 matches, in your inbox every day</h3>
                     </div>
-                    <label class="switch switch--inverse" title="${enabled ? 'Turn off' : 'Turn on'} the daily email">
-                        <input type="checkbox" data-alert-toggle aria-label="Daily email"${enabled ? ' checked' : ''}${!ready && !enabled ? ' disabled' : ''}>
+                    <label class="switch switch--inverse" title="${ready || enabled
+                        ? `${enabled ? 'Turn off' : 'Turn on'} the daily email`
+                        : `Add ${missing.join(' and ')} first`}">
+                        <input type="checkbox" data-alert-toggle aria-label="Daily email"${enabled ? ' checked' : ''}${!ready && !enabled ? ' disabled aria-describedby="alertSetup"' : ''}>
                     </label>
                 </div>
                 <p class="alert-card-text">At the time you pick, we search ${what}, score them against your CV and email you the best three, with the reasons. A job is never sent twice, and every email has a one-click unsubscribe.</p>
+                ${setup}
                 <div class="alert-card-controls">
                     <label class="alert-time">
                         <span>Every day at</span>
@@ -361,6 +384,17 @@
                 </div>
                 <p class="alert-card-status" role="status">${escapeHtml(status)}</p>
             </div>`;
+    }
+
+    // The card sends people straight to whichever piece is still missing
+    function goToTitles() {
+        prefsBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        prefsBox.querySelector('input[name="titles"]')?.focus({ preventScroll: true });
+    }
+
+    function goToCv() {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        document.querySelector('[data-cv-tab="pdf"]')?.focus({ preventScroll: true });
     }
 
     async function saveAlert(changes) {
@@ -394,6 +428,12 @@
 
     // Runs today's email straight away, whatever the schedule
     alertBox.addEventListener('click', async e => {
+        const goto = e.target.closest('[data-alert-goto]');
+        if (goto) {
+            if (goto.dataset.alertGoto === 'titles') goToTitles();
+            else goToCv();
+            return;
+        }
         const button = e.target.closest('[data-alert-test]');
         if (!button) return;
         button.disabled = true;

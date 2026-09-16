@@ -89,10 +89,10 @@ router.put('/alert', async (req, res) => {
         if (!user) return res.status(401).json({ error: 'Please sign in again.' });
         const enabled = Boolean(req.body.enabled);
         if (enabled && !user.targetTitles.length) {
-            return res.status(400).json({ error: 'Add the job titles you want on your Feed first.' });
+            return res.status(400).json({ error: 'Add the job titles to look for first, on your Feed.' });
         }
         if (enabled && !user.cv?.updatedAt) {
-            return res.status(400).json({ error: 'Run one search on Find matches first, so your CV is saved for scoring.' });
+            return res.status(400).json({ error: 'Add your CV first, so we can score the openings against it.' });
         }
 
         Object.assign(user.alert, { enabled, hour, minute, timeZone });
