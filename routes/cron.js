@@ -12,7 +12,12 @@ const router = express.Router();
 // without CRON_SECRET set, nothing can trigger a run
 function cronAuth(req, res, next) {
     const secret = process.env.CRON_SECRET;
-    if (!secret || req.get('authorization') !== `Bearer ${secret}`) {
+    // Told apart on purpose: a schedule that gets 401 sends the wrong secret, 503 means the app has none
+    if (!secret) {
+        console.error('Alerts: CRON_SECRET is not set on the server, so no schedule can run');
+        return res.status(503).json({ error: 'CRON_SECRET is not set on the server, so scheduled runs are off' });
+    }
+    if (req.get('authorization') !== `Bearer ${secret}`) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
     next();

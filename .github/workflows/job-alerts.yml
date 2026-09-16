@@ -13,7 +13,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Send the emails that are due
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          APP_URL: ${{ vars.APP_URL || 'https://cvmatch-xi.vercel.app' }}
         run: |
-          curl --fail-with-body --silent --show-error --max-time 300 \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "${{ vars.APP_URL || 'https://cvmatch-xi.vercel.app' }}/api/cron/alerts?source=hourly"
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::The CRON_SECRET repository secret is empty. Add it under Settings > Secrets and variables > Actions, with the same value as CRON_SECRET in Vercel."
+            exit 1
+          fi
+          status=$(curl --silent --show-error --max-time 300 --write-out '%{http_code}' --output body.txt \
+            --header "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/cron/alerts?source=hourly") || {
+              echo "::error::Could not reach $APP_URL. Check the APP_URL repository variable."
+              exit 1
+            }
+          echo "HTTP $status"
+          cat body.txt
+          echo
+          case "$status" in
+            2??) ;;
+            401) echo "::error::The app rejected the token, so CRON_SECRET here and in Vercel are different. Set both to the same value."; exit 1 ;;
+            503) echo "::error::CRON_SECRET is not set in Vercel, so scheduled runs are off there. Add it with: vercel env add CRON_SECRET production"; exit 1 ;;
+            *) echo "::error::The alerts run failed with HTTP $status."; exit 1 ;;
+          esac
