@@ -141,6 +141,8 @@ async function runDueAlerts({ source, baseUrl }) {
       console.error(`Daily alert for ${user._id} failed:`, error.message);
     }
   });
+  // Kept so the next call can show how the last run went, even when it outlived its own request
+  await SchedulerState.updateOne({ _id: 'alerts' }, { $set: { lastRun: { at: new Date(), ...summary } } }, { upsert: true });
   return summary;
 }
 
