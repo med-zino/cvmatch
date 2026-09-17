@@ -98,21 +98,35 @@ async function runDueAlerts({ source, baseUrl }) {
   });
 
   const started = Date.now();
-  const summary = { source, due: due.length, sent: 0, nothingToSend: 0, failed: 0, deferred: 0 };
+  const summary = { source, due: due.length, sent: 0, nothingToSend: 0, failed: 0, deferred: 0, alreadyRunning: 0, latestBy: 0 };
   await eachLimited(due, CONCURRENCY, async user => {
     if (Date.now() - started > RUN_BUDGET_MS) {
       summary.deferred++;
       return;
     }
-    const { date } = localTime(user.alert.timeZone);
+    const { date, minutes } = localTime(user.alert.timeZone);
+    // The day is claimed before the work starts. A run takes minutes, so a scheduler calling every
+    // quarter of an hour, or retrying a slow call, can overlap with one still going; without the
+    // claim both would email the same person.
+    const claimed = await User.findOneAndUpdate(
+      { _id: user._id, 'alert.lastRunDate': { $ne: date } },
+      { $set: { 'alert.lastRunDate': date } }
+    ).lean();
+    if (!claimed) {
+      summary.alreadyRunning++;
+      return;
+    }
     try {
       const result = await runAlert(user, { baseUrl, signal: AbortSignal.timeout(USER_TIMEOUT_MS) });
-      await User.updateOne({ _id: user._id }, {
-        $set: { 'alert.lastRunDate': date, ...(result.sent ? { 'alert.lastSentAt': new Date() } : {}) }
-      });
+      if (result.sent) {
+        await User.updateOne({ _id: user._id }, { $set: { 'alert.lastSentAt': new Date() } });
+        // How far past the chosen time this went out, so the schedule can be held to its promise
+        summary.latestBy = Math.max(summary.latestBy, minutes - (user.alert.hour * 60 + (user.alert.minute || 0)));
+      }
       summary[result.sent ? 'sent' : 'nothingToSend']++;
     } catch (error) {
-      // Left due, so the next hourly run tries again
+      // The day goes back, so the next run tries this user again
+      await User.updateOne({ _id: user._id }, { $set: { 'alert.lastRunDate': claimed.alert?.lastRunDate || null } });
       summary.failed++;
       console.error(`Daily alert for ${user._id} failed:`, error.message);
     }
