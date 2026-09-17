@@ -14,6 +14,9 @@ const TOP_JOBS = 3;
 // A run stops starting new users after this; the rest are still due and go out the next hour
 const RUN_BUDGET_MS = 200 * 1000;
 const USER_TIMEOUT_MS = 90 * 1000;
+// How long one run may hold a user before another run may take them: longer than one user's work,
+// short enough that a run killed halfway frees them again within minutes
+const LEASE_MS = 10 * 60 * 1000;
 const CONCURRENCY = 3;
 // The daily fallback stands down while the hourly schedule is running
 const HOURLY_ACTIVE_MS = 3 * 60 * 60 * 1000;
@@ -105,12 +108,18 @@ async function runDueAlerts({ source, baseUrl }) {
       return;
     }
     const { date, minutes } = localTime(user.alert.timeZone);
-    // The day is claimed before the work starts. A run takes minutes, so a scheduler calling every
-    // quarter of an hour, or retrying a slow call, can overlap with one still going; without the
-    // claim both would email the same person.
+    // A run takes minutes, so a scheduler calling every quarter of an hour, or retrying a call it
+    // timed out on, can start while one is still going. Each user is leased before the work starts,
+    // so only one run has them. The lease expires by itself if a run dies halfway, and the day is
+    // only marked done once the email is really out, so nobody silently loses a day.
+    const now = new Date();
     const claimed = await User.findOneAndUpdate(
-      { _id: user._id, 'alert.lastRunDate': { $ne: date } },
-      { $set: { 'alert.lastRunDate': date } }
+      {
+        _id: user._id,
+        'alert.lastRunDate': { $ne: date },
+        $or: [{ 'alert.runningSince': null }, { 'alert.runningSince': { $lt: new Date(now.getTime() - LEASE_MS) } }]
+      },
+      { $set: { 'alert.runningSince': now } }
     ).lean();
     if (!claimed) {
       summary.alreadyRunning++;
@@ -118,15 +127,16 @@ async function runDueAlerts({ source, baseUrl }) {
     }
     try {
       const result = await runAlert(user, { baseUrl, signal: AbortSignal.timeout(USER_TIMEOUT_MS) });
-      if (result.sent) {
-        await User.updateOne({ _id: user._id }, { $set: { 'alert.lastSentAt': new Date() } });
-        // How far past the chosen time this went out, so the schedule can be held to its promise
-        summary.latestBy = Math.max(summary.latestBy, minutes - (user.alert.hour * 60 + (user.alert.minute || 0)));
-      }
+      await User.updateOne({ _id: user._id }, {
+        $set: { 'alert.lastRunDate': date, ...(result.sent ? { 'alert.lastSentAt': new Date() } : {}) },
+        $unset: { 'alert.runningSince': '' }
+      });
+      // How far past the chosen time this went out, so the schedule can be held to its promise
+      if (result.sent) summary.latestBy = Math.max(summary.latestBy, minutes - (user.alert.hour * 60 + (user.alert.minute || 0)));
       summary[result.sent ? 'sent' : 'nothingToSend']++;
     } catch (error) {
-      // The day goes back, so the next run tries this user again
-      await User.updateOne({ _id: user._id }, { $set: { 'alert.lastRunDate': claimed.alert?.lastRunDate || null } });
+      // The lease is dropped and the day left unmarked, so the next run tries this user again
+      await User.updateOne({ _id: user._id }, { $unset: { 'alert.runningSince': '' } });
       summary.failed++;
       console.error(`Daily alert for ${user._id} failed:`, error.message);
     }

@@ -56,6 +56,8 @@ const userSchema = new mongoose.Schema({
         timeZone: { type: String, default: 'UTC' },
         // The user's local date of the last run, so a day never gets two emails
         lastRunDate: String,
+        // Set while a run is working on this user, so two runs at once cannot email them twice
+        runningSince: Date,
         lastSentAt: Date,
         lastTestAt: Date
     },
