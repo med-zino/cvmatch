@@ -43,6 +43,20 @@ function toItem(job) {
     };
 }
 
+// GET /api/feed/item/:id — one job of the user's feed, for a link straight to it (the daily email)
+router.get('/item/:id', async (req, res) => {
+    try {
+        const job = mongoose.isValidObjectId(req.params.id)
+            ? await FeedJob.findOne({ _id: req.params.id, userId: req.userId }).lean()
+            : null;
+        if (!job) return res.status(404).json({ error: 'That job is no longer in your feed' });
+        res.json({ item: toItem(job) });
+    } catch (error) {
+        console.error('Error loading a feed job:', error);
+        res.status(500).json({ error: 'Could not load that job' });
+    }
+});
+
 // GET /api/feed?source=all|feed|search&cursor= — newest first, PAGE_SIZE at a time
 router.get('/', async (req, res) => {
     try {

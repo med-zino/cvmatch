@@ -69,13 +69,14 @@ const tierLabel = score => score >= 85 ? 'Strong match' : score >= 70 ? 'Good ma
 function jobCard(job) {
   const meta = [job.company, job.location].filter(Boolean).map(escape).join(' · ');
   const link = safeUrl(job.link);
+  const appUrl = safeUrl(job.appUrl);
   return `
     <tr><td style="padding: 0 32px 14px;">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #E6E4DF; border-radius: 12px;">
         <tr><td style="padding: 20px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
             <td style="vertical-align: top; padding-right: 12px;">
-              <p style="margin: 0 0 4px; font-size: 17px; font-weight: bold; line-height: 1.3;">${escape(job.title)}</p>
+              <p style="margin: 0 0 4px; font-size: 17px; font-weight: bold; line-height: 1.3;">${appUrl ? `<a href="${escape(appUrl)}" style="color: #0E0E0D; text-decoration: none;">${escape(job.title)}</a>` : escape(job.title)}</p>
               <p style="margin: 0; font-size: 13px; color: #76746F;">${meta}</p>
             </td>
             <td style="vertical-align: top; text-align: right; white-space: nowrap;">
@@ -84,7 +85,11 @@ function jobCard(job) {
             </td>
           </tr></table>
           ${job.reasons?.[0] ? `<p style="margin: 14px 0 0; font-size: 14px; line-height: 1.55; color: #3B3A38;">${escape(job.reasons[0])}</p>` : ''}
-          ${link ? `<p style="margin: 16px 0 0;"><a href="${escape(link)}" style="display: inline-block; padding: 10px 16px; background-color: #0E0E0D; color: #F7F7F5; font-size: 13px; font-weight: bold; text-decoration: none; border-radius: 8px;">Apply</a></p>` : ''}
+          <p style="margin: 16px 0 0; font-size: 13px;">
+            ${appUrl ? `<a href="${escape(appUrl)}" style="display: inline-block; padding: 10px 16px; background-color: #0E0E0D; color: #F7F7F5; font-size: 13px; font-weight: bold; text-decoration: none; border-radius: 8px;">Open in Pounce</a>` : ''}
+            ${link && appUrl ? `<a href="${escape(link)}" style="margin-left: 14px; color: #76746F;">or apply directly</a>` : ''}
+            ${link && !appUrl ? `<a href="${escape(link)}" style="display: inline-block; padding: 10px 16px; background-color: #0E0E0D; color: #F7F7F5; font-size: 13px; font-weight: bold; text-decoration: none; border-radius: 8px;">Apply</a>` : ''}
+          </p>
         </td></tr>
       </table>
     </td></tr>`;
@@ -104,7 +109,7 @@ async function sendJobAlertEmail(to, { jobs, titles, location, feedUrl, unsubscr
         <tr><td style="padding: 32px 32px 20px;">
           <p style="margin: 0 0 24px; font-size: 17px; font-weight: bold; letter-spacing: -0.02em;">Pounce</p>
           <h1 style="margin: 0 0 10px; font-family: Georgia, 'Times New Roman', serif; font-size: 30px; font-weight: normal; line-height: 1.1;">${heading}</h1>
-          <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #76746F;">New openings for ${escape(search)}, scored against your CV.</p>
+          <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #76746F;">New openings for ${escape(search)}, scored against your CV. Open one in Pounce to see why it fits and get a cover letter written for it.</p>
         </td></tr>
         ${jobs.map(jobCard).join('')}
         <tr><td style="padding: 10px 32px 28px;">
@@ -125,9 +130,10 @@ async function sendJobAlertEmail(to, { jobs, titles, location, feedUrl, unsubscr
     ...jobs.map(job => [
       `${job.score}% · ${job.title}${job.company ? ` at ${job.company}` : ''}`,
       job.reasons?.[0] || '',
-      safeUrl(job.link),
+      job.appUrl ? `Open in Pounce: ${safeUrl(job.appUrl)}` : '',
+      safeUrl(job.link) ? `Apply directly: ${safeUrl(job.link)}` : '',
       ''
-    ].filter((line, i) => line || i === 3).join('\n')),
+    ].filter((line, i, all) => line || i === all.length - 1).join('\n')),
     `Your feed: ${feedUrl}`,
     `Turn off daily emails: ${unsubscribeUrl}`
   ].join('\n');

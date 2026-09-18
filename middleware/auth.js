@@ -34,7 +34,8 @@ const auth = async (req, res, next) => {
     } catch (error) {
         console.error('Page auth error:', error.message);
     }
-    res.redirect('/login');
+    // Login sends them back here afterwards, so a link into the app (the daily email) still lands
+    res.redirect(`/login?next=${encodeURIComponent(req.originalUrl)}`);
 };
 
 // API guard: answers 401 instead of redirecting, and sets req.userId for the handlers

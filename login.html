@@ -84,7 +84,9 @@
             localStorage.setItem('token', data.token);
             localStorage.setItem('userEmail', data.email || '');
             document.cookie = `token=${data.token}; path=/; max-age=86400`;
-            window.location.href = '/app';
+            // Back to the page that sent them here: only ever a path on this site, never //elsewhere
+            const next = new URLSearchParams(window.location.search).get('next') || '';
+            window.location.href = /^\/(?!\/)[^\\]*$/.test(next) ? next : '/app';
         }
 
         if (new URLSearchParams(window.location.search).get('verified') === 'true') {

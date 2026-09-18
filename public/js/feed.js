@@ -35,6 +35,8 @@
     let profile = { titles: [], location: '', fetchedAt: null, hasCv: false, alert: { enabled: false, hour: 8, minute: 0 } };
     let counts = { all: 0, feed: 0, search: 0 };
     let savedLinks = new Set();
+    // A job linked from the daily email (/app?job=…), brought into view once the feed loads
+    const spotlightId = new URLSearchParams(window.location.search).get('job');
 
     const isScored = item => typeof item.score === 'number';
     const formatTime = (hour, minute = 0) => new Date(2000, 0, 1, hour, minute).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
@@ -54,9 +56,35 @@
         renderPrefs();
         // Links to /app#feed (the old /feed page, the daily email) arrive before the feed has its
         // height, so the browser can't scroll all the way; finish the job once it's loaded
-        if (window.location.hash === '#feed') document.getElementById('feed').scrollIntoView({ block: 'start' });
+        if (spotlightId) await showSpotlight(spotlightId);
+        else if (window.location.hash === '#feed') document.getElementById('feed').scrollIntoView({ block: 'start' });
         // First visit with titles from sign-up: fetch their openings now
-        if (profile.titles.length && !profile.fetchedAt) await refresh();
+        // Not when they came for one job from the daily email: the rebuild would reload the list
+        // under them and lose the job they opened. It happens on their next ordinary visit instead.
+        if (!spotlightId && profile.titles.length && !profile.fetchedAt) await refresh();
+    }
+
+    // The job the daily email linked to: highlighted where it is, or fetched and put first when it
+    // is further down than the first page
+    async function showSpotlight(id) {
+        let card = list.querySelector(`[data-id="${CSS.escape(id)}"]`);
+        if (!card) {
+            try {
+                const response = checkSession(await fetch(`/api/feed/item/${encodeURIComponent(id)}`, { headers: authHeaders() }));
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'That job is no longer in your feed');
+                items.unshift(data.item);
+                list.insertAdjacentHTML('afterbegin', feedCard(data.item));
+                card = list.firstElementChild;
+            } catch (error) {
+                toast(error.message);
+                return;
+            }
+        }
+        // The link has done its job; a reload should not jump back here
+        history.replaceState(null, '', `${location.pathname}#feed`);
+        card.classList.add('is-spotlight');
+        card.scrollIntoView({ block: 'center' });
     }
 
     // ---------- Loading ----------
@@ -87,8 +115,10 @@
             profile = data.profile;
             counts = data.counts;
             cursor = data.nextCursor;
-            items.push(...data.items);
-            list.insertAdjacentHTML('beforeend', data.items.map(feedCard).join(''));
+            // A job already shown (the one the daily email linked to) is not drawn a second time
+            const fresh = data.items.filter(item => !items.some(shown => shown.id === item.id));
+            items.push(...fresh);
+            list.insertAdjacentHTML('beforeend', fresh.map(feedCard).join(''));
             renderChrome();
             if (reset) renderAlert();
         } catch (error) {

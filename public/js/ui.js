@@ -7,7 +7,7 @@ const session = {
 };
 
 if (!session.userId || !session.token) {
-    window.location.href = '/login';
+    window.location.href = `/login?next=${encodeURIComponent(location.pathname + location.search + location.hash)}`;
 }
 
 const ICON_PATHS = {

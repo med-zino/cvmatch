@@ -69,7 +69,8 @@ async function runAlert(user, { baseUrl, signal }) {
 
   const token = jwt.sign({ userId: user._id, purpose: 'alert-unsubscribe' }, JWT_SECRET);
   const email = await sendJobAlertEmail(user.email, {
-    jobs: top,
+    // Each job opens in the app, on the job itself, where the letter and tips are a click away
+    jobs: top.map(job => ({ ...job, appUrl: `${baseUrl}/app?job=${job._id}` })),
     titles: user.targetTitles,
     location: user.targetLocation,
     feedUrl: `${baseUrl}/app#feed`,

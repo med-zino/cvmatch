@@ -928,6 +928,10 @@ svg { display: block; flex: none; }
 .feed-notice { margin-bottom: 24px; }
 .spinner { width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin 0.7s linear infinite; }
 
+/* A job opened from the daily email: outlined, with a short pulse so the eye lands on it */
+.feed-card.is-spotlight { border-color: var(--ink); animation: spotlight 1.4s var(--ease-out) 2; }
+@keyframes spotlight { 0%, 100% { box-shadow: 0 0 0 0 rgba(14, 14, 13, 0); } 40% { box-shadow: 0 0 0 6px rgba(14, 14, 13, 0.12); } }
+
 /* ---------- Feed, below the search ---------- */
 .feed-section { border-top: 1px solid var(--line); scroll-margin-top: 64px; }
 .feed-section > .page-head { padding-top: 48px; }
